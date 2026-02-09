@@ -1,0 +1,176 @@
+import { Metadata } from 'next'
+import { Suspense } from 'react'
+import { mockPatterns } from '@/lib/data/mockPatterns'
+import {
+  filterAndSortPatterns,
+  getAllCategories,
+  getAllTags,
+  SortOption,
+} from '@/lib/data/filterAndSort'
+import { SearchBar } from '@/components/patterns/SearchBar'
+import { SortSelector } from '@/components/patterns/SortSelector'
+import { FilterPanel } from '@/components/patterns/FilterPanel'
+import { FilterSheet } from '@/components/patterns/FilterSheet'
+import { PatternsGrid } from '@/components/patterns/PatternsGrid'
+import { EmptyState } from '@/components/patterns/EmptyState'
+import { Pagination } from '@/components/patterns/Pagination'
+
+type SearchParams = Promise<{
+  q?: string
+  category?: string
+  tags?: string
+  sort?: SortOption
+  page?: string
+}>
+
+export const metadata: Metadata = {
+  title: 'Browse Patterns',
+  description:
+    'Browse our curated collection of AI-driven enterprise patterns, prompts, and architectural blueprints. Filter by category, search by keyword, and discover solutions for your projects.',
+  keywords: [
+    'AI patterns',
+    'enterprise architecture',
+    'design patterns',
+    'software patterns',
+    'AI prompts',
+    'CQRS',
+    'clean architecture',
+    'microservices',
+  ],
+  openGraph: {
+    title: 'Browse Patterns | AI Enterprise Patterns',
+    description:
+      'Browse our curated collection of AI-driven enterprise patterns, prompts, and architectural blueprints.',
+    url: 'https://ai-patterns.example.com/patterns',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Browse Patterns | AI Enterprise Patterns',
+    description:
+      'Browse our curated collection of AI-driven enterprise patterns.',
+  },
+}
+
+export default async function PatternsPage(props: {
+  searchParams: SearchParams
+}) {
+  const searchParams = await props.searchParams
+
+  // Parse search params
+  const searchQuery = searchParams.q
+  const category = searchParams.category
+  const tags = searchParams.tags?.split(',').filter(Boolean)
+  const sortBy = (searchParams.sort as SortOption) || 'recent'
+  const page = parseInt(searchParams.page || '1', 10)
+
+  // Get all available filters
+  const allCategories = getAllCategories(mockPatterns)
+  const allTags = getAllTags(mockPatterns)
+
+  // Filter and sort patterns
+  const result = filterAndSortPatterns(mockPatterns, {
+    searchQuery,
+    category,
+    tags,
+    sortBy,
+    page,
+    pageSize: 9,
+  })
+
+  const hasActiveFilters = !!(searchQuery || category || tags?.length)
+
+  // JSON-LD for SEO
+  const jsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: 'AI Enterprise Patterns Library',
+    description:
+      'Browse curated AI-driven enterprise patterns and architectural blueprints',
+    url: 'https://ai-patterns.example.com/patterns',
+    numberOfItems: result.totalCount,
+  }
+
+  return (
+    <>
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
+        {/* Page Header */}
+        <div className="mb-8">
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
+            Browse Patterns
+          </h1>
+          <p className="text-muted-foreground">
+            Discover {result.totalCount}{' '}
+            {result.totalCount === 1 ? 'pattern' : 'patterns'} in our library
+          </p>
+        </div>
+
+        {/* Search and Sort Controls */}
+        <div className="flex flex-col sm:flex-row gap-4 mb-6">
+          <div className="flex-1">
+            <Suspense
+              fallback={
+                <div className="h-10 bg-muted animate-pulse rounded" />
+              }
+            >
+              <SearchBar />
+            </Suspense>
+          </div>
+          <div className="flex gap-2">
+            <div className="lg:hidden">
+              <FilterSheet categories={allCategories} tags={allTags} />
+            </div>
+            <Suspense
+              fallback={
+                <div className="h-10 w-[200px] bg-muted animate-pulse rounded" />
+              }
+            >
+              <SortSelector />
+            </Suspense>
+          </div>
+        </div>
+
+        {/* Main Content Grid */}
+        <div className="flex gap-8">
+          {/* Desktop Filter Panel */}
+          <div className="hidden lg:block">
+            <Suspense
+              fallback={
+                <div className="w-64 h-96 bg-muted animate-pulse rounded" />
+              }
+            >
+              <FilterPanel categories={allCategories} tags={allTags} />
+            </Suspense>
+          </div>
+
+          {/* Patterns Grid */}
+          <div className="flex-1">
+            {result.patterns.length > 0 ? (
+              <>
+                <PatternsGrid patterns={result.patterns} />
+                <Suspense
+                  fallback={
+                    <div className="h-12 bg-muted animate-pulse rounded mt-8" />
+                  }
+                >
+                  <Pagination
+                    currentPage={result.currentPage}
+                    totalPages={result.totalPages}
+                    hasNextPage={result.hasNextPage}
+                    hasPreviousPage={result.hasPreviousPage}
+                  />
+                </Suspense>
+              </>
+            ) : (
+              <EmptyState hasFilters={hasActiveFilters} />
+            )}
+          </div>
+        </div>
+      </div>
+
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+    </>
+  )
+}

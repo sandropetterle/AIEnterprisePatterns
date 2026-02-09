@@ -258,6 +258,7 @@ The project will be:
 * Users are internal to an organization unless deployed publicly.
 * Authentication is optional in initial release.
 * Strapi will handle content management for pattern content.
+* Strapi will handle content for all static content within the components and pages of the site.
 
 ---
 
