@@ -1,0 +1,291 @@
+import { Metadata } from 'next'
+import Link from 'next/link'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Github, Lightbulb, Users, Code2, Sparkles, Target, BookOpen, Zap } from 'lucide-react'
+
+export const metadata: Metadata = {
+  title: 'About | AI Enterprise Patterns',
+  description:
+    'Learn about AI Enterprise Patterns Library - a curated collection of AI-driven implementation patterns, prompts, and architectural blueprints for modern software development.',
+  keywords: [
+    'about',
+    'AI patterns',
+    'enterprise architecture',
+    'software patterns',
+    'AI-assisted development',
+    'pattern library',
+  ],
+  openGraph: {
+    title: 'About | AI Enterprise Patterns',
+    description:
+      'A curated collection of AI-driven implementation patterns for modern software development.',
+    url: 'https://ai-patterns.example.com/about',
+  },
+}
+
+export default function AboutPage() {
+  return (
+    <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+      {/* Header Section */}
+      <div className="max-w-3xl mx-auto text-center mb-16">
+        <Badge className="mb-4">About the Platform</Badge>
+        <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
+          AI Enterprise Patterns Library
+        </h1>
+        <p className="text-xl text-muted-foreground leading-relaxed">
+          A centralized repository of AI-driven recipes, prompts, and blueprints for enterprise
+          software architecture patterns. Curated by developers, for developers.
+        </p>
+      </div>
+
+      {/* Mission Section */}
+      <div className="max-w-4xl mx-auto mb-16">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <Target className="h-6 w-6 text-primary" />
+              Our Mission
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4 text-muted-foreground">
+            <p>
+              In the rapidly evolving landscape of AI-assisted software development, developers
+              need proven patterns and strategies to effectively leverage AI tools in enterprise
+              contexts. Our mission is to bridge that gap.
+            </p>
+            <p>
+              We curate, document, and share battle-tested patterns that help teams integrate AI
+              into their development workflows—from architectural decisions and design patterns to
+              prompt engineering and best practices.
+            </p>
+            <p>
+              Whether you're building microservices, implementing clean architecture, or exploring
+              AI-assisted code generation, you'll find practical, production-ready patterns here.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Features Grid */}
+      <div className="max-w-6xl mx-auto mb-16">
+        <h2 className="text-3xl font-bold text-center mb-10">What We Offer</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Feature 1 */}
+          <Card>
+            <CardHeader>
+              <Code2 className="h-8 w-8 text-primary mb-2" />
+              <CardTitle>Design Patterns</CardTitle>
+              <CardDescription>
+                Architectural blueprints and implementation guides for enterprise software
+                development
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Repository Pattern with EF Core</li>
+                <li>• CQRS and Event Sourcing</li>
+                <li>• Clean Architecture strategies</li>
+                <li>• Microservices patterns</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Feature 2 */}
+          <Card>
+            <CardHeader>
+              <Sparkles className="h-8 w-8 text-primary mb-2" />
+              <CardTitle>AI Prompts</CardTitle>
+              <CardDescription>
+                Curated prompts for AI-assisted development, code review, and refactoring
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Code review prompts (SOLID, security)</li>
+                <li>• Refactoring strategies</li>
+                <li>• Documentation generation</li>
+                <li>• Test case creation</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Feature 3 */}
+          <Card>
+            <CardHeader>
+              <BookOpen className="h-8 w-8 text-primary mb-2" />
+              <CardTitle>Best Practices</CardTitle>
+              <CardDescription>
+                Industry-standard practices for security, performance, and code quality
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Security best practices</li>
+                <li>• Performance optimization</li>
+                <li>• Testing strategies</li>
+                <li>• Code generation guidelines</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Feature 4 */}
+          <Card>
+            <CardHeader>
+              <Lightbulb className="h-8 w-8 text-primary mb-2" />
+              <CardTitle>Real-World Examples</CardTitle>
+              <CardDescription>
+                Production-ready code samples and implementation examples
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Complete code samples</li>
+                <li>• Step-by-step guides</li>
+                <li>• Trade-off analysis</li>
+                <li>• Implementation tips</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Feature 5 */}
+          <Card>
+            <CardHeader>
+              <Users className="h-8 w-8 text-primary mb-2" />
+              <CardTitle>Community-Driven</CardTitle>
+              <CardDescription>
+                Vote on patterns, share insights, and learn from the community
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• Community voting system</li>
+                <li>• Trending patterns</li>
+                <li>• Expert contributions</li>
+                <li>• Continuous updates</li>
+              </ul>
+            </CardContent>
+          </Card>
+
+          {/* Feature 6 */}
+          <Card>
+            <CardHeader>
+              <Zap className="h-8 w-8 text-primary mb-2" />
+              <CardTitle>Always Up-to-Date</CardTitle>
+              <CardDescription>
+                Latest patterns and practices for modern development stacks
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                <li>• .NET 8+ patterns</li>
+                <li>• Next.js 16 best practices</li>
+                <li>• Azure cloud patterns</li>
+                <li>• Modern TypeScript</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+
+      {/* Technology Stack */}
+      <div className="max-w-4xl mx-auto mb-16">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <Code2 className="h-6 w-6 text-primary" />
+              Built With Modern Technologies
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <h3 className="font-semibold mb-3">Frontend</h3>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>• Next.js 16 (App Router)</li>
+                  <li>• TypeScript</li>
+                  <li>• Tailwind CSS</li>
+                  <li>• shadcn/ui Components</li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold mb-3">Backend</h3>
+                <ul className="space-y-2 text-sm text-muted-foreground">
+                  <li>• ASP.NET Core 8.0</li>
+                  <li>• Entity Framework Core</li>
+                  <li>• Clean Architecture</li>
+                  <li>• Azure SQL Database</li>
+                </ul>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Project Info */}
+      <div className="max-w-4xl mx-auto mb-16">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-3">
+              <Github className="h-6 w-6 text-primary" />
+              Open Source Project
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-muted-foreground">
+              This project is open source and available on GitHub. We welcome contributions,
+              suggestions, and feedback from the community.
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="https://github.com/sandropetterle/AIEnterprisePatterns"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors"
+              >
+                <Github className="h-4 w-4" />
+                View on GitHub
+              </Link>
+              <Link
+                href="/docs"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-md hover:bg-accent transition-colors"
+              >
+                <BookOpen className="h-4 w-4" />
+                Documentation
+              </Link>
+              <Link
+                href="/patterns"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-border rounded-md hover:bg-accent transition-colors"
+              >
+                <Code2 className="h-4 w-4" />
+                Browse Patterns
+              </Link>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Call to Action */}
+      <div className="max-w-3xl mx-auto text-center">
+        <Card className="bg-primary/5 border-primary/20">
+          <CardHeader>
+            <CardTitle className="text-2xl">Start Exploring Patterns</CardTitle>
+            <CardDescription className="text-base">
+              Discover curated patterns, prompts, and best practices for AI-assisted enterprise
+              development
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Link
+              href="/patterns"
+              className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-primary-foreground rounded-md hover:bg-primary/90 transition-colors text-lg font-medium"
+            >
+              Browse All Patterns
+              <span aria-hidden="true">→</span>
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    </div>
+  )
+}
