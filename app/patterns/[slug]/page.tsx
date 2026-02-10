@@ -1,6 +1,6 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { mockPatterns, getPatternBySlug, getPublishedPatterns } from '@/lib/data/mockPatterns'
+import { getPatternBySlug, getPatterns } from '@/lib/api/patterns'
 import { getRelatedPatterns } from '@/lib/data/relatedPatterns'
 import { formatDate } from '@/lib/utils/dateFormat'
 import { Breadcrumb } from '@/components/patterns/details/Breadcrumb'
@@ -15,16 +15,19 @@ type PageProps = {
   params: Promise<{ slug: string }>
 }
 
+// Revalidate every 10 minutes
+export const revalidate = 600
+
 export async function generateStaticParams() {
-  const publishedPatterns = getPublishedPatterns()
-  return publishedPatterns.map((pattern) => ({
+  const response = await getPatterns({ pageSize: 100 })
+  return response.patterns.map((pattern) => ({
     slug: pattern.slug,
   }))
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
-  const pattern = getPatternBySlug(slug)
+  const pattern = await getPatternBySlug(slug)
 
   if (!pattern) {
     return {
@@ -55,13 +58,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PatternDetailPage({ params }: PageProps) {
   const { slug } = await params
-  const pattern = getPatternBySlug(slug)
+  const pattern = await getPatternBySlug(slug)
 
   if (!pattern) {
     notFound()
   }
 
-  const relatedPatterns = getRelatedPatterns(pattern, mockPatterns)
+  // Get all patterns for related patterns computation (MVP approach)
+  const allPatterns = await getPatterns({ pageSize: 100 })
+  const relatedPatterns = getRelatedPatterns(pattern, allPatterns.patterns)
   const isAuthorized = false // Mock authorization - always false for Phase 1
 
   const breadcrumbs = [
