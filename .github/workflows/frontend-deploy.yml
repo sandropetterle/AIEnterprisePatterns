@@ -1,0 +1,144 @@
+name: Frontend Web - Build and Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'app/**'
+      - 'components/**'
+      - 'lib/**'
+      - 'public/**'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'next.config.ts'
+      - 'tailwind.config.ts'
+      - '.github/workflows/frontend-deploy.yml'
+  workflow_dispatch: # Manual trigger
+
+env:
+  NODE_VERSION: '20.x'
+  AZURE_WEBAPP_NAME: 'app-aipatterns-web-prod' # Update to match your App Service name
+
+jobs:
+  build:
+    name: Build Frontend
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run TypeScript check
+        run: npx tsc --noEmit
+
+      - name: Build Next.js application
+        run: npm run build
+        env:
+          NEXT_PUBLIC_API_BASE_URL: https://app-aipatterns-api-prod.azurewebsites.net/api # Update to match your backend URL
+
+      - name: Create standalone build
+        run: |
+          # Next.js standalone output is already in .next/standalone
+          # Copy static files and public folder to standalone directory
+          cp -r .next/static .next/standalone/.next/
+          cp -r public .next/standalone/
+
+      - name: Upload artifact for deployment
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-app
+          path: .next/standalone
+          retention-days: 1
+
+  deploy:
+    name: Deploy to Azure
+    runs-on: ubuntu-latest
+    needs: build
+    environment:
+      name: 'Production'
+      url: ${{ steps.deploy-to-webapp.outputs.webapp-url }}
+    permissions:
+      id-token: write # Required for OIDC authentication
+      contents: read
+
+    steps:
+      - name: Download artifact from build job
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-app
+          path: ./frontend-app
+
+      - name: Create startup script
+        run: |
+          cat > ./frontend-app/startup.sh << 'EOF'
+          #!/bin/sh
+          echo "Starting Next.js application..."
+          node server.js
+          EOF
+          chmod +x ./frontend-app/startup.sh
+
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Deploy to Azure Web App
+        id: deploy-to-webapp
+        uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ env.AZURE_WEBAPP_NAME }}
+          package: ./frontend-app
+          startup-command: 'node server.js'
+
+      - name: Logout from Azure
+        run: az logout
+        if: always()
+
+  healthcheck:
+    name: Health Check
+    runs-on: ubuntu-latest
+    needs: deploy
+
+    steps:
+      - name: Wait for deployment to stabilize
+        run: sleep 30
+
+      - name: Check homepage
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net)
+          if [ $response -eq 200 ]; then
+            echo "✓ Homepage health check passed (HTTP $response)"
+          else
+            echo "✗ Homepage health check failed (HTTP $response)"
+            exit 1
+          fi
+
+      - name: Check patterns page
+        run: |
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/patterns)
+          if [ $response -eq 200 ]; then
+            echo "✓ Patterns page accessible (HTTP $response)"
+          else
+            echo "✗ Patterns page not accessible (HTTP $response)"
+            exit 1
+          fi
+
+      - name: Deployment summary
+        run: |
+          echo "### Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "- **Frontend Web:** https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
+          echo "- **Patterns Page:** https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/patterns" >> $GITHUB_STEP_SUMMARY
+          echo "- **Health Status:** ✓ Healthy" >> $GITHUB_STEP_SUMMARY

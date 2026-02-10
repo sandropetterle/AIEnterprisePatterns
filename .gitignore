@@ -49,3 +49,10 @@ next-env.d.ts
 
 # Docker
 docker-compose.override.yml
+
+# Azure deployment credentials (sensitive)
+deployment/sql-credentials.txt
+deployment/DEPLOYMENT_SUMMARY.txt
+deployment/azure-resources-output.txt
+deployment/azure-container-apps-output.txt
+deployment/github-secrets-values.txt
