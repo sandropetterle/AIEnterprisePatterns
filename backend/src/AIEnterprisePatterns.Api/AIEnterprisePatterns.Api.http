@@ -1,0 +1,6 @@
+@AIEnterprisePatterns.Api_HostAddress = http://localhost:5255
+
+GET {{AIEnterprisePatterns.Api_HostAddress}}/weatherforecast/
+Accept: application/json
+
+###

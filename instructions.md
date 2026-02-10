@@ -59,6 +59,9 @@ The platform will be designed for extensibility and maintainability following en
   * Code-first approach
   * Migrations enabled
   * Performance-conscious configuration
+* **Database:** Azure SQL
+  * Generate SQL Script to create the tables
+  * Using Index appropriately
 
 ---
 
