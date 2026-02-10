@@ -49,22 +49,34 @@ export const apiClient = {
 **Critical Learning:** Backend and frontend use different naming conventions for categories
 
 **Problem:**
-- Backend (C# Enums): `DesignPatterns`, `AIPrompts`, `BestPractices` (PascalCase, no spaces)
-- Frontend (TypeScript): `"Design Patterns"`, `"AI Prompts"`, `"Best Practices"` (spaced strings)
+- Backend (C# Enums): 8 categories in PascalCase format (no spaces)
+  - `Architecture`, `DesignPatterns`, `AIPrompts`, `BestPractices`, `CodeGeneration`, `Testing`, `Security`, `Performance`
+- Frontend (TypeScript): 8 categories with spaced strings
+  - `"Architecture"`, `"Design Patterns"`, `"AI Prompts"`, `"Best Practices"`, `"Code Generation"`, `"Testing"`, `"Security"`, `"Performance"`
 
 **Solution:** Bidirectional mapper layer at `lib/api/mappers.ts`
 
 ```typescript
 const CATEGORY_API_TO_UI: Record<string, PatternCategory> = {
+  'Architecture': 'Architecture',
   'DesignPatterns': 'Design Patterns',
   'AIPrompts': 'AI Prompts',
-  // ...
+  'BestPractices': 'Best Practices',
+  'CodeGeneration': 'Code Generation',
+  'Testing': 'Testing',
+  'Security': 'Security',
+  'Performance': 'Performance',
 }
 
 const CATEGORY_UI_TO_API: Record<PatternCategory, string> = {
+  'Architecture': 'Architecture',
   'Design Patterns': 'DesignPatterns',
   'AI Prompts': 'AIPrompts',
-  // ...
+  'Best Practices': 'BestPractices',
+  'Code Generation': 'CodeGeneration',
+  'Testing': 'Testing',
+  'Security': 'Security',
+  'Performance': 'Performance',
 }
 ```
 

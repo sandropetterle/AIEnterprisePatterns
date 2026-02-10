@@ -109,8 +109,25 @@ AIEnterprisePatterns/
 
 ### 1. Category Mapping (IMPORTANT!)
 
-**Backend (C# Enums):** `DesignPatterns`, `AIPrompts`, `BestPractices` (PascalCase, no spaces)
-**Frontend (TypeScript):** `"Design Patterns"`, `"AI Prompts"`, `"Best Practices"` (spaced)
+**Backend (C# Enums):** 8 categories (PascalCase, no spaces)
+- `Architecture`
+- `DesignPatterns`
+- `AIPrompts`
+- `BestPractices`
+- `CodeGeneration`
+- `Testing`
+- `Security`
+- `Performance`
+
+**Frontend (TypeScript):** Spaced string format
+- `"Architecture"`
+- `"Design Patterns"`
+- `"AI Prompts"`
+- `"Best Practices"`
+- `"Code Generation"`
+- `"Testing"`
+- `"Security"`
+- `"Performance"`
 
 **Mapper Location:** `lib/api/mappers.ts`
 
