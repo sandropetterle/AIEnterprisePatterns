@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Heart } from 'lucide-react'
+import { voteForPattern } from '@/lib/api/patterns'
 
 type VotingButtonProps = {
   initialVoteCount: number
@@ -15,17 +16,28 @@ export function VotingButton({
 }: VotingButtonProps) {
   const [voteCount, setVoteCount] = useState(initialVoteCount)
   const [hasVoted, setHasVoted] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
 
-  const handleVote = () => {
+  const handleVote = async () => {
+    if (isLoading || hasVoted) return
+
     // Optimistic update
     setVoteCount((prev) => prev + 1)
     setHasVoted(true)
+    setIsLoading(true)
 
-    // In Phase 3, this will call the backend API:
-    // await fetch(`/api/patterns/${patternId}/vote`, { method: 'POST' })
-
-    // Reset hasVoted after animation
-    setTimeout(() => setHasVoted(false), 1000)
+    try {
+      const response = await voteForPattern(patternId)
+      setVoteCount(response.voteCount) // Use actual count from backend
+    } catch (error) {
+      // Revert on error
+      setVoteCount((prev) => prev - 1)
+      setHasVoted(false)
+      console.error('Failed to vote:', error)
+      // TODO: Add toast notification for error feedback
+    } finally {
+      setIsLoading(false)
+    }
   }
 
   return (
@@ -34,6 +46,7 @@ export function VotingButton({
       variant="outline"
       size="sm"
       className="gap-2"
+      disabled={isLoading || hasVoted}
     >
       <Heart
         className={`h-4 w-4 transition-all ${

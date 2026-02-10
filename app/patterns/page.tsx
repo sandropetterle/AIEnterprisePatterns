@@ -1,12 +1,12 @@
 import { Metadata } from 'next'
 import { Suspense } from 'react'
-import { mockPatterns } from '@/lib/data/mockPatterns'
 import {
-  filterAndSortPatterns,
+  getPatterns,
   getAllCategories,
   getAllTags,
-  SortOption,
-} from '@/lib/data/filterAndSort'
+} from '@/lib/api/patterns'
+import type { SortOption } from '@/lib/data/filterAndSort'
+import type { PatternCategory } from '@/lib/types/pattern'
 import { SearchBar } from '@/components/patterns/SearchBar'
 import { SortSelector } from '@/components/patterns/SortSelector'
 import { FilterPanel } from '@/components/patterns/FilterPanel'
@@ -51,6 +51,9 @@ export const metadata: Metadata = {
   },
 }
 
+// Revalidate every 2 minutes
+export const revalidate = 120
+
 export default async function PatternsPage(props: {
   searchParams: SearchParams
 }) {
@@ -63,19 +66,20 @@ export default async function PatternsPage(props: {
   const sortBy = (searchParams.sort as SortOption) || 'recent'
   const page = parseInt(searchParams.page || '1', 10)
 
-  // Get all available filters
-  const allCategories = getAllCategories(mockPatterns)
-  const allTags = getAllTags(mockPatterns)
-
-  // Filter and sort patterns
-  const result = filterAndSortPatterns(mockPatterns, {
-    searchQuery,
-    category,
-    tags,
-    sortBy,
+  // Fetch patterns from API with server-side filtering, sorting, and pagination
+  const result = await getPatterns({
     page,
     pageSize: 9,
+    category: category as PatternCategory | undefined,
+    tags,
+    search: searchQuery,
+    sortBy,
   })
+
+  // Get all patterns for filter options
+  const allPatterns = await getPatterns({ pageSize: 100 })
+  const allCategories = getAllCategories(allPatterns.patterns)
+  const allTags = getAllTags(allPatterns.patterns)
 
   const hasActiveFilters = !!(searchQuery || category || tags?.length)
 

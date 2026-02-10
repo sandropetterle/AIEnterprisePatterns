@@ -3,16 +3,21 @@ import { Hero } from '@/components/home/Hero'
 import { FeaturedPatterns } from '@/components/home/FeaturedPatterns'
 import { StatsSection } from '@/components/home/StatsSection'
 import { CTASection } from '@/components/home/CTASection'
-import { getFeaturedPatterns, getPatternStats } from '@/lib/data/mockPatterns'
+import { getFeaturedPatterns, getPatterns, getPatternStats } from '@/lib/api/patterns'
 
 export const metadata: Metadata = {
   title: 'Home',
   description: 'Discover curated AI-driven enterprise patterns, prompts, and architectural blueprints. Browse featured patterns and join the community.',
 }
 
-export default function HomePage() {
-  const featuredPatterns = getFeaturedPatterns()
-  const stats = getPatternStats()
+// Revalidate every 5 minutes
+export const revalidate = 300
+
+export default async function HomePage() {
+  // Fetch featured patterns and all patterns for stats
+  const featuredPatterns = await getFeaturedPatterns()
+  const allPatterns = await getPatterns({ pageSize: 100 })
+  const stats = getPatternStats(allPatterns.patterns)
 
   const jsonLd = {
     '@context': 'https://schema.org',
