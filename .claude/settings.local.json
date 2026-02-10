@@ -2,7 +2,17 @@
   "permissions": {
     "allow": [
       "Bash(powershell -Command:*)",
-      "Bash(npm uninstall:*)"
+      "Bash(npm uninstall:*)",
+      "Bash(claude mcp add:*)",
+      "Bash(claude mcp list:*)",
+      "Bash(az account show:*)",
+      "Bash(az provider register:*)",
+      "Bash(az provider show:*)",
+      "Bash(az sql server list:*)",
+      "Bash(az resource list:*)"
+    ],
+    "additionalDirectories": [
+      "c:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\deployment"
     ]
   }
 }
