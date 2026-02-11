@@ -65,8 +65,10 @@ function Write-Info {
 
 function Generate-Password {
     $length = 20
+    $bytes = [byte[]]::new($length)
+    [System.Security.Cryptography.RandomNumberGenerator]::Fill($bytes)
     $chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%^&*()"
-    $password = -join ((1..$length) | ForEach-Object { $chars[(Get-Random -Maximum $chars.Length)] })
+    $password = -join ($bytes | ForEach-Object { $chars[$_ % $chars.Length] })
     return $password
 }
 

@@ -56,10 +56,26 @@ public class PatternRepository : IPatternRepository
             _ => query.OrderByDescending(p => p.CreatedDate)
         };
 
-        // Paginate
+        // Paginate with projection (exclude FullContent for list views)
         var patterns = await query
             .Skip((page - 1) * pageSize)
             .Take(pageSize)
+            .Select(p => new Pattern
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Slug = p.Slug,
+                ShortDescription = p.ShortDescription,
+                Category = p.Category,
+                Tags = p.Tags,
+                Author = p.Author,
+                CreatedDate = p.CreatedDate,
+                UpdatedDate = p.UpdatedDate,
+                VoteCount = p.VoteCount,
+                Status = p.Status,
+                IsFeatured = p.IsFeatured,
+                IsTrending = p.IsTrending
+            })
             .ToListAsync(ct);
 
         return new PaginatedResult<Pattern>
@@ -106,17 +122,16 @@ public class PatternRepository : IPatternRepository
             .ToListAsync(ct);
     }
 
-    public async Task<Pattern> AddAsync(Pattern pattern, CancellationToken ct = default)
+    public Task<Pattern> AddAsync(Pattern pattern, CancellationToken ct = default)
     {
         _context.Patterns.Add(pattern);
-        await _context.SaveChangesAsync(ct);
-        return pattern;
+        return Task.FromResult(pattern);
     }
 
-    public async Task UpdateAsync(Pattern pattern, CancellationToken ct = default)
+    public Task UpdateAsync(Pattern pattern, CancellationToken ct = default)
     {
         _context.Patterns.Update(pattern);
-        await _context.SaveChangesAsync(ct);
+        return Task.CompletedTask;
     }
 
     public async Task<bool> DeleteAsync(Guid id, CancellationToken ct = default)
@@ -125,17 +140,20 @@ public class PatternRepository : IPatternRepository
         if (pattern == null) return false;
 
         _context.Patterns.Remove(pattern);
-        await _context.SaveChangesAsync(ct);
         return true;
     }
 
     public async Task<int> IncrementVoteCountAsync(Guid id, CancellationToken ct = default)
     {
-        var pattern = await _context.Patterns.FindAsync(new object[] { id }, ct);
-        if (pattern == null) return -1;
+        var rowsAffected = await _context.Patterns
+            .Where(p => p.Id == id)
+            .ExecuteUpdateAsync(s => s.SetProperty(p => p.VoteCount, p => p.VoteCount + 1), ct);
 
-        pattern.VoteCount++;
-        await _context.SaveChangesAsync(ct);
-        return pattern.VoteCount;
+        if (rowsAffected == 0) return -1;
+
+        return await _context.Patterns
+            .Where(p => p.Id == id)
+            .Select(p => p.VoteCount)
+            .FirstOrDefaultAsync(ct);
     }
 }

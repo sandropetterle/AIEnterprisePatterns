@@ -23,11 +23,11 @@ public class ExceptionHandlingMiddleware
         catch (Exception ex)
         {
             _logger.LogError(ex, "An unhandled exception occurred");
-            await HandleExceptionAsync(context, ex);
+            await HandleExceptionAsync(context);
         }
     }
 
-    private static async Task HandleExceptionAsync(HttpContext context, Exception exception)
+    private static async Task HandleExceptionAsync(HttpContext context)
     {
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
@@ -35,8 +35,7 @@ public class ExceptionHandlingMiddleware
         var response = new
         {
             status = context.Response.StatusCode,
-            message = "An internal server error occurred.",
-            detail = exception.Message
+            message = "An internal server error occurred."
         };
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));

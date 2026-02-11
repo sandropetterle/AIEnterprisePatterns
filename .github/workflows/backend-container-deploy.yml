@@ -127,24 +127,39 @@ jobs:
             exit 1
           fi
 
-      - name: Check Swagger UI
-        run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.get-url.outputs.fqdn }}/swagger)
-          if [ $response -eq 200 ] || [ $response -eq 301 ]; then
-            echo "✓ Swagger UI accessible (HTTP $response)"
-          else
-            echo "✗ Swagger UI not accessible (HTTP $response)"
-            exit 1
-          fi
-
       - name: Deployment summary
         run: |
           echo "### Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Backend API:** https://${{ steps.get-url.outputs.fqdn }}" >> $GITHUB_STEP_SUMMARY
-          echo "- **Swagger UI:** https://${{ steps.get-url.outputs.fqdn }}/swagger" >> $GITHUB_STEP_SUMMARY
           echo "- **Health Status:** ✓ Healthy" >> $GITHUB_STEP_SUMMARY
           echo "- **Scaling:** Scale to zero when idle (cost-optimized)" >> $GITHUB_STEP_SUMMARY
+
+      - name: Logout from Azure
+        run: az logout
+        if: always()
+
+  rollback:
+    name: Rollback on Failure
+    runs-on: ubuntu-latest
+    needs: healthcheck
+    if: failure()
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Rollback to previous image
+        run: |
+          echo "Health check failed - rolling back to previous 'latest' image"
+          az containerapp update \
+            --name ${{ env.AZURE_CONTAINER_APP }} \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --image ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
 
       - name: Logout from Azure
         run: az logout

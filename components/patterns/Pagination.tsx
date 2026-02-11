@@ -108,6 +108,7 @@ export function Pagination({
               size="sm"
               onClick={() => navigateToPage(pageNum)}
               className="min-w-[40px]"
+              aria-current={currentPage === pageNum ? 'page' : undefined}
             >
               {pageNum}
             </Button>

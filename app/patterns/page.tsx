@@ -5,7 +5,8 @@ import {
   getAllCategories,
   getAllTags,
 } from '@/lib/api/patterns'
-import type { SortOption } from '@/lib/data/filterAndSort'
+import type { SortOption } from '@/lib/types/pattern'
+import { JsonLd } from '@/components/shared/JsonLd'
 import type { PatternCategory } from '@/lib/types/pattern'
 import { SearchBar } from '@/components/patterns/SearchBar'
 import { SortSelector } from '@/components/patterns/SortSelector'
@@ -171,10 +172,7 @@ export default async function PatternsPage(props: {
         </div>
       </div>
 
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
     </>
   )
 }

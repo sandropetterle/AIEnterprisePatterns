@@ -4,6 +4,7 @@ import { FeaturedPatterns } from '@/components/home/FeaturedPatterns'
 import { StatsSection } from '@/components/home/StatsSection'
 import { CTASection } from '@/components/home/CTASection'
 import { getFeaturedPatterns, getPatterns, getPatternStats } from '@/lib/api/patterns'
+import { JsonLd } from '@/components/shared/JsonLd'
 
 export const metadata: Metadata = {
   title: 'Home',
@@ -38,10 +39,7 @@ export default async function HomePage() {
       <FeaturedPatterns patterns={featuredPatterns} />
       <StatsSection {...stats} />
       <CTASection />
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
     </>
   )
 }

@@ -50,7 +50,7 @@ jobs:
         with:
           name: backend-app
           path: ${{ env.WORKING_DIRECTORY }}/publish
-          retention-days: 1
+          retention-days: 7
 
   deploy:
     name: Deploy to Azure
@@ -99,21 +99,11 @@ jobs:
 
       - name: Check API health
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/api/patterns?page=1&pageSize=5)
+          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/health)
           if [ $response -eq 200 ]; then
             echo "✓ API health check passed (HTTP $response)"
           else
             echo "✗ API health check failed (HTTP $response)"
-            exit 1
-          fi
-
-      - name: Check Swagger UI
-        run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/swagger)
-          if [ $response -eq 200 ] || [ $response -eq 301 ]; then
-            echo "✓ Swagger UI accessible (HTTP $response)"
-          else
-            echo "✗ Swagger UI not accessible (HTTP $response)"
             exit 1
           fi
 
@@ -122,5 +112,4 @@ jobs:
           echo "### Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Backend API:** https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net" >> $GITHUB_STEP_SUMMARY
-          echo "- **Swagger UI:** https://${{ env.AZURE_WEBAPP_NAME }}.azurewebsites.net/swagger" >> $GITHUB_STEP_SUMMARY
           echo "- **Health Status:** ✓ Healthy" >> $GITHUB_STEP_SUMMARY

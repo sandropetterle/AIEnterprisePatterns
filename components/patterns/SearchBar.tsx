@@ -4,20 +4,17 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { Search, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
-import { useTransition, useState, useEffect } from 'react'
+import { useTransition, useState, useCallback } from 'react'
 
 export function SearchBar() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
 
-  const [searchValue, setSearchValue] = useState(searchParams.get('q') || '')
+  const initialValue = searchParams.get('q') || ''
+  const [searchValue, setSearchValue] = useState(initialValue)
 
-  useEffect(() => {
-    setSearchValue(searchParams.get('q') || '')
-  }, [searchParams])
-
-  const handleSearch = (value: string) => {
+  const handleSearch = useCallback((value: string) => {
     const params = new URLSearchParams(searchParams.toString())
 
     if (value.trim()) {
@@ -26,13 +23,12 @@ export function SearchBar() {
       params.delete('q')
     }
 
-    // Reset to page 1 on new search
     params.delete('page')
 
     startTransition(() => {
       router.push(`/patterns?${params.toString()}`)
     })
-  }
+  }, [searchParams, router])
 
   const handleClear = () => {
     setSearchValue('')
@@ -56,6 +52,7 @@ export function SearchBar() {
         onKeyDown={handleKeyDown}
         className="pl-9 pr-9"
         disabled={isPending}
+        maxLength={200}
       />
       {searchValue && (
         <Button

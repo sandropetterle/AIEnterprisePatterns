@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Heart } from 'lucide-react'
 import { voteForPattern } from '@/lib/api/patterns'
+import { toast } from 'sonner'
 
 type VotingButtonProps = {
   initialVoteCount: number
@@ -33,8 +34,7 @@ export function VotingButton({
       // Revert on error
       setVoteCount((prev) => prev - 1)
       setHasVoted(false)
-      console.error('Failed to vote:', error)
-      // TODO: Add toast notification for error feedback
+      toast.error('Failed to record your vote. Please try again.')
     } finally {
       setIsLoading(false)
     }

@@ -1,6 +1,6 @@
-import { Pattern } from '@/lib/types/pattern'
+import { Pattern, SortOption } from '@/lib/types/pattern'
 
-export type SortOption = 'recent' | 'votes' | 'alphabetical'
+export type { SortOption }
 
 export type FilterOptions = {
   searchQuery?: string

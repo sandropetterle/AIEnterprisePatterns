@@ -28,10 +28,9 @@ public class TagRepository : ITagRepository
             .ToListAsync(ct);
     }
 
-    public async Task<Tag> AddAsync(Tag tag, CancellationToken ct = default)
+    public Task<Tag> AddAsync(Tag tag, CancellationToken ct = default)
     {
         _context.Tags.Add(tag);
-        await _context.SaveChangesAsync(ct);
-        return tag;
+        return Task.FromResult(tag);
     }
 }

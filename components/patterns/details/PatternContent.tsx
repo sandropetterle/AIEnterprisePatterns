@@ -1,5 +1,6 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
+import rehypeSanitize from 'rehype-sanitize'
 
 type PatternContentProps = {
   content: string
@@ -10,6 +11,7 @@ export function PatternContent({ content }: PatternContentProps) {
     <div className="prose prose-slate dark:prose-invert max-w-none">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
+        rehypePlugins={[rehypeSanitize]}
         components={{
           h2: ({ ...props }) => (
             <h2 className="text-2xl font-bold mt-8 mb-4 pb-2 border-b" {...props} />

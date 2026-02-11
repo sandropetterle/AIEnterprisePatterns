@@ -9,7 +9,8 @@
       "Bash(az provider register:*)",
       "Bash(az provider show:*)",
       "Bash(az sql server list:*)",
-      "Bash(az resource list:*)"
+      "Bash(az resource list:*)",
+      "Bash(npm ls:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\deployment"
