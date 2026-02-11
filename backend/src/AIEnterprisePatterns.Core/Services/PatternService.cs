@@ -1,19 +1,33 @@
-using System.Text.RegularExpressions;
 using AIEnterprisePatterns.Core.Entities;
 using AIEnterprisePatterns.Core.Enums;
 using AIEnterprisePatterns.Core.Interfaces;
+using AIEnterprisePatterns.Core.ValueObjects;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace AIEnterprisePatterns.Core.Services;
 
-public partial class PatternService : IPatternService
+public class PatternService : IPatternService
 {
     private readonly IPatternRepository _patternRepository;
     private readonly ITagRepository _tagRepository;
+    private readonly IUnitOfWork _unitOfWork;
+    private readonly IMemoryCache _cache;
+    private readonly TimeProvider _timeProvider;
 
-    public PatternService(IPatternRepository patternRepository, ITagRepository tagRepository)
+    private static readonly TimeSpan CacheDuration = TimeSpan.FromMinutes(5);
+
+    public PatternService(
+        IPatternRepository patternRepository,
+        ITagRepository tagRepository,
+        IUnitOfWork unitOfWork,
+        IMemoryCache cache,
+        TimeProvider timeProvider)
     {
         _patternRepository = patternRepository;
         _tagRepository = tagRepository;
+        _unitOfWork = unitOfWork;
+        _cache = cache;
+        _timeProvider = timeProvider;
     }
 
     public Task<PaginatedResult<Pattern>> GetPatternsAsync(
@@ -28,29 +42,39 @@ public partial class PatternService : IPatternService
         return _patternRepository.GetBySlugAsync(slug, ct);
     }
 
-    public Task<List<Pattern>> GetFeaturedPatternsAsync(CancellationToken ct = default)
+    public async Task<List<Pattern>> GetFeaturedPatternsAsync(CancellationToken ct = default)
     {
-        return _patternRepository.GetFeaturedPatternsAsync(ct);
+        return await _cache.GetOrCreateAsync("featured_patterns", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            return await _patternRepository.GetFeaturedPatternsAsync(ct);
+        }) ?? [];
     }
 
-    public Task<List<Pattern>> GetTrendingPatternsAsync(CancellationToken ct = default)
+    public async Task<List<Pattern>> GetTrendingPatternsAsync(CancellationToken ct = default)
     {
-        return _patternRepository.GetTrendingPatternsAsync(ct);
+        return await _cache.GetOrCreateAsync("trending_patterns", async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            return await _patternRepository.GetTrendingPatternsAsync(ct);
+        }) ?? [];
     }
 
     public async Task<Pattern> CreatePatternAsync(Pattern pattern, List<string> tagNames, CancellationToken ct = default)
     {
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
         pattern.Id = Guid.NewGuid();
-        pattern.Slug = GenerateSlug(pattern.Title);
-        pattern.CreatedDate = DateTime.UtcNow;
-        pattern.UpdatedDate = DateTime.UtcNow;
+        pattern.Slug = Slug.FromTitle(pattern.Title);
+        pattern.CreatedDate = now;
+        pattern.UpdatedDate = now;
         pattern.Status = PatternStatus.Published;
         pattern.VoteCount = 0;
 
-        // Resolve tags
         pattern.Tags = await ResolveTagsAsync(tagNames, ct);
 
-        return await _patternRepository.AddAsync(pattern, ct);
+        var created = await _patternRepository.AddAsync(pattern, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
+        return created;
     }
 
     public async Task<Pattern?> UpdatePatternAsync(Guid id, Pattern updated, List<string> tagNames, CancellationToken ct = default)
@@ -59,30 +83,36 @@ public partial class PatternService : IPatternService
         if (existing == null) return null;
 
         existing.Title = updated.Title;
-        existing.Slug = GenerateSlug(updated.Title);
+        existing.Slug = Slug.FromTitle(updated.Title);
         existing.ShortDescription = updated.ShortDescription;
         existing.FullContent = updated.FullContent;
         existing.Category = updated.Category;
         existing.Author = updated.Author;
         existing.IsFeatured = updated.IsFeatured;
         existing.IsTrending = updated.IsTrending;
-        existing.UpdatedDate = DateTime.UtcNow;
+        existing.UpdatedDate = _timeProvider.GetUtcNow().UtcDateTime;
 
-        // Resolve tags
         existing.Tags = await ResolveTagsAsync(tagNames, ct);
 
         await _patternRepository.UpdateAsync(existing, ct);
+        await _unitOfWork.SaveChangesAsync(ct);
         return existing;
     }
 
-    public Task<bool> DeletePatternAsync(Guid id, CancellationToken ct = default)
+    public async Task<bool> DeletePatternAsync(Guid id, CancellationToken ct = default)
     {
-        return _patternRepository.DeleteAsync(id, ct);
+        var result = await _patternRepository.DeleteAsync(id, ct);
+        if (result)
+            await _unitOfWork.SaveChangesAsync(ct);
+        return result;
     }
 
-    public Task<int> VoteForPatternAsync(Guid id, CancellationToken ct = default)
+    public async Task<int> VoteForPatternAsync(Guid id, CancellationToken ct = default)
     {
-        return _patternRepository.IncrementVoteCountAsync(id, ct);
+        var result = await _patternRepository.IncrementVoteCountAsync(id, ct);
+        _cache.Remove("featured_patterns");
+        _cache.Remove("trending_patterns");
+        return result;
     }
 
     private async Task<List<Tag>> ResolveTagsAsync(List<string> tagNames, CancellationToken ct)
@@ -100,22 +130,4 @@ public partial class PatternService : IPatternService
 
         return existingTags;
     }
-
-    private static string GenerateSlug(string title)
-    {
-        var slug = title.ToLowerInvariant();
-        slug = SlugInvalidChars().Replace(slug, "");
-        slug = SlugWhitespace().Replace(slug, "-");
-        slug = SlugMultipleDashes().Replace(slug, "-");
-        return slug.Trim('-');
-    }
-
-    [GeneratedRegex(@"[^a-z0-9\s-]")]
-    private static partial Regex SlugInvalidChars();
-
-    [GeneratedRegex(@"\s+")]
-    private static partial Regex SlugWhitespace();
-
-    [GeneratedRegex(@"-+")]
-    private static partial Regex SlugMultipleDashes();
 }

@@ -28,3 +28,5 @@ export type Pattern = {
 }
 
 export type PatternListItem = Omit<Pattern, 'fullContent'>
+
+export type SortOption = 'recent' | 'votes' | 'alphabetical'

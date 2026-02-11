@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -11,6 +12,7 @@ import {
   SheetTitle,
 } from '@/components/ui/sheet'
 import { Pencil, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 
 type PatternActionsProps = {
   slug: string
@@ -18,12 +20,20 @@ type PatternActionsProps = {
 
 export function PatternActions({ slug }: PatternActionsProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const router = useRouter()
 
-  const handleDelete = () => {
-    // In Phase 2, this will call the backend API:
-    // await fetch(`/api/patterns/${slug}`, { method: 'DELETE' })
-    // router.push('/patterns')
-    setShowDeleteConfirm(false)
+  const handleDelete = async () => {
+    setIsDeleting(true)
+    try {
+      await fetch(`/api/patterns/${slug}`, { method: 'DELETE' })
+      setShowDeleteConfirm(false)
+      router.push('/patterns')
+    } catch (error) {
+      toast.error('Failed to delete pattern. Please try again.')
+    } finally {
+      setIsDeleting(false)
+    }
   }
 
   return (
@@ -61,6 +71,7 @@ export function PatternActions({ slug }: PatternActionsProps) {
               variant="outline"
               className="flex-1"
               onClick={() => setShowDeleteConfirm(false)}
+              disabled={isDeleting}
             >
               Cancel
             </Button>
@@ -68,8 +79,9 @@ export function PatternActions({ slug }: PatternActionsProps) {
               variant="destructive"
               className="flex-1"
               onClick={handleDelete}
+              disabled={isDeleting}
             >
-              Delete
+              {isDeleting ? 'Deleting...' : 'Delete'}
             </Button>
           </div>
         </SheetContent>

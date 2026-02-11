@@ -7,9 +7,10 @@ public class CreatePatternDto
     [Required, MaxLength(255)]
     public string Title { get; set; } = string.Empty;
 
-    [Required]
+    [Required, MaxLength(500)]
     public string ShortDescription { get; set; } = string.Empty;
 
+    [MaxLength(50000)]
     public string? FullContent { get; set; }
 
     [Required]

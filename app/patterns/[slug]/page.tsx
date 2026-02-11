@@ -3,13 +3,20 @@ import { notFound } from 'next/navigation'
 import { getPatternBySlug, getPatterns } from '@/lib/api/patterns'
 import { getRelatedPatterns } from '@/lib/data/relatedPatterns'
 import { formatDate } from '@/lib/utils/dateFormat'
+import dynamic from 'next/dynamic'
 import { Breadcrumb } from '@/components/patterns/details/Breadcrumb'
 import { VotingButton } from '@/components/patterns/details/VotingButton'
-import { PatternContent } from '@/components/patterns/details/PatternContent'
+
+const PatternContent = dynamic(
+  () => import('@/components/patterns/details/PatternContent').then(mod => ({ default: mod.PatternContent })),
+  { loading: () => <div className="h-64 animate-pulse rounded bg-muted" /> }
+)
 import { RelatedPatternsSection } from '@/components/patterns/details/RelatedPatternsSection'
 import { PatternActions } from '@/components/patterns/details/PatternActions'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
+import { JsonLd } from '@/components/shared/JsonLd'
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -118,23 +125,27 @@ export default async function PatternDetailPage({ params }: PageProps) {
 
             {/* Voting and Actions */}
             <div className="flex items-center gap-3 mb-6">
-              <VotingButton
-                initialVoteCount={pattern.voteCount}
-                patternId={pattern.id}
-              />
+              <ErrorBoundary>
+                <VotingButton
+                  initialVoteCount={pattern.voteCount}
+                  patternId={pattern.id}
+                />
+              </ErrorBoundary>
               {isAuthorized && <PatternActions slug={pattern.slug} />}
             </div>
 
             {/* Full Content (Markdown) */}
             <Card>
               <CardContent className="pt-6">
-                {pattern.fullContent ? (
-                  <PatternContent content={pattern.fullContent} />
-                ) : (
-                  <p className="text-muted-foreground">
-                    No content available for this pattern.
-                  </p>
-                )}
+                <ErrorBoundary>
+                  {pattern.fullContent ? (
+                    <PatternContent content={pattern.fullContent} />
+                  ) : (
+                    <p className="text-muted-foreground">
+                      No content available for this pattern.
+                    </p>
+                  )}
+                </ErrorBoundary>
               </CardContent>
             </Card>
 
@@ -160,10 +171,7 @@ export default async function PatternDetailPage({ params }: PageProps) {
       </div>
 
       {/* JSON-LD for SEO */}
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
+      <JsonLd data={jsonLd} />
     </>
   )
 }

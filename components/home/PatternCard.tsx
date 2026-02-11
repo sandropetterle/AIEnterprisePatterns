@@ -1,17 +1,21 @@
+import { memo } from 'react'
 import Link from 'next/link'
 import { ThumbsUp } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Pattern } from '@/lib/types/pattern'
 
+const MAX_DISPLAY_TAGS = 3
+const MAX_DESCRIPTION_LENGTH = 120
+
 type PatternCardProps = {
   pattern: Pattern
 }
 
-export function PatternCard({ pattern }: PatternCardProps) {
-  const displayTags = pattern.tags.slice(0, 3)
-  const truncatedDescription = pattern.shortDescription.length > 120
-    ? pattern.shortDescription.substring(0, 120) + '...'
+function PatternCardComponent({ pattern }: PatternCardProps) {
+  const displayTags = pattern.tags.slice(0, MAX_DISPLAY_TAGS)
+  const truncatedDescription = pattern.shortDescription.length > MAX_DESCRIPTION_LENGTH
+    ? pattern.shortDescription.substring(0, MAX_DESCRIPTION_LENGTH) + '...'
     : pattern.shortDescription
 
   return (
@@ -48,3 +52,5 @@ export function PatternCard({ pattern }: PatternCardProps) {
     </Link>
   )
 }
+
+export const PatternCard = memo(PatternCardComponent)

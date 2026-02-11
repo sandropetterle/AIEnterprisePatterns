@@ -8,7 +8,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { SortOption } from '@/lib/data/filterAndSort'
+import type { SortOption } from '@/lib/types/pattern'
 
 const sortOptions: { value: SortOption; label: string }[] = [
   { value: 'recent', label: 'Most Recent' },
@@ -33,11 +33,11 @@ export function SortSelector() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-sm text-muted-foreground whitespace-nowrap">
+      <label htmlFor="sort-select" className="text-sm text-muted-foreground whitespace-nowrap">
         Sort by:
-      </span>
+      </label>
       <Select value={currentSort} onValueChange={handleSortChange}>
-        <SelectTrigger className="w-[180px]">
+        <SelectTrigger id="sort-select" className="w-[180px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>

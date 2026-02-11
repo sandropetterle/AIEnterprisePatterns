@@ -44,7 +44,7 @@ jobs:
       - name: Build Next.js application
         run: npm run build
         env:
-          NEXT_PUBLIC_API_BASE_URL: https://app-aipatterns-api-prod.azurewebsites.net/api # Update to match your backend URL
+          NEXT_PUBLIC_API_BASE_URL: ${{ secrets.API_BASE_URL }}
 
       - name: Create standalone build
         run: |
@@ -58,7 +58,7 @@ jobs:
         with:
           name: frontend-app
           path: .next/standalone
-          retention-days: 1
+          retention-days: 7
 
   deploy:
     name: Deploy to Azure
