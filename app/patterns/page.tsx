@@ -69,7 +69,7 @@ export default async function PatternsPage(props: {
 
   // Fetch patterns from API with server-side filtering, sorting, and pagination
   // Handle API unavailable during build (e.g., Docker build)
-  let result = {
+  let result: Awaited<ReturnType<typeof getPatterns>> = {
     patterns: [],
     totalCount: 0,
     currentPage: 1,
