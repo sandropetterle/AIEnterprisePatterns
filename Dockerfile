@@ -23,6 +23,9 @@ COPY --from=deps /app/node_modules ./node_modules
 # Copy source files
 COPY . .
 
+# Ensure public directory exists (even if empty)
+RUN mkdir -p public
+
 # Set build-time environment variable
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
@@ -39,10 +42,9 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy necessary files from builder
-# Note: public folder might be empty, so we copy source version
-COPY public ./public
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
+COPY --from=builder --chown=nextjs:nodejs /app/public/ ./public/
+COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone/ ./
+COPY --from=builder --chown=nextjs:nodejs /app/.next/static/ ./.next/static/
 
 # Set ownership
 RUN chown -R nextjs:nodejs /app
