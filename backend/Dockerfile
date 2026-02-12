@@ -31,6 +31,9 @@ WORKDIR /app
 # Create non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 
+# Install curl for healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+
 # Copy published app from build stage
 COPY --from=build /app/publish .
 

@@ -10,10 +10,19 @@
       "Bash(az provider show:*)",
       "Bash(az sql server list:*)",
       "Bash(az resource list:*)",
-      "Bash(npm ls:*)"
+      "Bash(npm ls:*)",
+      "Bash(gh repo view:*)",
+      "Bash(gh api:*)",
+      "Bash(gh workflow list:*)",
+      "Bash(gh run list:*)",
+      "Bash(test:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\deployment"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "playwright"
+  ]
 }

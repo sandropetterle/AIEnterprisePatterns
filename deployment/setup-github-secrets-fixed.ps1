@@ -1,4 +1,4 @@
-# ============================================================================
+﻿# ============================================================================
 # GitHub Secrets Setup - Automated Script
 # AI Enterprise Patterns - Configure OIDC Authentication for GitHub Actions
 # ============================================================================
@@ -12,7 +12,7 @@
 # 3. Permissions to create Azure AD applications
 #
 # Usage:
-# .\setup-github-secrets-simple.ps1
+# .\setup-github-secrets.ps1
 #
 # ============================================================================
 
@@ -28,31 +28,29 @@ $REPO_OWNER = "sandropetterle"
 $REPO_NAME = "AIEnterprisePatterns"
 
 # ============================================================================
-# HELPER FUNCTIONS (ASCII-safe versions)
+# HELPER FUNCTIONS
 # ============================================================================
 
 function Write-Step {
     param([string]$Message)
-    Write-Host ""
-    Write-Host "========================================" -ForegroundColor Cyan
+    Write-Host "`n========================================" -ForegroundColor Cyan
     Write-Host $Message -ForegroundColor Cyan
-    Write-Host "========================================" -ForegroundColor Cyan
-    Write-Host ""
+    Write-Host "========================================`n" -ForegroundColor Cyan
 }
 
 function Write-Success {
     param([string]$Message)
-    Write-Host "[OK] $Message" -ForegroundColor Green
+    Write-Host "âœ“ $Message" -ForegroundColor Green
 }
 
 function Write-Info {
     param([string]$Message)
-    Write-Host "[INFO] $Message" -ForegroundColor Yellow
+    Write-Host "â†’ $Message" -ForegroundColor Yellow
 }
 
-function Write-ErrorMessage {
+function Write-Error-Message {
     param([string]$Message)
-    Write-Host "[ERROR] $Message" -ForegroundColor Red
+    Write-Host "âœ— $Message" -ForegroundColor Red
 }
 
 # ============================================================================
@@ -66,7 +64,7 @@ try {
     $azVersion = az version --output json | ConvertFrom-Json
     Write-Success "Azure CLI version: $($azVersion.'azure-cli')"
 } catch {
-    Write-ErrorMessage "Azure CLI is not installed. Please install from: https://aka.ms/InstallAzureCLI"
+    Write-Error-Message "Azure CLI is not installed. Please install from: https://aka.ms/InstallAzureCLI"
     exit 1
 }
 
@@ -76,7 +74,7 @@ try {
     Write-Success "Logged in as: $($account.user.name)"
     Write-Info "Subscription: $($account.name)"
 } catch {
-    Write-ErrorMessage "Not logged in to Azure. Please run: az login"
+    Write-Error-Message "Not logged in to Azure. Please run: az login"
     exit 1
 }
 
@@ -90,7 +88,7 @@ Write-Success "Tenant ID: $TENANT_ID"
 # Check if resource group exists
 $rgExists = az group exists --name $RESOURCE_GROUP
 if ($rgExists -eq "false") {
-    Write-ErrorMessage "Resource group '$RESOURCE_GROUP' not found. Run azure-setup.ps1 first."
+    Write-Error-Message "Resource group '$RESOURCE_GROUP' not found. Run azure-setup.ps1 first."
     exit 1
 }
 Write-Success "Resource group found: $RESOURCE_GROUP"
@@ -189,7 +187,7 @@ function Set-FederatedCredential {
             audiences = @("api://AzureADTokenExchange")
         } | ConvertTo-Json -Compress
 
-        # Save to temp file
+        # Save to temp file (az ad app federated-credential requires JSON file or stdin)
         $tempFile = [System.IO.Path]::GetTempFileName()
         $credentialJson | Out-File -FilePath $tempFile -Encoding utf8 -NoNewline
 
@@ -214,6 +212,13 @@ Set-FederatedCredential `
     -Subject "repo:$REPO_OWNER/$REPO_NAME:pull_request" `
     -Description "GitHub Actions - pull request builds"
 
+# Optional: Create credentials for develop branch (staging)
+# Uncomment if you want staging environment
+# Set-FederatedCredential `
+#     -Name "github-develop-branch" `
+#     -Subject "repo:$REPO_OWNER/$REPO_NAME:ref:refs/heads/develop" `
+#     -Description "GitHub Actions - develop branch (staging)"
+
 # ============================================================================
 # DISPLAY GITHUB SECRETS
 # ============================================================================
@@ -221,9 +226,9 @@ Set-FederatedCredential `
 Write-Step "GitHub Secrets Configuration"
 
 Write-Host ""
-Write-Host "=======================================================" -ForegroundColor Green
+Write-Host "â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•" -ForegroundColor Green
 Write-Host "   ADD THESE SECRETS TO YOUR GITHUB REPOSITORY" -ForegroundColor Green
-Write-Host "=======================================================" -ForegroundColor Green
+Write-Host "â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•" -ForegroundColor Green
 Write-Host ""
 Write-Host "Repository: https://github.com/$REPO_OWNER/$REPO_NAME/settings/secrets/actions" -ForegroundColor White
 Write-Host ""
@@ -236,16 +241,16 @@ Write-Host ""
 Write-Host "3. AZURE_SUBSCRIPTION_ID" -ForegroundColor Yellow
 Write-Host "   Value: $SUBSCRIPTION_ID" -ForegroundColor White
 Write-Host ""
-Write-Host "=======================================================" -ForegroundColor Green
+Write-Host "â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•" -ForegroundColor Green
 Write-Host ""
 
 # Save to file
 $outputFile = "github-secrets-values.txt"
-$outputContent = @"
+@"
 GitHub Secrets Configuration - $(Get-Date -Format "yyyy-MM-dd HH:mm:ss")
 ================================================================
 
-WARNING: CONFIDENTIAL - Do not commit this file to Git!
+âš ï¸  CONFIDENTIAL - Do not commit this file to Git!
 
 Add these secrets to GitHub repository:
 https://github.com/$REPO_OWNER/$REPO_NAME/settings/secrets/actions
@@ -265,18 +270,18 @@ Value: $SUBSCRIPTION_ID
 Instructions:
 -------------
 1. Go to GitHub repository settings
-2. Navigate to: Settings -> Secrets and variables -> Actions
+2. Navigate to: Settings â†’ Secrets and variables â†’ Actions
 3. Click "New repository secret"
 4. Add each secret with the exact name and value shown above
-5. Test by triggering a workflow: Actions -> Select workflow -> Run workflow
+5. Test by triggering a workflow: Actions â†’ Select workflow â†’ Run workflow
 
 Verification:
 -------------
 After adding secrets, verify the setup:
 - Push to main branch to trigger deployment
 - Check Actions tab for workflow runs
-- Backend should deploy to: https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io
-- Frontend should deploy to: https://ca-aipatterns-web-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io
+- Backend should deploy to: https://app-aipatterns-api-prod.azurewebsites.net
+- Frontend should deploy to: https://app-aipatterns-web-prod.azurewebsites.net
 
 Azure Resources:
 ----------------
@@ -290,12 +295,10 @@ Federated Credentials:
 - github-main-branch (main branch deployments)
 - github-pull-requests (PR builds and tests)
 
-"@
-
-$outputContent | Out-File -FilePath $outputFile -Encoding utf8
+"@ | Out-File -FilePath $outputFile -Encoding utf8
 
 Write-Host "Configuration saved to: $outputFile" -ForegroundColor Green
-Write-Host "IMPORTANT: Add $outputFile to .gitignore (contains sensitive IDs)" -ForegroundColor Red
+Write-Host "âš ï¸  IMPORTANT: Add $outputFile to .gitignore (contains sensitive IDs)" -ForegroundColor Red
 Write-Host ""
 
 # ============================================================================
@@ -304,10 +307,10 @@ Write-Host ""
 
 Write-Step "Setup Complete"
 
-Write-Host "[OK] Azure AD Application configured" -ForegroundColor Green
-Write-Host "[OK] Service Principal created" -ForegroundColor Green
-Write-Host "[OK] Contributor role assigned" -ForegroundColor Green
-Write-Host "[OK] Federated credentials configured" -ForegroundColor Green
+Write-Host "âœ“ Azure AD Application configured" -ForegroundColor Green
+Write-Host "âœ“ Service Principal created" -ForegroundColor Green
+Write-Host "âœ“ Contributor role assigned" -ForegroundColor Green
+Write-Host "âœ“ Federated credentials configured" -ForegroundColor Green
 Write-Host ""
 Write-Host "Next Steps:" -ForegroundColor Cyan
 Write-Host "1. Add the three secrets to GitHub (see above)" -ForegroundColor White
@@ -316,6 +319,7 @@ Write-Host "   git add ." -ForegroundColor Gray
 Write-Host "   git commit -m 'feat: add CI/CD workflows'" -ForegroundColor Gray
 Write-Host "   git push origin main" -ForegroundColor Gray
 Write-Host "3. Monitor deployment: https://github.com/$REPO_OWNER/$REPO_NAME/actions" -ForegroundColor White
-Write-Host "4. Verify backend: https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/health" -ForegroundColor White
-Write-Host "5. Verify frontend: https://ca-aipatterns-web-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io" -ForegroundColor White
+Write-Host "4. Verify backend: https://app-aipatterns-api-prod.azurewebsites.net/swagger" -ForegroundColor White
+Write-Host "5. Verify frontend: https://app-aipatterns-web-prod.azurewebsites.net" -ForegroundColor White
 Write-Host ""
+
