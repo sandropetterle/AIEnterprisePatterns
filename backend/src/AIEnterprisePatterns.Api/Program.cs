@@ -70,10 +70,18 @@ else
 
 // CORS for Next.js frontend - Environment-specific
 var frontendUrls = new List<string> { "http://localhost:3000" };
+
+// Support both single URL (legacy) and array of URLs (current)
 var productionFrontendUrl = builder.Configuration["FrontendUrl"];
 if (!string.IsNullOrEmpty(productionFrontendUrl))
 {
     frontendUrls.Add(productionFrontendUrl);
+}
+
+var productionUrls = builder.Configuration.GetSection("FrontendUrls").Get<string[]>();
+if (productionUrls != null && productionUrls.Length > 0)
+{
+    frontendUrls.AddRange(productionUrls);
 }
 
 builder.Services.AddCors(options =>
