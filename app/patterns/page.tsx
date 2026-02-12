@@ -69,7 +69,14 @@ export default async function PatternsPage(props: {
 
   // Fetch patterns from API with server-side filtering, sorting, and pagination
   // Handle API unavailable during build (e.g., Docker build)
-  let result = { patterns: [], totalCount: 0, page: 1, pageSize: 9, totalPages: 0 }
+  let result = {
+    patterns: [],
+    totalCount: 0,
+    currentPage: 1,
+    totalPages: 0,
+    hasNextPage: false,
+    hasPreviousPage: false
+  }
   let allCategories: PatternCategory[] = []
   let allTags: string[] = []
 
