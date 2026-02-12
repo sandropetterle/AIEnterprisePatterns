@@ -16,9 +16,18 @@ export const revalidate = 300
 
 export default async function HomePage() {
   // Fetch featured patterns and all patterns for stats
-  const featuredPatterns = await getFeaturedPatterns()
-  const allPatterns = await getPatterns({ pageSize: 100 })
-  const stats = getPatternStats(allPatterns.patterns)
+  // Handle API unavailable during build (e.g., Docker build)
+  let featuredPatterns: Awaited<ReturnType<typeof getFeaturedPatterns>> = []
+  let stats = { totalPatterns: 0, totalVotes: 0, mostPopularCategory: 'Architecture' as const }
+
+  try {
+    featuredPatterns = await getFeaturedPatterns()
+    const allPatterns = await getPatterns({ pageSize: 100 })
+    stats = getPatternStats(allPatterns.patterns)
+  } catch (error) {
+    console.warn('Failed to fetch patterns for home page build:', error)
+    // Will show empty state, page will be generated on-demand
+  }
 
   const jsonLd = {
     '@context': 'https://schema.org',
