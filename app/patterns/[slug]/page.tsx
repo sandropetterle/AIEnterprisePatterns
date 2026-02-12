@@ -26,10 +26,17 @@ type PageProps = {
 export const revalidate = 600
 
 export async function generateStaticParams() {
-  const response = await getPatterns({ pageSize: 100 })
-  return response.patterns.map((pattern) => ({
-    slug: pattern.slug,
-  }))
+  try {
+    const response = await getPatterns({ pageSize: 100 })
+    return response.patterns.map((pattern) => ({
+      slug: pattern.slug,
+    }))
+  } catch (error) {
+    // API not available during build (e.g., Docker build) - return empty array
+    // Pages will be generated on-demand via ISR
+    console.warn('Failed to fetch patterns for static generation:', error)
+    return []
+  }
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
