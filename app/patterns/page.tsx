@@ -68,19 +68,29 @@ export default async function PatternsPage(props: {
   const page = parseInt(searchParams.page || '1', 10)
 
   // Fetch patterns from API with server-side filtering, sorting, and pagination
-  const result = await getPatterns({
-    page,
-    pageSize: 9,
-    category: category as PatternCategory | undefined,
-    tags,
-    search: searchQuery,
-    sortBy,
-  })
+  // Handle API unavailable during build (e.g., Docker build)
+  let result = { patterns: [], totalCount: 0, page: 1, pageSize: 9, totalPages: 0 }
+  let allCategories: PatternCategory[] = []
+  let allTags: string[] = []
 
-  // Get all patterns for filter options
-  const allPatterns = await getPatterns({ pageSize: 100 })
-  const allCategories = getAllCategories(allPatterns.patterns)
-  const allTags = getAllTags(allPatterns.patterns)
+  try {
+    result = await getPatterns({
+      page,
+      pageSize: 9,
+      category: category as PatternCategory | undefined,
+      tags,
+      search: searchQuery,
+      sortBy,
+    })
+
+    // Get all patterns for filter options
+    const allPatterns = await getPatterns({ pageSize: 100 })
+    allCategories = getAllCategories(allPatterns.patterns)
+    allTags = getAllTags(allPatterns.patterns)
+  } catch (error) {
+    console.warn('Failed to fetch patterns for listing page build:', error)
+    // Will show empty state, page will be generated on-demand
+  }
 
   const hasActiveFilters = !!(searchQuery || category || tags?.length)
 
