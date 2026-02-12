@@ -18,7 +18,7 @@ export default async function HomePage() {
   // Fetch featured patterns and all patterns for stats
   // Handle API unavailable during build (e.g., Docker build)
   let featuredPatterns: Awaited<ReturnType<typeof getFeaturedPatterns>> = []
-  let stats = { totalPatterns: 0, totalVotes: 0, mostPopularCategory: 'Architecture' as const }
+  let stats = { totalPatterns: 0, totalCategories: 0, totalContributors: '0' }
 
   try {
     featuredPatterns = await getFeaturedPatterns()
