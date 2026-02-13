@@ -160,7 +160,12 @@ if (app.Environment.IsDevelopment())
 {
     using var scope = app.Services.CreateScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-    await dbContext.Database.MigrateAsync();
+
+    // Only run migrations for relational databases (not InMemory)
+    if (dbContext.Database.IsRelational())
+    {
+        await dbContext.Database.MigrateAsync();
+    }
 }
 
 // Health check endpoints
@@ -190,3 +195,6 @@ app.UseAuthorization();
 app.MapControllers().RequireRateLimiting("api");
 
 app.Run();
+
+// Make Program class accessible to integration tests
+public partial class Program { }

@@ -367,8 +367,31 @@ Fields may include:
 
 ### 6.7 Testing & CI/CD
 
-* The project follows a documented testing strategy (see `documentation/TESTING_STRATEGY.md`).
-* Continuous Integration and Deployment are implemented as described in `documentation/CI_CD_STRATEGY.md`.
+**Testing Framework:**
+* The project follows a documented testing strategy (see `documentation/TESTING_STRATEGY.md`)
+* Manual test execution follows `documentation/COMPREHENSIVE_TEST_PLAN.md`
+* Continuous Integration and Deployment are implemented as described in `documentation/CI_CD_STRATEGY.md`
+
+**Test Coverage Requirements:**
+* **Minimum Coverage:** 80%+ for core business logic (services, repositories, critical components)
+* **Mandatory Test Types:**
+  - Unit tests for all services, utilities, and business logic
+  - Integration tests for API endpoints and database operations
+  - E2E tests for critical user flows
+  - Visual regression tests for UI components (Phase 6+)
+  - Accessibility tests (WCAG 2.1 AA compliance - Phase 5+)
+  - Performance tests (Lighthouse CI - Phase 6+)
+
+**Test Automation Tools:**
+* **Frontend:** Jest, React Testing Library, Playwright (E2E), axe-core (accessibility)
+* **Backend:** xUnit, Moq, EF Core InMemory provider, integration test projects
+* **CI/CD:** GitHub Actions with automated test execution, coverage reporting, quality gates
+
+**Quality Gates:**
+* All tests must pass before merging to main
+* Coverage must meet 80%+ threshold for affected modules
+* No critical accessibility violations in PR builds
+* Performance budgets enforced (LCP < 2.5s, TTI < 5s)
 
 ---
 
@@ -496,10 +519,237 @@ The project will be:
 
 ---
 
+### Phase 4.5 – Testing Foundation & Operational Readiness
+
+**Priority:** CRITICAL
+**Dependencies:** Phase 4 complete
+**Duration:** 2-3 weeks
+**Status:** 🚀 ACTIVE (Starting 2026-02-13)
+
+**Objectives:** Establish automated test infrastructure, implement monitoring/alerting, and document operational procedures before proceeding with Phase 5 feature development.
+
+**Rationale:** Phase 4 deployed the application successfully but lacks automated testing. Adding authentication, CRUD operations, and advanced features in Phase 5 without a test foundation creates significant regression risk. This phase establishes the quality assurance infrastructure needed for safe, rapid feature development.
+
+**Requirements:**
+
+4.5.1. **Backend Test Infrastructure Setup**
+* Create xUnit test project structure:
+  ```
+  backend/tests/
+  ├── AIEnterprisePatterns.Core.Tests/
+  │   ├── Services/PatternServiceTests.cs
+  │   ├── ValueObjects/SlugTests.cs
+  │   └── Mappers/PatternMapperTests.cs
+  ├── AIEnterprisePatterns.Data.Tests/
+  │   ├── Repositories/PatternRepositoryTests.cs
+  │   └── Repositories/UnitOfWorkTests.cs
+  └── AIEnterprisePatterns.Api.Tests/
+      ├── Controllers/PatternsControllerTests.cs
+      ├── IntegrationTestFactory.cs
+      └── IntegrationTests/
+          ├── PatternEndpointsTests.cs
+          └── VoteEndpointTests.cs
+  ```
+
+* Configure test dependencies:
+  - xUnit test framework
+  - Moq for mocking (services, repositories)
+  - FluentAssertions for readable assertions
+  - EF Core InMemory provider for repository tests
+  - WebApplicationFactory for integration tests
+
+* Set up code coverage:
+  - Install Coverlet (dotnet add package coverlet.msbuild)
+  - Configure coverage thresholds (80% for Core/Data)
+  - Generate OpenCover format for reporting
+
+4.5.2. **Backend Test Implementation (Priority Tests)**
+* **PatternService Tests** (Core business logic):
+  - GetPatternsAsync with filtering/sorting/pagination
+  - GetPatternBySlugAsync (found and not found cases)
+  - GetFeaturedPatternsAsync (caching behavior)
+  - GetTrendingPatternsAsync (caching behavior)
+  - VoteAsync (successful vote, pattern not found)
+
+* **PatternRepository Tests** (Data access):
+  - GetByIdAsync, GetBySlugAsync
+  - GetAllAsync with includes (Tags)
+  - AddAsync, UpdateAsync, DeleteAsync
+  - SaveAsync (transaction behavior)
+
+* **PatternMapper Tests** (Critical for category mapping):
+  - ToDto (Pattern entity → PatternDto)
+  - ToDetailDto (Pattern → PatternDetailDto with tags)
+  - Category enum mapping (PascalCase → spaced strings)
+
+* **Integration Tests** (API endpoints):
+  - GET /api/patterns (pagination, filtering, sorting)
+  - GET /api/patterns/featured (cached response)
+  - GET /api/patterns/{slug} (success, 404)
+  - POST /api/patterns/{id}/vote (success, rate limiting)
+  - POST /api/patterns (validation, success)
+  - PUT /api/patterns/{id} (validation, success, 404)
+  - DELETE /api/patterns/{id} (success, 404)
+
+* **Target Coverage:** 70%+ for Week 1-2 (foundation), 80%+ by end of phase
+
+4.5.3. **Frontend Test Infrastructure Setup**
+* Configure Jest + React Testing Library:
+  - Install dependencies (@testing-library/react, @testing-library/jest-dom, @testing-library/user-event)
+  - Create jest.config.js with Next.js preset
+  - Set up test utilities (lib/__tests__/testUtils.tsx)
+  - Configure coverage reporting (80% threshold)
+
+* Set up Playwright for E2E:
+  - Install Playwright (`npm init playwright@latest`)
+  - Configure browsers (Chromium, Firefox, WebKit)
+  - Set up test fixtures and helpers
+  - Configure CI mode and video recording
+
+* Create test data fixtures:
+  - Mock API responses (patterns, tags, categories)
+  - Test patterns with various attributes
+  - Mock error responses (404, 500)
+
+4.5.4. **Frontend Test Implementation (Priority Tests)**
+* **API Client Tests** (lib/api/):
+  - client.ts: get, post, put, delete methods
+  - client.ts: timeout handling, error handling
+  - patterns.ts: all API functions (getPatterns, getPatternBySlug, voteForPattern, etc.)
+  - mappers.ts: mapBackendCategory, mapFrontendCategory (CRITICAL)
+
+* **Component Tests** (components/):
+  - PatternCard: rendering, vote button, navigation
+  - FilterPanel: category filtering, active state
+  - SearchBar: input, search submission, clear
+  - Pagination: page navigation, disabled states
+  - VotingButton: optimistic update, error revert
+
+* **Page Tests** (app/):
+  - Home page: renders, featured patterns display
+  - Patterns listing: renders, filtering, sorting, pagination
+  - Pattern detail: renders, voting, related patterns
+
+* **E2E Tests** (e2e/):
+  - Critical flow 1: Homepage → Browse patterns → View detail
+  - Critical flow 2: Search patterns → Filter by category → View result
+  - Critical flow 3: Vote on pattern → Verify count increment
+  - Critical flow 4: Direct navigation to pattern via slug
+
+* **Target Coverage:** 70%+ for Week 1-2, 80%+ by end of phase
+
+4.5.5. **CI/CD Test Integration**
+* Update GitHub Actions workflows (.github/workflows/):
+  - Add backend test job (dotnet test with coverage)
+  - Add frontend test job (npm test with coverage)
+  - Add E2E test job (Playwright on pull requests)
+  - Generate coverage reports (Codecov or Coveralls)
+
+* Configure quality gates:
+  - All tests must pass (100% pass rate required)
+  - Code coverage ≥ 80% for Core/Data layers (backend)
+  - Code coverage ≥ 80% for lib/ and components/ (frontend)
+  - Block merge if quality gates fail
+
+* Set up test reporting:
+  - Coverage badges in README.md
+  - Test results comment on PRs
+  - Coverage diff report (changed files)
+  - Artifact retention for test results (7 days)
+
+4.5.6. **Monitoring & Alerting Configuration**
+* **Azure Application Insights Alerts:**
+  - Error Rate Alert: > 5% of requests fail (5 min window)
+  - Response Time Alert: P95 > 2 seconds (10 min window)
+  - Availability Alert: Health endpoint fails (2 consecutive checks)
+  - Exception Alert: Any unhandled exception occurs
+
+* **Dashboard Creation:**
+  - Create Azure Dashboard for operational monitoring
+  - Key metrics: Request rate, response time, error rate, availability
+  - Add log analytics queries for common issues
+  - Export dashboard template for environment replication
+
+* **Alert Action Groups:**
+  - Create action group for email notifications
+  - Add webhook for Slack/Teams integration (optional)
+  - Document escalation procedures
+
+4.5.7. **Operational Documentation**
+* Create `documentation/operations/MONITORING_GUIDE.md`:
+  - How to access Application Insights
+  - How to read dashboards
+  - Common queries and their meaning
+  - How to investigate alerts
+
+* Create `documentation/operations/DISASTER_RECOVERY.md`:
+  - Database backup strategy (automated daily backups, 30-day retention)
+  - Restore procedures (step-by-step with commands)
+  - RTO/RPO definitions (RTO: 4 hours, RPO: 24 hours)
+  - Disaster recovery testing schedule (quarterly)
+  - Contact list and escalation procedures
+
+* Create `documentation/operations/INCIDENT_RESPONSE.md`:
+  - Security incident response procedures
+  - Severity classification (P0-P4)
+  - Response timeline requirements
+  - Communication templates
+  - Post-incident review process
+
+* Create `documentation/operations/RUNBOOK.md`:
+  - Common operational tasks (restart services, check logs, etc.)
+  - Troubleshooting guide (common errors and solutions)
+  - Deployment rollback procedures
+  - Database migration rollback
+  - Configuration change procedures
+
+4.5.8. **Test Execution & Documentation**
+* Execute manual test plan:
+  - Run all checklists in COMPREHENSIVE_TEST_PLAN.md
+  - Document results in `documentation/test_results/phase4_5_test_results.md`
+  - Include screenshots of key flows
+  - Document any bugs found and fixed
+
+* Regression testing:
+  - Re-test all Phase 1-4 features
+  - Verify no regressions from test infrastructure changes
+  - Test on all supported browsers (Chrome, Firefox, Edge)
+
+* Performance baseline:
+  - Run Lighthouse on all pages (Desktop & Mobile)
+  - Document baseline metrics (LCP, FID, CLS, TTI)
+  - Store results in `documentation/test_results/performance_baseline.md`
+
+**Deliverables:**
+* ✅ Automated test suite (backend + frontend + E2E)
+* ✅ 80%+ code coverage for Core/Data/Services layers
+* ✅ CI/CD integration with quality gates
+* ✅ Azure monitoring alerts configured
+* ✅ Operational runbooks documented
+* ✅ Disaster recovery procedures documented
+* ✅ Manual test execution results documented
+* ✅ Performance baseline established
+
+**Success Criteria:**
+* All backend tests passing in CI/CD
+* All frontend tests passing in CI/CD
+* All E2E tests passing in CI/CD
+* Coverage reports available in PRs
+* Alerts triggered for simulated errors
+* Backup/restore successfully tested
+* All operational documentation reviewed and approved
+
+**Timeline:**
+* **Week 1 (Days 1-5):** Setup test infrastructure (backend + frontend + CI/CD)
+* **Week 2 (Days 6-10):** Write priority tests (services, repositories, API client, components)
+* **Week 3 (Days 11-15):** Complete test coverage, monitoring setup, operational docs, manual testing
+
+---
+
 ### Phase 5 – Authentication & Core Feature Enhancements
 
 **Priority:** HIGH
-**Dependencies:** Phase 4 complete
+**Dependencies:** Phase 4.5 complete
 
 **Objectives:** Implement user authentication, complete pattern management UI, and enhance search capabilities.
 
@@ -537,11 +787,52 @@ The project will be:
 * Test with accessibility tools
 * Fix identified accessibility issues
 
+5.5. **Test Infrastructure & Automation Setup**
+* **Backend Testing:**
+  - Create xUnit test projects for Core and Data layers
+  - Set up Moq for service mocking
+  - Configure EF Core InMemory provider for repository tests
+  - Create integration test project with WebApplicationFactory
+  - Write unit tests for PatternService, validation logic
+  - Write integration tests for all API endpoints
+  - Achieve 80%+ coverage for Core and Data layers
+
+* **Frontend Testing:**
+  - Configure Jest and React Testing Library
+  - Set up Playwright for E2E testing
+  - Create test utilities and fixtures
+  - Write unit tests for utility functions (mappers, helpers)
+  - Write component tests for UI components (PatternCard, FilterPanel, etc.)
+  - Write integration tests for page components
+  - Write E2E tests for critical user flows (browse patterns, view details, vote)
+  - Achieve 80%+ coverage for core components and utilities
+
+* **Accessibility Testing:**
+  - Integrate axe-core with Jest for automated accessibility tests
+  - Add Playwright accessibility assertions (e.g., @axe-core/playwright)
+  - Create accessibility test suite covering all major pages
+  - Set up CI pipeline to fail on critical accessibility violations
+
+* **CI/CD Test Integration:**
+  - Add test execution to GitHub Actions workflows
+  - Configure coverage reporting (Codecov or similar)
+  - Set up quality gates (tests must pass, 80%+ coverage)
+  - Add test results reporting to PR comments
+  - Configure test artifact retention
+
+* **Manual Testing:**
+  - Execute COMPREHENSIVE_TEST_PLAN.md checklist for Phase 5 features
+  - Document test results in `documentation/test_results/phase5_test_results.md`
+  - Create regression test suite for critical bugs found
+
 **Deliverables:**
 * Fully functional authentication system
 * Complete CRUD operations through UI
 * Enhanced search capabilities
 * WCAG 2.1 AA compliant interface
+* 80%+ test coverage for backend and frontend
+* Automated test suite running in CI/CD
+* Comprehensive test documentation and results
 
 ---
 
@@ -586,11 +877,42 @@ The project will be:
 * Add query result caching
 * Create `/api/patterns/{slug}/related` endpoint to reduce client-side processing
 
+6.5. **Testing Enhancements**
+* **Performance Testing:**
+  - Integrate Lighthouse CI into GitHub Actions
+  - Set performance budgets (LCP < 2.5s, TTI < 5s, FCP < 1.8s)
+  - Add API performance tests (response time < 500ms for standard queries)
+  - Create load testing suite (k6 or Apache JMeter)
+  - Establish baseline performance metrics
+  - Block deployments on performance regression
+
+* **Visual Regression Testing:**
+  - Integrate Percy or Chromatic for visual regression
+  - Create snapshot tests for all major pages and components
+  - Add visual tests for responsive breakpoints (mobile, tablet, desktop)
+  - Add visual tests for dark mode (if implemented)
+  - Set up visual review workflow in PRs
+
+* **Cross-Browser Testing:**
+  - Configure Playwright to run tests on Chromium, Firefox, WebKit
+  - Add BrowserStack or Sauce Labs for real device testing
+  - Create browser compatibility test matrix
+  - Document browser support policy
+
+* **Manual Testing:**
+  - Execute COMPREHENSIVE_TEST_PLAN sections 4-6 (Visual, API Integration, Performance)
+  - Conduct cross-browser testing on Chrome, Firefox, Safari, Edge
+  - Test on real mobile devices (iOS Safari, Chrome Mobile)
+  - Document results in `documentation/test_results/phase6_test_results.md`
+
 **Deliverables:**
 * Rich community engagement features
 * Dark mode support
 * Export capabilities
 * Significantly improved performance metrics
+* Automated performance and visual regression testing
+* Cross-browser test coverage
+* Performance benchmarks and monitoring
 
 ---
 
@@ -627,10 +949,31 @@ The project will be:
 * Add collaborative editing (optional)
 * Create contributor leaderboard
 
+7.4. **Testing Requirements**
+* **Unit & Integration Tests:**
+  - Write tests for notification service and email delivery
+  - Test collection/playlist logic and data access
+  - Test versioning and change tracking functionality
+  - Test collaboration workflow (approval, multi-author)
+  - Maintain 80%+ coverage for all new features
+
+* **E2E Tests:**
+  - Test notification delivery end-to-end
+  - Test collection creation and management flows
+  - Test pattern versioning UI
+  - Test multi-author collaboration workflows
+
+* **Manual Testing:**
+  - Verify email notifications in staging environment
+  - Test browser push notifications across devices
+  - Validate notification preferences UI
+  - Document results in `documentation/test_results/phase7_test_results.md`
+
 **Deliverables:**
 * Advanced content organization tools
 * Comprehensive notification system
 * Collaboration and contribution workflows
+* Full test coverage for Phase 7 features
 
 ---
 
@@ -675,11 +1018,48 @@ The project will be:
 * Add automated tagging and categorization
 * Create pattern quality scoring
 
+8.5. **Testing Requirements**
+* **Internationalization Testing:**
+  - Create test suite for multi-language content
+  - Test RTL language rendering (Arabic, Hebrew)
+  - Validate date/number formatting across locales
+  - Test language switching UI flows
+  - Add Playwright tests for all supported languages
+
+* **Multi-Tenant Testing:**
+  - Test tenant isolation and data segregation
+  - Test organization-level permissions
+  - Validate SSO/SAML integration flows
+  - Test compliance and audit logging
+  - Create tenant-specific test environments
+
+* **AI Feature Testing:**
+  - Test pattern recommendation accuracy (A/B testing)
+  - Validate similarity detection algorithms
+  - Test natural language search relevance
+  - Monitor AI model performance metrics
+  - Create synthetic test data for AI features
+
+* **Security & Compliance Testing:**
+  - Conduct penetration testing (OWASP Top 10)
+  - Perform security audit (SAST/DAST tools)
+  - Validate GDPR compliance (data export, deletion)
+  - Test audit logging completeness
+  - Document results in `documentation/test_results/phase8_security_audit.md`
+
+* **Manual Testing:**
+  - User acceptance testing (UAT) with enterprise clients
+  - Multi-language validation by native speakers
+  - Real-world tenant onboarding scenarios
+  - Document results in `documentation/test_results/phase8_test_results.md`
+
 **Deliverables:**
 * Multi-language support
 * Enterprise-grade analytics
 * Advanced AI-powered features
 * Enterprise deployment capabilities
+* Security audit and compliance documentation
+* Full test coverage for enterprise features
 
 ---
 
@@ -691,7 +1071,8 @@ The project will be:
 | Phase 2 | ✅ Complete | 2024-Q1 | ASP.NET Core backend |
 | Phase 3 | ✅ Complete | 2026-02-10 | Frontend-backend integration |
 | Phase 4 | ✅ Complete | 2026-02-11 | Azure deployment, CI/CD, security hardening |
-| Phase 5 | 🚀 Ready | TBD | Authentication, CRUD UI |
+| **Phase 4.5** | **🚀 Active** | **2026-02-13** (started) | **Automated tests, monitoring, operational docs** |
+| Phase 5 | 📋 Planned | TBD | Authentication, CRUD UI |
 | Phase 6 | 📋 Planned | TBD | User engagement, UX |
 | Phase 7 | 📋 Planned | TBD | Advanced content management |
 | Phase 8 | 📋 Future | TBD | Enterprise features |

@@ -35,3 +35,9 @@ x86/
 ## Environment
 .env
 appsettings.*.local.json
+
+## Test Coverage
+TestResults/
+coverage/
+*.coverage
+*.coveragexml
