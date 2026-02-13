@@ -158,21 +158,30 @@ jobs:
 
       - name: Check homepage
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.get-url.outputs.fqdn }})
-          if [ $response -eq 200 ]; then
-            echo "✓ Homepage health check passed (HTTP $response)"
+          response=$(curl -s https://${{ steps.get-url.outputs.fqdn }})
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.get-url.outputs.fqdn }})
+
+          # Check for Next.js HTML content (not Azure welcome page)
+          if echo "$response" | grep -q "next-size-adjust"; then
+            echo "✓ Homepage health check passed (HTTP $http_code, Next.js content detected)"
           else
-            echo "✗ Homepage health check failed (HTTP $response)"
+            echo "✗ Homepage health check failed (HTTP $http_code)"
+            echo "Response does not contain Next.js markers - may be showing Azure welcome page"
+            echo "First 500 chars: ${response:0:500}"
             exit 1
           fi
 
       - name: Check patterns page
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.get-url.outputs.fqdn }}/patterns)
-          if [ $response -eq 200 ]; then
-            echo "✓ Patterns page accessible (HTTP $response)"
+          response=$(curl -s https://${{ steps.get-url.outputs.fqdn }}/patterns)
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.get-url.outputs.fqdn }}/patterns)
+
+          # Check for Next.js HTML content (not Azure welcome page)
+          if echo "$response" | grep -q "next-size-adjust"; then
+            echo "✓ Patterns page accessible (HTTP $http_code, Next.js content detected)"
           else
-            echo "✗ Patterns page not accessible (HTTP $response)"
+            echo "✗ Patterns page not accessible (HTTP $http_code)"
+            echo "Response does not contain Next.js markers - may be showing Azure welcome page"
             exit 1
           fi
 

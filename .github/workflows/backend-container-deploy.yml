@@ -125,11 +125,14 @@ jobs:
 
       - name: Check API health
         run: |
-          response=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.get-url.outputs.fqdn }}/health)
-          if [ $response -eq 200 ]; then
-            echo "✓ API health check passed (HTTP $response)"
+          response=$(curl -s https://${{ steps.get-url.outputs.fqdn }}/health)
+          http_code=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.get-url.outputs.fqdn }}/health)
+
+          if [ "$response" = "Healthy" ]; then
+            echo "✓ API health check passed (HTTP $http_code, Response: $response)"
           else
-            echo "✗ API health check failed (HTTP $response)"
+            echo "✗ API health check failed (HTTP $http_code, Response: $response)"
+            echo "Expected: 'Healthy', Got: '$response'"
             exit 1
           fi
 
