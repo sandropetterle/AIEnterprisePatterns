@@ -40,7 +40,13 @@
       "Bash(npm run test:coverage:*)",
       "Bash(npm test:*)",
       "Bash(Select-String -Pattern \"Saved|Expected|info:\")",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(powershell -File configure-alerts.ps1:*)",
+      "Bash(powershell:*)",
+      "Bash(az monitor app-insights component show:*)",
+      "Bash(az monitor metrics alert list:*)",
+      "Bash(az monitor metrics alert show:*)",
+      "Bash(dotnet ef migrations list:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\deployment"

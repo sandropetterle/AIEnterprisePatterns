@@ -52,7 +52,7 @@ if ($existingActionGroup) {
         --name $actionGroupName `
         --resource-group $ResourceGroup `
         --short-name "AIPatAlert" `
-        --email-receiver email devops $ActionGroupEmail
+        --email-receiver devops $ActionGroupEmail true
 
     Write-Host "✅ Created Action Group: $actionGroupName" -ForegroundColor Green
 }
@@ -112,7 +112,7 @@ function New-MetricAlert {
 
 # Alert 1: High Error Rate
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "Alert 1: High Error Rate (>5% over 5 minutes)" -ForegroundColor Cyan
+Write-Host 'Alert 1: High Error Rate (>5% over 5 minutes)' -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 
 New-MetricAlert `
@@ -127,7 +127,7 @@ Write-Host ""
 
 # Alert 2: Slow Response Time
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "Alert 2: Slow Response Time (P95 >2s over 10 min)" -ForegroundColor Cyan
+Write-Host 'Alert 2: Slow Response Time (P95 >2s over 10 min)' -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 
 New-MetricAlert `
@@ -142,7 +142,7 @@ Write-Host ""
 
 # Alert 3: Availability Drop
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "Alert 3: Availability Drop (<99% over 5 minutes)" -ForegroundColor Cyan
+Write-Host 'Alert 3: Availability Drop (<99% over 5 minutes)' -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 
 New-MetricAlert `
@@ -157,7 +157,7 @@ Write-Host ""
 
 # Alert 4: Exception Spike
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
-Write-Host "Alert 4: Exception Spike (>10 exceptions over 5 min)" -ForegroundColor Cyan
+Write-Host 'Alert 4: Exception Spike (>10 exceptions over 5 min)' -ForegroundColor Cyan
 Write-Host "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━" -ForegroundColor Cyan
 
 New-MetricAlert `

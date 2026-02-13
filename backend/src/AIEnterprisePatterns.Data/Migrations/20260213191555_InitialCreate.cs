@@ -17,19 +17,19 @@ namespace AIEnterprisePatterns.Data.Migrations
                 name: "Patterns",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Title = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    Slug = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
-                    ShortDescription = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    FullContent = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Category = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
-                    Author = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
-                    CreatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    UpdatedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    VoteCount = table.Column<int>(type: "int", nullable: false),
-                    Status = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
-                    IsFeatured = table.Column<bool>(type: "bit", nullable: false),
-                    IsTrending = table.Column<bool>(type: "bit", nullable: false)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Title = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    Slug = table.Column<string>(type: "TEXT", maxLength: 255, nullable: false),
+                    ShortDescription = table.Column<string>(type: "TEXT", nullable: false),
+                    FullContent = table.Column<string>(type: "TEXT", nullable: true),
+                    Category = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false),
+                    Author = table.Column<string>(type: "TEXT", maxLength: 100, nullable: true),
+                    CreatedDate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    UpdatedDate = table.Column<DateTime>(type: "TEXT", nullable: false),
+                    VoteCount = table.Column<int>(type: "INTEGER", nullable: false),
+                    Status = table.Column<string>(type: "TEXT", maxLength: 20, nullable: false),
+                    IsFeatured = table.Column<bool>(type: "INTEGER", nullable: false),
+                    IsTrending = table.Column<bool>(type: "INTEGER", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -40,8 +40,8 @@ namespace AIEnterprisePatterns.Data.Migrations
                 name: "Tags",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    Name = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false)
+                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
+                    Name = table.Column<string>(type: "TEXT", maxLength: 50, nullable: false)
                 },
                 constraints: table =>
                 {
@@ -52,8 +52,8 @@ namespace AIEnterprisePatterns.Data.Migrations
                 name: "PatternTag",
                 columns: table => new
                 {
-                    PatternsId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    TagsId = table.Column<Guid>(type: "uniqueidentifier", nullable: false)
+                    PatternsId = table.Column<Guid>(type: "TEXT", nullable: false),
+                    TagsId = table.Column<Guid>(type: "TEXT", nullable: false)
                 },
                 constraints: table =>
                 {
