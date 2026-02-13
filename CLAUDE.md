@@ -299,14 +299,71 @@ az containerapp revision list --name ca-aipatterns-api-prod --resource-group rg-
 
 **Key Documents:**
 - `README.md` - Quick start guide and setup instructions
-- `CODEBASE_REVIEW_REPORT.md` - Security and code quality audit (1 critical, 11 high, 27 medium issues identified)
+- `documentation/reviews/CODEBASE_REVIEW_REPORT.md` - Security and code quality audit (1 critical, 11 high, 27 medium issues identified)
 - `documentation/instructions.md` - Full Software Requirements Specification (SRS)
 - `documentation/TESTING_STRATEGY.md` - Comprehensive testing approach
 - `documentation/CI_CD_STRATEGY.md` - Pipeline and deployment strategy
-- `documentation/PHASE3_LEARNINGS.md` - Integration patterns and best practices
-- `documentation/QUICK_START_PHASE4.md` - Azure deployment quick start
 - `documentation/TECHNICAL_DECISIONS_LOG.md` - Architecture and design decisions with rationale
+- `documentation/transient/PHASE3_LEARNINGS.md` - Integration patterns and best practices
 - `.claude/plans/hashed-swinging-peach.md` - 38-step remediation plan (approved, not yet implemented)
+
+### Documentation Organization Rules (MANDATORY)
+
+**⚠️ CRITICAL: All documentation must follow this standardized folder structure.**
+
+When creating or organizing documentation files, you **MUST** place them in the correct location based on their purpose:
+
+#### 1. **Root Level (`documentation/`)** - Permanent Core Documentation
+Main project documentation that remains relevant across all phases:
+- `instructions.md` - Software Requirements Specification (SRS)
+- `TESTING_STRATEGY.md` - Testing approach and methodology
+- `CI_CD_STRATEGY.md` - Pipeline and deployment strategy
+- `COMPREHENSIVE_TEST_PLAN.md` - Master test plan
+- `TECHNICAL_DECISIONS_LOG.md` - Architectural decisions and rationale
+- Any other permanent reference documentation
+
+#### 2. **Test Results (`documentation/test_results/`)** - Test Execution Reports
+All test execution results and test run artifacts:
+- `COMPREHENSIVE_TEST_RESULTS.md` - Master test results
+- `PHASE3_TEST_RESULTS.md` - Phase-specific test execution reports
+- `test_run_YYYY-MM-DD_HH-MM.md` - Individual test run results (timestamped)
+- Any test execution logs, screenshots, or artifacts
+
+**Naming Convention:** Use timestamps or clear identifiers (e.g., `test_run_2026-02-13_integration.md`)
+
+#### 3. **Reviews (`documentation/reviews/`)** - Code and Security Reviews
+All review documents, audits, and assessments:
+- `CODEBASE_REVIEW_REPORT.md` - Security and code quality audits
+- `security_audit_YYYY-MM-DD.md` - Security assessments
+- `code_review_feature_name.md` - Feature-specific code reviews
+- Any compliance, performance, or quality review documents
+
+#### 4. **Transient (`documentation/transient/`)** - Phase-Specific & Temporary Context
+Phase-specific documentation, session context, and temporary guides:
+- `PHASE3_LEARNINGS.md`, `PHASE4_COMPLETION_REPORT.md` - Phase-specific learnings and summaries
+- `PHASE4_QUICK_FIX.md` - Phase-specific quick fixes and workarounds
+- `QUICK_START_PHASE4.md` - Phase-specific quick start guides
+- `CONTEXT_FOR_PHASE4.md` - Phase-specific context documents
+- `SESSION_CONTEXT_YYYY-MM-DD.md` - Session-specific notes
+- Any experimental or work-in-progress documentation
+
+**These files are expected to be archived or deleted once the phase is complete.**
+
+### When Creating New Documentation
+
+**Before creating any documentation file, ask:**
+1. Is this permanent reference material? → `documentation/` root
+2. Is this a test execution result? → `documentation/test_results/`
+3. Is this a review or audit? → `documentation/reviews/`
+4. Is this phase-specific or temporary? → `documentation/transient/`
+
+**Examples:**
+- New test run results → `documentation/test_results/integration_test_2026-02-13.md`
+- Security review → `documentation/reviews/api_security_review.md`
+- Phase 5 planning notes → `documentation/transient/phase5_planning.md`
+- New testing guideline → `documentation/TESTING_GUIDELINES.md` (root level)
+
+**When in doubt:** Temporary/phase-specific goes to `transient/`, permanent reference stays at root level.
 
 ## Technical Decision Documentation (MANDATORY)
 
