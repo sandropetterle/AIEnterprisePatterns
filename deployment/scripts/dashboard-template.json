@@ -1,0 +1,119 @@
+{
+  "lenses": {
+    "0": {
+      "order": 0,
+      "parts": {
+        "0": {
+          "position": {
+            "x": 0,
+            "y": 0,
+            "colSpan": 6,
+            "rowSpan": 4
+          },
+          "metadata": {
+            "inputs": [
+              {
+                "name": "resourceTypeMode",
+                "isOptional": true
+              },
+              {
+                "name": "ComponentId",
+                "isOptional": true
+              },
+              {
+                "name": "Scope",
+                "value": {
+                  "resourceIds": [
+                    "/subscriptions/e5d3d919-c593-4779-8536-9225fde412d0/resourceGroups/rg-aipatterns-prod/providers/microsoft.insights/components/appi-aipatterns-prod"
+                  ]
+                },
+                "isOptional": true
+              },
+              {
+                "name": "PartId",
+                "value": "1",
+                "isOptional": true
+              },
+              {
+                "name": "Version",
+                "value": "2.0",
+                "isOptional": true
+              },
+              {
+                "name": "TimeRange",
+                "value": "P1D",
+                "isOptional": true
+              },
+              {
+                "name": "DashboardId",
+                "isOptional": true
+              },
+              {
+                "name": "DraftRequestParameters",
+                "isOptional": true
+              },
+              {
+                "name": "Query",
+                "value": "requests\n| where timestamp > ago(24h)\n| summarize count() by bin(timestamp, 15m)\n| render timechart\n",
+                "isOptional": true
+              },
+              {
+                "name": "ControlType",
+                "value": "FrameControlChart",
+                "isOptional": true
+              },
+              {
+                "name": "SpecificChart",
+                "value": "Line",
+                "isOptional": true
+              },
+              {
+                "name": "PartTitle",
+                "value": "Request Rate (Last 24h)",
+                "isOptional": true
+              },
+              {
+                "name": "PartSubTitle",
+                "value": "appi-aipatterns-prod",
+                "isOptional": true
+              }
+            ],
+            "type": "Extension/Microsoft_OperationsManagementSuite_Workspace/PartType/LogsDashboardPart"
+          }
+        }
+      }
+    }
+  },
+  "metadata": {
+    "model": {
+      "timeRange": {
+        "value": {
+          "relative": {
+            "duration": 24,
+            "timeUnit": 1
+          }
+        },
+        "type": "MsPortalFx.Composition.Configuration.ValueTypes.TimeRange"
+      },
+      "filterLocale": {
+        "value": "en-us"
+      },
+      "filters": {
+        "value": {
+          "MsPortalFx_TimeRange": {
+            "model": {
+              "format": "local",
+              "granularity": "auto",
+              "relative": "24h"
+            },
+            "displayCache": {
+              "name": "Local Time",
+              "value": "Past 24 hours"
+            },
+            "filteredPartIds": []
+          }
+        }
+      }
+    }
+  }
+}
