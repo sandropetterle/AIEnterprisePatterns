@@ -15,7 +15,26 @@
       "Bash(gh api:*)",
       "Bash(gh workflow list:*)",
       "Bash(gh run list:*)",
-      "Bash(test:*)"
+      "Bash(test:*)",
+      "Bash(gh run watch:*)",
+      "Bash(az ad app list:*)",
+      "Bash(gh secret:*)",
+      "Bash(az ad app federated-credential list:*)",
+      "Bash(gh run rerun:*)",
+      "Bash(git pull:*)",
+      "Bash(az containerapp logs show:*)",
+      "Bash(az containerapp revision list:*)",
+      "Bash(az containerapp ingress update:*)",
+      "Bash(az containerapp replica list:*)",
+      "Bash(az containerapp ingress show:*)",
+      "Bash(az containerapp revision show:*)",
+      "Bash(az containerapp ingress traffic set:*)",
+      "Bash(gh workflow run:*)",
+      "Bash(az containerapp secret list:*)",
+      "Bash(az sql server firewall-rule list:*)",
+      "Bash(az sql db show:*)",
+      "Bash(az sql db resume:*)",
+      "Bash(cat:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\deployment"

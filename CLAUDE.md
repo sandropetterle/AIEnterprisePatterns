@@ -305,7 +305,57 @@ az containerapp revision list --name ca-aipatterns-api-prod --resource-group rg-
 - `documentation/CI_CD_STRATEGY.md` - Pipeline and deployment strategy
 - `documentation/PHASE3_LEARNINGS.md` - Integration patterns and best practices
 - `documentation/QUICK_START_PHASE4.md` - Azure deployment quick start
+- `documentation/TECHNICAL_DECISIONS_LOG.md` - Architecture and design decisions with rationale
 - `.claude/plans/hashed-swinging-peach.md` - 38-step remediation plan (approved, not yet implemented)
+
+## Technical Decision Documentation (MANDATORY)
+
+**⚠️ CRITICAL RULE: Always update the Technical Decisions Log when making architectural or design decisions.**
+
+When you make a technical decision that affects the project's architecture, infrastructure, security, performance, or development workflow, you **MUST** update `documentation/TECHNICAL_DECISIONS_LOG.md`.
+
+### What qualifies as a technical decision:
+- **Architecture changes**: New patterns, layer modifications, service integrations
+- **Security decisions**: Authentication methods, authorization patterns, credential management
+- **Infrastructure changes**: Deployment strategies, hosting configurations, scaling approaches
+- **Build & deployment**: CI/CD modifications, Docker strategies, dependency management
+- **Performance optimizations**: Caching strategies, query optimizations, scaling configurations
+- **Technology choices**: Selecting libraries, frameworks, or tools over alternatives
+- **Development workflow**: Testing strategies, code organization, tooling decisions
+
+### When to update the log:
+- ✅ **Immediately** after implementing a significant technical decision
+- ✅ **Before finalizing** architectural changes (document the decision process)
+- ✅ **After evaluating** multiple alternatives (document why one was chosen)
+
+### Required information for each decision:
+1. **Date/Time** - When the decision was made (UTC preferred)
+2. **Title** - Clear, concise summary of the decision
+3. **Category** - Classification (Security, Architecture, Performance, Cost, etc.)
+4. **Decision Details** - What was decided and implemented
+5. **Pros** - Benefits and advantages of the chosen approach
+6. **Cons** - Drawbacks and limitations
+7. **Impact** - How this affects the project, team, or users
+8. **Compromises** - Trade-offs or concessions made (if any)
+9. **Alternatives Evaluated** - Other options considered and why they were rejected
+
+### Format:
+Follow the existing structure in the log file. Each decision should be a standalone section with clear headings and bullet points for easy scanning.
+
+### Examples of decisions to document:
+- Choosing OIDC over service principal credentials
+- Implementing scale-to-zero for cost optimization
+- Using multi-stage Docker builds for security
+- Adding rate limiting to specific endpoints
+- Selecting a caching strategy
+- Changing database migration approaches
+- Adding or removing infrastructure components
+
+**This is not optional** - maintaining this log ensures:
+- Future maintainers understand why decisions were made
+- Architectural knowledge is preserved across sessions
+- Trade-offs are transparent and can be revisited if requirements change
+- The project has a clear audit trail of technical evolution
 
 ## Important Notes
 
@@ -314,6 +364,9 @@ az containerapp revision list --name ca-aipatterns-api-prod --resource-group rg-
 - **Vote endpoint** uses `SaveAsync()` directly - should use atomic ExecuteUpdateAsync (race condition risk)
 - **Swagger** is development-only - secured behind environment check
 - **Rate limiting** applies per-IP with different policies per endpoint group
+- **Backend ports**: Local development uses port 5255 (dotnet run), Docker containers use port 8080 (non-root user requirement)
+- **Health checks**: CI/CD workflows verify actual content ("Healthy" for backend, "next-size-adjust" meta tag for frontend), not just HTTP 200
+- **Container security**: Backend runs as non-root user (appuser) in Docker, requires port 8080 (ports <1024 need root)
 - **Remediation Plan** - 38 security/architecture improvements identified but not yet implemented (see hashed-swinging-peach.md)
 - **Phase 3 Complete** - Frontend-backend integration with 15/15 tests passing
-- **Phase 4 Complete** - Azure Container Apps deployed and operational
+- **Phase 4 Complete** - Azure Container Apps deployed and operational with content-verified health checks
