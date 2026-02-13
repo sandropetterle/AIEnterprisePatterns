@@ -34,7 +34,11 @@
       "Bash(az sql server firewall-rule list:*)",
       "Bash(az sql db show:*)",
       "Bash(az sql db resume:*)",
-      "Bash(cat:*)"
+      "Bash(cat:*)",
+      "Bash(npm test)",
+      "Bash(dotnet test:*)",
+      "Bash(npm run test:coverage:*)",
+      "Bash(npm test:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\deployment"
