@@ -17,6 +17,7 @@ public class PatternEndpointsTests : IClassFixture<WebApplicationFactory<Program
     private readonly HttpClient _client;
     private readonly IServiceScope _scope;
     private readonly ApplicationDbContext _context;
+    private static readonly string DatabaseName = $"TestDb_{Guid.NewGuid()}"; // Shared across all contexts in this test class
 
     public PatternEndpointsTests(WebApplicationFactory<Program> factory)
     {
@@ -30,10 +31,10 @@ public class PatternEndpointsTests : IClassFixture<WebApplicationFactory<Program
                 if (descriptor != null)
                     services.Remove(descriptor);
 
-                // Add in-memory database for testing
+                // Add in-memory database for testing - use shared database name
                 services.AddDbContext<ApplicationDbContext>(options =>
                 {
-                    options.UseInMemoryDatabase("TestDb_" + Guid.NewGuid());
+                    options.UseInMemoryDatabase(DatabaseName);
                 });
             });
         });
@@ -42,11 +43,11 @@ public class PatternEndpointsTests : IClassFixture<WebApplicationFactory<Program
         _scope = _factory.Services.CreateScope();
         _context = _scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
 
-        // Ensure database is created (applies seed data from OnModelCreating)
-        _context.Database.EnsureCreated();
-
-        // Seed additional test data
-        SeedTestData();
+        // Seed test data explicitly (only if database is empty)
+        if (!_context.Patterns.Any())
+        {
+            SeedTestData();
+        }
     }
 
     #region GET /api/patterns Tests
@@ -333,13 +334,17 @@ public class PatternEndpointsTests : IClassFixture<WebApplicationFactory<Program
         var pattern = CreateTestPattern("To Delete", "to-delete");
         _context.Patterns.Add(pattern);
         await _context.SaveChangesAsync();
+        var patternId = pattern.Id;
 
         // Act
-        var response = await _client.DeleteAsync($"/api/patterns/{pattern.Id}");
+        var response = await _client.DeleteAsync($"/api/patterns/{patternId}");
 
         // Assert
         response.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        var deleted = await _context.Patterns.FindAsync(pattern.Id);
+
+        // Clear change tracker to force a fresh query from the database
+        _context.ChangeTracker.Clear();
+        var deleted = await _context.Patterns.FindAsync(patternId);
         deleted.Should().BeNull();
     }
 
@@ -359,16 +364,31 @@ public class PatternEndpointsTests : IClassFixture<WebApplicationFactory<Program
 
     private void SeedTestData()
     {
-        var tag1 = new Tag { Id = Guid.NewGuid(), Name = "Testing" };
-        var tag2 = new Tag { Id = Guid.NewGuid(), Name = "Architecture" };
+        // Create test tags explicitly
+        var testingTag = new Tag { Id = Guid.NewGuid(), Name = "Testing" };
+        var architectureTag = new Tag { Id = Guid.NewGuid(), Name = "Architecture" };
+        var securityTag = new Tag { Id = Guid.NewGuid(), Name = "Security" };
 
-        _context.Tags.AddRange(tag1, tag2);
+        _context.Tags.AddRange(testingTag, architectureTag, securityTag);
+        _context.SaveChanges();
 
+        // Create test patterns with diverse data for filtering tests
         var patterns = new List<Pattern>
         {
-            CreateTestPattern("Architecture Pattern 1", "arch-1", PatternCategory.Architecture, 50, true, false, new[] { tag2 }),
-            CreateTestPattern("Design Pattern with Testing", "design-1", PatternCategory.DesignPatterns, 40, false, true, new[] { tag1 }),
-            CreateTestPattern("Security Pattern", "security-1", PatternCategory.Security, 35, false, true, new[] { tag2 })
+            // Featured pattern with Architecture tag (for category and featured tests)
+            CreateTestPattern("Architecture Pattern Test", "arch-pattern-test", PatternCategory.Architecture, 50, true, false, new[] { architectureTag }),
+
+            // Trending pattern with Testing tag (for tag filtering and trending tests)
+            CreateTestPattern("Design Pattern with Testing", "design-testing", PatternCategory.DesignPatterns, 40, false, true, new[] { testingTag }),
+
+            // Security pattern, also trending (for category and trending tests)
+            CreateTestPattern("Security Test Pattern", "security-test", PatternCategory.Security, 35, false, true, new[] { securityTag }),
+
+            // Additional pattern with high votes (for sorting tests)
+            CreateTestPattern("High Votes Pattern", "high-votes", PatternCategory.Performance, 100, false, false, new[] { architectureTag }),
+
+            // Featured AND trending (for both tests)
+            CreateTestPattern("Featured and Trending", "featured-trending", PatternCategory.AIPrompts, 75, true, true, new[] { testingTag, architectureTag })
         };
 
         _context.Patterns.AddRange(patterns);

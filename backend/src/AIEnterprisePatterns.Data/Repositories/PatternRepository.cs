@@ -145,15 +145,13 @@ public class PatternRepository : IPatternRepository
 
     public async Task<int> IncrementVoteCountAsync(Guid id, CancellationToken ct = default)
     {
-        var rowsAffected = await _context.Patterns
-            .Where(p => p.Id == id)
-            .ExecuteUpdateAsync(s => s.SetProperty(p => p.VoteCount, p => p.VoteCount + 1), ct);
+        // Use traditional approach instead of ExecuteUpdateAsync for better test compatibility
+        // ExecuteUpdateAsync has issues with in-memory database provider
+        var pattern = await _context.Patterns.FindAsync(new object[] { id }, ct);
+        if (pattern == null) return -1;
 
-        if (rowsAffected == 0) return -1;
-
-        return await _context.Patterns
-            .Where(p => p.Id == id)
-            .Select(p => p.VoteCount)
-            .FirstOrDefaultAsync(ct);
+        pattern.VoteCount++;
+        await _context.SaveChangesAsync(ct);
+        return pattern.VoteCount;
     }
 }
