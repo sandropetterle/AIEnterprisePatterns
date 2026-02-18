@@ -180,8 +180,8 @@ describe('Pagination', () => {
       />
     )
 
-    const currentPageButton = screen.getByLabelText('Current Page, Page 3')
-    expect(currentPageButton).toBeInTheDocument()
+    const page3Button = screen.getByRole('button', { name: '3' })
+    expect(page3Button).toHaveAttribute('aria-current', 'page')
   })
 
   it('should navigate to clicked page number', () => {
