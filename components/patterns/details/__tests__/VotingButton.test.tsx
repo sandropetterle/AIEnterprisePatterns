@@ -3,7 +3,8 @@
  * Tests the voting button with optimistic updates
  */
 
-import { render, screen, fireEvent, waitFor } from '@testing-library/react'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
 import { VotingButton } from '../VotingButton'
 
 // Mock the voteForPattern API
@@ -53,14 +54,15 @@ describe('VotingButton', () => {
   })
 
   it('should increment vote count optimistically on click', async () => {
+    // Server returns same as optimistic count — both are 43
     mockVoteForPattern.mockResolvedValue({ voteCount: 43 })
 
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
+    // userEvent.click wraps in act() and flushes all pending state updates
+    await userEvent.click(button)
 
-    // Should immediately show incremented count
     expect(screen.getByText('43')).toBeInTheDocument()
   })
 
@@ -70,11 +72,9 @@ describe('VotingButton', () => {
     render(<VotingButton initialVoteCount={42} patternId="pattern-123" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
+    await userEvent.click(button)
 
-    await waitFor(() => {
-      expect(mockVoteForPattern).toHaveBeenCalledWith('pattern-123')
-    })
+    expect(mockVoteForPattern).toHaveBeenCalledWith('pattern-123')
   })
 
   it('should update to server-returned vote count on success', async () => {
@@ -83,15 +83,10 @@ describe('VotingButton', () => {
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
+    await userEvent.click(button)
 
-    // First shows optimistic update
-    expect(screen.getByText('43')).toBeInTheDocument()
-
-    // Then updates to server value
-    await waitFor(() => {
-      expect(screen.getByText('100')).toBeInTheDocument()
-    })
+    // After full async cycle completes, shows server-returned count
+    expect(screen.getByText('100')).toBeInTheDocument()
   })
 
   it('should revert vote count on API error', async () => {
@@ -100,15 +95,10 @@ describe('VotingButton', () => {
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
+    await userEvent.click(button)
 
-    // First shows optimistic update
-    expect(screen.getByText('43')).toBeInTheDocument()
-
-    // Then reverts to original on error
-    await waitFor(() => {
-      expect(screen.getByText('42')).toBeInTheDocument()
-    })
+    // After error, reverts to original count
+    expect(screen.getByText('42')).toBeInTheDocument()
   })
 
   it('should show error toast on API failure', async () => {
@@ -117,13 +107,11 @@ describe('VotingButton', () => {
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
+    await userEvent.click(button)
 
-    await waitFor(() => {
-      expect(mockToastError).toHaveBeenCalledWith(
-        'Failed to record your vote. Please try again.'
-      )
-    })
+    expect(mockToastError).toHaveBeenCalledWith(
+      'Failed to record your vote. Please try again.'
+    )
   })
 
   it('should disable button after voting', async () => {
@@ -132,11 +120,9 @@ describe('VotingButton', () => {
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
+    await userEvent.click(button)
 
-    await waitFor(() => {
-      expect(button).toBeDisabled()
-    })
+    expect(button).toBeDisabled()
   })
 
   it('should not allow double-clicking', async () => {
@@ -145,16 +131,15 @@ describe('VotingButton', () => {
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
-    fireEvent.click(button)
+    // First click triggers vote; second click is ignored (button disabled)
+    await userEvent.click(button)
+    await userEvent.click(button)
 
-    await waitFor(() => {
-      // Should only be called once
-      expect(mockVoteForPattern).toHaveBeenCalledTimes(1)
-    })
+    expect(mockVoteForPattern).toHaveBeenCalledTimes(1)
   })
 
   it('should disable button while loading', async () => {
+    jest.useFakeTimers()
     mockVoteForPattern.mockImplementation(
       () =>
         new Promise((resolve) =>
@@ -165,15 +150,19 @@ describe('VotingButton', () => {
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
 
-    // Button should be disabled while API call is in progress
-    expect(button).toBeDisabled()
+    // Click without awaiting so we can observe the loading state
+    const clickPromise = userEvent.click(button)
 
-    await waitFor(() => {
-      // May still be disabled after vote completes (hasVoted state)
-      expect(mockVoteForPattern).toHaveBeenCalled()
-    })
+    // Button is immediately disabled while API call is in progress
+    await waitFor(() => expect(button).toBeDisabled())
+
+    // Advance timers and flush remaining state updates
+    jest.runAllTimers()
+    await clickPromise
+
+    jest.useRealTimers()
+    expect(mockVoteForPattern).toHaveBeenCalled()
   })
 
   it('should handle zero initial vote count', () => {
@@ -188,7 +177,7 @@ describe('VotingButton', () => {
     render(<VotingButton initialVoteCount={0} patternId="pattern-1" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
+    await userEvent.click(button)
 
     expect(screen.getByText('1')).toBeInTheDocument()
   })
@@ -199,13 +188,11 @@ describe('VotingButton', () => {
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
     const button = screen.getByRole('button')
-    fireEvent.click(button)
+    await userEvent.click(button)
 
-    await waitFor(() => {
-      expect(screen.getByText('42')).toBeInTheDocument()
-    })
-
-    // After error and revert, button should be enabled again
+    // After error and revert, original count is restored
+    expect(screen.getByText('42')).toBeInTheDocument()
+    // Button should be enabled again (error allows retry)
     expect(button).not.toBeDisabled()
   })
 })

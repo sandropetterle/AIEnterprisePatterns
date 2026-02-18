@@ -43,7 +43,7 @@ jobs:
         run: npm ci
 
       - name: Run tests
-        run: npm run test:ci
+        run: npm test -- --ci --maxWorkers=2
         env:
           NEXT_PUBLIC_API_BASE_URL: http://localhost:5255/api
           NEXT_PUBLIC_API_TIMEOUT: 30000
