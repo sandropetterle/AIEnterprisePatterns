@@ -56,8 +56,9 @@ jobs:
         run: |
           # Next.js standalone output is already in .next/standalone
           # Copy static files and public folder to standalone directory
-          cp -r .next/static .next/standalone/.next/
-          cp -r public .next/standalone/
+          mkdir -p .next/standalone/.next/static
+          cp -r .next/static/. .next/standalone/.next/static/
+          if [ -d public ]; then cp -r public .next/standalone/; fi
 
       - name: Upload artifact for deployment
         uses: actions/upload-artifact@v4
