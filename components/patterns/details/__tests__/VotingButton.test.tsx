@@ -55,7 +55,7 @@ describe('VotingButton', () => {
 
   it('should increment vote count optimistically on click', async () => {
     // Server returns same as optimistic count — both are 43
-    mockVoteForPattern.mockResolvedValue({ voteCount: 43 })
+    mockVoteForPattern.mockResolvedValue({ patternId: 'pattern-1', voteCount: 43 })
 
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
@@ -67,7 +67,7 @@ describe('VotingButton', () => {
   })
 
   it('should call voteForPattern API with correct patternId', async () => {
-    mockVoteForPattern.mockResolvedValue({ voteCount: 43 })
+    mockVoteForPattern.mockResolvedValue({ patternId: 'pattern-123', voteCount: 43 })
 
     render(<VotingButton initialVoteCount={42} patternId="pattern-123" />)
 
@@ -78,7 +78,7 @@ describe('VotingButton', () => {
   })
 
   it('should update to server-returned vote count on success', async () => {
-    mockVoteForPattern.mockResolvedValue({ voteCount: 100 })
+    mockVoteForPattern.mockResolvedValue({ patternId: 'pattern-1', voteCount: 100 })
 
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
@@ -115,7 +115,7 @@ describe('VotingButton', () => {
   })
 
   it('should disable button after voting', async () => {
-    mockVoteForPattern.mockResolvedValue({ voteCount: 43 })
+    mockVoteForPattern.mockResolvedValue({ patternId: 'pattern-1', voteCount: 43 })
 
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
@@ -126,7 +126,7 @@ describe('VotingButton', () => {
   })
 
   it('should not allow double-clicking', async () => {
-    mockVoteForPattern.mockResolvedValue({ voteCount: 43 })
+    mockVoteForPattern.mockResolvedValue({ patternId: 'pattern-1', voteCount: 43 })
 
     render(<VotingButton initialVoteCount={42} patternId="pattern-1" />)
 
@@ -143,7 +143,7 @@ describe('VotingButton', () => {
     mockVoteForPattern.mockImplementation(
       () =>
         new Promise((resolve) =>
-          setTimeout(() => resolve({ voteCount: 43 }), 100)
+          setTimeout(() => resolve({ patternId: 'pattern-1', voteCount: 43 }), 100)
         )
     )
 
@@ -172,7 +172,7 @@ describe('VotingButton', () => {
   })
 
   it('should increment from zero when voted', async () => {
-    mockVoteForPattern.mockResolvedValue({ voteCount: 1 })
+    mockVoteForPattern.mockResolvedValue({ patternId: 'pattern-1', voteCount: 1 })
 
     render(<VotingButton initialVoteCount={0} patternId="pattern-1" />)
 
