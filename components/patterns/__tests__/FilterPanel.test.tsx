@@ -23,7 +23,7 @@ describe('FilterPanel', () => {
 
   beforeEach(() => {
     jest.clearAllMocks()
-    mockSearchParams.forEach((_, key) => mockSearchParams.delete(key))
+    Array.from(mockSearchParams.keys()).forEach(key => mockSearchParams.delete(key))
   })
 
   it('should render filters heading', () => {
@@ -89,15 +89,17 @@ describe('FilterPanel', () => {
   })
 
   it('should allow multiple tags to be selected', () => {
-    render(<FilterPanel categories={mockCategories} tags={mockTags} />)
+    const { rerender } = render(<FilterPanel categories={mockCategories} tags={mockTags} />)
 
     const tag1Checkbox = screen.getByLabelText('Tag1')
-    const tag2Checkbox = screen.getByLabelText('Tag2')
-
     fireEvent.click(tag1Checkbox)
     jest.clearAllMocks()
 
+    // Update params and re-render so component sees Tag1 as selected
     mockSearchParams.set('tags', 'Tag1')
+    rerender(<FilterPanel categories={mockCategories} tags={mockTags} />)
+
+    const tag2Checkbox = screen.getByLabelText('Tag2')
     fireEvent.click(tag2Checkbox)
 
     expect(mockPush).toHaveBeenCalledWith(
@@ -225,7 +227,9 @@ describe('FilterPanel', () => {
 
     render(<FilterPanel categories={mockCategories} tags={mockTags} />)
 
-    const architectureButton = screen.getByText('Architecture')
+    // When category is active, 'Architecture' appears in both the button and
+    // the Active Filters badge — use getByRole to target the button specifically
+    const architectureButton = screen.getByRole('button', { name: 'Architecture' })
     expect(architectureButton).toHaveAttribute('aria-pressed', 'true')
   })
 
@@ -234,7 +238,9 @@ describe('FilterPanel', () => {
 
     render(<FilterPanel categories={mockCategories} tags={mockTags} />)
 
-    const tag1Checkbox = screen.getByLabelText('Tag1') as HTMLInputElement
-    expect(tag1Checkbox.checked).toBe(true)
+    // Radix UI Checkbox renders as <button role="checkbox" aria-checked="true">
+    // so use toBeChecked() which handles both native inputs and ARIA checkboxes
+    const tag1Checkbox = screen.getByLabelText('Tag1')
+    expect(tag1Checkbox).toBeChecked()
   })
 })
