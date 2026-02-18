@@ -38,6 +38,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Run tests
+        run: npm run test:ci
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:5255/api
+          NEXT_PUBLIC_API_TIMEOUT: 30000
+
       - name: Run TypeScript check
         run: npx tsc --noEmit
 
