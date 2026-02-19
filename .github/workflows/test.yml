@@ -131,6 +131,20 @@ jobs:
 
       - name: Build frontend
         run: npm run build
+        env:
+          # NEXT_PUBLIC_* vars are baked into client bundles at build time.
+          # They must be set here so VotingButton and other client components
+          # call the correct API URL during E2E tests.
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:5255/api
+          NEXT_PUBLIC_API_TIMEOUT: 30000
+
+      - name: Start frontend server
+        run: |
+          npm run start &
+          # Wait for the Next.js server to be ready before running tests
+          timeout 60 bash -c 'until curl -sf http://localhost:3000 > /dev/null; do sleep 2; done'
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:5255/api
 
       - name: Run E2E tests
         run: npm run test:e2e

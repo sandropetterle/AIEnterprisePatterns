@@ -66,9 +66,13 @@ export default defineConfig({
 
   /* Run your local dev server before starting the tests */
   webServer: {
+    // In CI the workflow builds and starts the frontend before running tests.
+    // `reuseExistingServer: true` means Playwright reuses it; if none is running
+    // (local dev without a server) it falls back to starting `npm run dev`.
     command: 'npm run dev',
     url: 'http://localhost:3000',
-    reuseExistingServer: !process.env.CI,
+    reuseExistingServer: true,
+    timeout: 120 * 1000,
     stdout: 'ignore',
     stderr: 'pipe',
   },

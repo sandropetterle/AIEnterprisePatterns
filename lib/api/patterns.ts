@@ -6,6 +6,7 @@
 import type { Pattern, PatternCategory } from '@/lib/types/pattern'
 import type { PatternDetailDto, PatternListDto, PaginatedResponse, VoteResponse } from './types'
 import { apiClient } from './client'
+import { ApiError } from './error'
 import {
   mapPatternDetailDto,
   mapPaginatedResponse,
@@ -102,7 +103,7 @@ export async function getPatternBySlug(slug: string): Promise<Pattern | null> {
     return mapPatternDetailDto(pattern)
   } catch (error) {
     // Return null for 404 errors (pattern not found)
-    if (error instanceof Error && error.message.includes('404')) {
+    if (error instanceof ApiError && error.statusCode === 404) {
       return null
     }
     throw error
