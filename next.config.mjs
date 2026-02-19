@@ -14,7 +14,18 @@ const nextConfig = {
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
           {
             key: 'Content-Security-Policy',
-            value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https://fonts.gstatic.com; connect-src 'self' https://*.azurewebsites.net https://*.azurecontainerapps.io"
+            value: [
+              "default-src 'self'",
+              "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
+              "style-src 'self' 'unsafe-inline'",
+              "img-src 'self' data: https:",
+              "font-src 'self' https://fonts.gstatic.com",
+              // API backend + Azure Entra External ID endpoints
+              "connect-src 'self' https://*.azurewebsites.net https://*.azurecontainerapps.io https://*.ciamlogin.com https://login.microsoftonline.com",
+              // Entra External ID hosted sign-in page is loaded in a redirect (not a frame)
+              "frame-src 'none'",
+              "form-action 'self' https://*.ciamlogin.com",
+            ].join('; ')
           },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' },
         ],

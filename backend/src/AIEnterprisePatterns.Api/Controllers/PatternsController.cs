@@ -3,6 +3,7 @@ using AIEnterprisePatterns.Api.Mappers;
 using AIEnterprisePatterns.Core.Entities;
 using AIEnterprisePatterns.Core.Enums;
 using AIEnterprisePatterns.Core.Services;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 
@@ -74,6 +75,7 @@ public class PatternsController : ControllerBase
         return Ok(new VoteResponse { PatternId = id, VoteCount = newCount });
     }
 
+    [Authorize(Policy = "RequireEditor")]
     [HttpPost]
     public async Task<ActionResult<PatternDetailDto>> CreatePattern(CreatePatternDto dto, CancellationToken ct = default)
     {
@@ -95,6 +97,7 @@ public class PatternsController : ControllerBase
         return CreatedAtAction(nameof(GetPatternBySlug), new { slug = created.Slug }, detailDto);
     }
 
+    [Authorize(Policy = "RequireEditor")]
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<PatternDetailDto>> UpdatePattern(Guid id, UpdatePatternDto dto, CancellationToken ct = default)
     {
@@ -118,6 +121,7 @@ public class PatternsController : ControllerBase
         return Ok(PatternMapper.ToDetailDto(result));
     }
 
+    [Authorize(Policy = "RequireAdmin")]
     [HttpDelete("{id:guid}")]
     public async Task<ActionResult> DeletePattern(Guid id, CancellationToken ct = default)
     {

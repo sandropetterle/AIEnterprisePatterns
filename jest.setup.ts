@@ -4,6 +4,16 @@ import '@testing-library/jest-dom'
 // Mock environment variables
 process.env.NEXT_PUBLIC_API_BASE_URL = 'http://localhost:5255/api'
 process.env.NEXT_PUBLIC_API_TIMEOUT = '30000'
+process.env.AUTH_SECRET = 'test-secret-for-jest'
+
+// Global mock for next-auth/react — tests can override per-file or per-test.
+// Default: unauthenticated session.
+jest.mock('next-auth/react', () => ({
+  useSession: jest.fn(() => ({ data: null, status: 'unauthenticated' })),
+  signIn: jest.fn(),
+  signOut: jest.fn(),
+  SessionProvider: ({ children }: { children: React.ReactNode }) => children,
+}))
 
 // Mock window.matchMedia (used by some UI components)
 Object.defineProperty(window, 'matchMedia', {

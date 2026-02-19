@@ -4,6 +4,40 @@ This document captures significant technical design decisions made during the de
 
 ---
 
+## Decision 18: Entra External ID OIDC Issuer Uses Tenant-ID Subdomain
+
+**Date:** 2026-02-19
+**Title:** OIDC Issuer Format for Azure Entra External ID CIAM Tenants
+**Category:** Security & Authentication
+
+### Decision Details
+
+The `AUTH_ENTRA_ISSUER` (and backend `Authentication:Authority`) must use the **tenant ID** as the `ciamlogin.com` subdomain, not the friendly tenant name.
+
+**Correct format:**
+```
+https://<tenant-id>.ciamlogin.com/<tenant-id>/v2.0
+```
+**Incorrect format (causes Auth.js "server configuration" error):**
+```
+https://<tenant-name>.ciamlogin.com/<tenant-id>/v2.0
+```
+
+### Root Cause
+
+Auth.js v5 performs strict OIDC issuer validation per RFC 8414: after fetching the OIDC discovery document, it compares the configured `issuer` value to the `issuer` field returned in the document. For Entra External ID CIAM tenants, the discovery document's `issuer` field always uses the tenant ID as the subdomain — even when the discovery endpoint is accessed via the friendly name subdomain. Any mismatch causes Auth.js to throw "There is a problem with the server configuration."
+
+### How to Verify
+
+```bash
+curl https://<tenant-name>.ciamlogin.com/<tenant-id>/v2.0/.well-known/openid-configuration \
+  | node -e "let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).issuer))"
+```
+
+The printed value is the exact string that must be used for `AUTH_ENTRA_ISSUER`.
+
+---
+
 ## Decision 1: OIDC Federated Identity Authentication
 
 **Date/Time:** 2026-02-12 09:00-10:00 UTC
@@ -739,3 +773,165 @@ This is significant relative to total infrastructure cost ($5–12/month) and re
 ### Alternatives Evaluated
 1. **Leave at 32 GB default** (rejected) — unnecessary cost, no benefit for this workload
 2. **1 GB minimum** (not chosen) — Azure General Purpose minimum is 1 GB, but 2 GB gives comfortable headroom
+
+---
+
+## Decision 14: Azure Entra External ID over Azure AD B2C
+
+**Date:** 2026-02-19
+**Title:** Use Azure Entra External ID (not Azure AD B2C) for Customer Authentication
+**Category:** Security & Authentication
+
+### Decision Details
+Phase 5 requires authentication for CRUD operations. We evaluated Azure AD B2C (the original plan) versus Azure Entra External ID (B2C's successor).
+
+Azure AD B2C is **no longer available for new customers as of May 2025**. Microsoft has replaced it with Entra External ID, which uses standard OIDC protocols and is free for up to 50,000 MAU.
+
+Chosen: **Azure Entra External ID** with standard OIDC Authorization Code flow (PKCE).
+
+### Pros
+- **$0/month** for <50,000 MAU — no cost for our <10 users
+- **Standard OIDC** — works with any OIDC client library; no Microsoft-specific SDK required
+- **Free email OTP MFA** — secure multi-factor auth at no cost
+- **Custom branding** — full CSS customization to match site design
+- **App Roles** — built-in role assignment per user (Admin, Editor, Viewer)
+- **Active product** — B2C is sunset; Entra External ID is the strategic direction
+
+### Cons
+- **ciamlogin.com domain** — slightly unusual (not login.microsoftonline.com)
+- **External tenant required** — separate tenant from corporate directory
+- **Setup complexity** — multiple Azure portal steps (documented in AUTH_SETUP_GUIDE.md)
+
+### Alternatives Evaluated
+1. **Azure AD B2C** (rejected) — no longer available for new registrations as of May 2025
+2. **Auth0** — viable, free tier available; rejected as unnecessary complexity when Entra External ID is $0 and provides equivalent features
+3. **Keycloak self-hosted** (rejected) — adds operational overhead (hosting, backups, updates) with no cost benefit at this scale
+4. **ASP.NET Core Identity** (rejected) — requires database tables for users, sessions, and password hashes; introduces credential management risk
+
+---
+
+## Decision 15: Auth.js (NextAuth v5) over MSAL.js for Frontend Authentication
+
+**Date:** 2026-02-19
+**Title:** Use Auth.js Generic OIDC Provider Instead of Microsoft MSAL.js
+**Category:** Architecture & Technology Selection
+
+### Decision Details
+The frontend required an authentication library to handle OIDC login redirects, token acquisition, session management, and token refresh.
+
+Chosen: **Auth.js v5 (NextAuth beta)** with a generic `type: "oidc"` provider configured for Entra External ID.
+
+Key configuration in `auth.ts`:
+- `type: "oidc"` — generic, works with any OIDC provider
+- `issuer: process.env.AUTH_ENTRA_ISSUER` — single env var to change provider
+- JWT session strategy — no database tables needed
+- `pages: { signIn: '/login' }` — branded login page
+
+### Pros
+- **Provider-agnostic**: Swapping to Auth0 or Keycloak = changing 4 env vars, zero code changes
+- **App Router native**: Auth.js v5 designed for Next.js Server Components
+- **JWT sessions**: No database table for sessions; encrypted cookie
+- **Built-in CSRF protection**: Handled automatically
+- **Server-side token access**: `auth()` function in server components
+
+### Cons
+- **Beta library**: Auth.js v5 is still beta; occasional breaking changes
+- **ESM in tests**: Requires `transformIgnorePatterns` update in Jest config for SWC compatibility
+
+### Alternatives Evaluated
+1. **@azure/msal-react** (rejected) — Microsoft-specific, couples frontend to Azure AD; swapping providers would require full library replacement
+2. **next-auth v4** (rejected) — older version without App Router support; v5 is the supported path
+3. **Custom OAuth implementation** (rejected) — significant security risk; PKCE, state, nonce handling is complex to implement correctly
+
+---
+
+## Decision 16: Standard ASP.NET Core JwtBearer over Microsoft.Identity.Web
+
+**Date:** 2026-02-19
+**Title:** Use Standard JwtBearer Middleware, Not Microsoft.Identity.Web
+**Category:** Architecture & Technology Selection
+
+### Decision Details
+The backend API needs to validate JWT access tokens issued by the OIDC provider. Two packages were evaluated:
+
+Chosen: **`Microsoft.AspNetCore.Authentication.JwtBearer`** (standard ASP.NET Core package).
+
+Configuration in `Program.cs`:
+```csharp
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.Authority = builder.Configuration["Authentication:Authority"];
+        options.Audience = builder.Configuration["Authentication:Audience"];
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            RoleClaimType = "roles",  // Entra uses "roles" claim
+            NameClaimType = "name"
+        };
+    });
+```
+
+The `Authority` URL causes the middleware to auto-discover signing keys from the OIDC discovery document — no key management needed.
+
+### Pros
+- **Provider-agnostic**: Any OIDC provider can be used; change Authority + Audience config only
+- **Standard package**: Ships with ASP.NET Core SDK, no additional dependency
+- **Auto key rotation**: Discovery document enables automatic signing key refresh
+- **Minimal surface area**: Does exactly one thing — validate JWT tokens
+
+### Cons
+- **Role claim type varies by provider**: Entra uses `roles`; Auth0 uses a custom claim; requires 1-line config change when switching providers
+- **No Microsoft Graph integration**: Microsoft.Identity.Web includes Graph client helpers; these are not needed here
+
+### Alternatives Evaluated
+1. **Microsoft.Identity.Web** (rejected) — wraps JwtBearer with Microsoft-specific configuration; couples backend to Azure AD; harder to swap to Auth0/Keycloak
+2. **Manual JWT validation** (rejected) — high complexity, error-prone; standard middleware handles all edge cases (key rotation, clock skew, audience validation)
+
+---
+
+## Decision 17: Auth Guard Clause + Always-Register Authorization Policies
+
+**Date:** 2026-02-19
+**Title:** Register Authorization Policies Unconditionally; Guard JwtBearer Registration
+**Category:** Testing & Architecture
+
+### Decision Details
+A subtle ordering issue arose when adding `[Authorize(Policy = "RequireEditor")]` attributes:
+
+**Problem:** `AddAuthorizationBuilder()` was initially inside the auth guard clause (only when `Authority` is set). In test environments without a real Entra tenant, no Authority is configured → `AddAuthorizationBuilder()` never ran → authorization policies didn't exist → ASP.NET returned 500 instead of 401/403 → existing integration tests started failing.
+
+**Solution:**
+```csharp
+// Authorization policies — always registered (enables [Authorize] attributes in tests)
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"))
+    .AddPolicy("RequireEditor", policy => policy.RequireRole("Admin", "Editor"))
+    .AddPolicy("RequireViewer", policy => policy.RequireRole("Admin", "Editor", "Viewer"));
+
+// JwtBearer — only registered when Authority is configured (opt-in)
+var authAuthority = builder.Configuration["Authentication:Authority"];
+if (!string.IsNullOrEmpty(authAuthority))
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options => { ... });
+}
+```
+
+For integration tests, a `TestAuthHandler` reads the `X-Test-Roles` request header and authenticates the request with those roles — no real token needed.
+
+### Pros
+- **Existing 83 tests continue passing** without auth config
+- **New auth boundary tests** (401/403) work correctly via TestAuthHandler
+- **Docker/CI builds** succeed without Entra secrets
+- **Local development** works without tenant setup
+- **Clean separation**: Policies (always needed) vs. token validation (env-specific)
+
+### Cons
+- **Two-step mental model**: Policies always registered, scheme conditionally registered
+- **TestAuthHandler complexity**: A small custom class required for test auth
+
+### Alternatives Evaluated
+1. **Always require auth config** (rejected) — breaks CI builds and local dev without Entra setup
+2. **Skip [Authorize] in tests via mock middleware** (rejected) — hides real authorization behavior; tests wouldn't catch missing policies
+3. **Separate test appsettings** (considered) — viable but adds file proliferation; TestAuthHandler is more explicit
+

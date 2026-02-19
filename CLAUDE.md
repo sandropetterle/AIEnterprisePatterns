@@ -12,7 +12,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Database:** SQLite (development), Azure SQL (production)
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend)
-- **Current Phase:** 4.5 - Testing Foundation & Operational Readiness
+- **Current Phase:** 5.1 - Authentication & Authorization (complete)
 
 ## Development Commands
 
@@ -54,14 +54,37 @@ Infrastructure/ (empty placeholder)
 ```
 app/patterns/page.tsx          # Listing (server component)
 app/patterns/[slug]/page.tsx   # Detail by slug (server component)
+app/login/page.tsx             # Login page (server component; redirects if authenticated)
+app/login/LoginForm.tsx        # Login form (client component; triggers Entra sign-in)
+app/api/auth/[...nextauth]/    # Auth.js route handler
 components/ui/                 # shadcn/ui primitives
+components/layout/UserMenu.tsx # User menu / sign-in button in header
 components/patterns/           # Pattern-specific components
+components/providers/          # SessionProvider wrapper
 lib/api/                       # client.ts, patterns.ts, mappers.ts, types.ts
-lib/types/                     # Frontend types
+lib/types/                     # Frontend types (auth.ts: hasRole, roleLabel, Session extension)
+auth.ts                        # Auth.js configuration (OIDC provider, JWT callbacks)
 ```
 - Server Components by default; `'use client'` only for hooks/events/browser APIs
 - VotingButton implements optimistic UI with revert-on-error
 - Revalidation: 5min home, 2min listing, 10min details
+
+### Authentication Architecture
+```
+Browser → Next.js (Auth.js v5 / NextAuth) → Entra External ID (OIDC)
+                    ↓ (access token in Authorization header)
+              ASP.NET Core API (JwtBearer validation via OIDC discovery)
+```
+- **Provider:** Azure Entra External ID (free for <50,000 MAU)
+- **Frontend:** Auth.js v5 with generic `type: "oidc"` provider — swapping providers = changing env vars only
+- **Backend:** Standard `AddJwtBearer()` middleware — no Microsoft-specific packages
+- **Sessions:** JWT-based encrypted cookie — no database table needed
+- **Roles:** Admin, Editor, Viewer — embedded in JWT access token via Entra App Roles
+- **Role policies:** RequireAdmin, RequireEditor, RequireViewer (always registered regardless of auth config)
+- **Public endpoints:** All GET patterns, vote — no auth required
+- **Protected endpoints:** POST/PUT patterns → RequireEditor; DELETE → RequireAdmin
+- **Guard clause:** JwtBearer only registered when `Authentication:Authority` is configured (tests/local work without Entra setup)
+- **Setup guide:** `documentation/operations/AUTH_SETUP_GUIDE.md`
 
 ## Critical Conventions
 
@@ -81,22 +104,33 @@ Patterns use slug (not ID): `GET /api/patterns/{slug}` → route `/patterns/[slu
 # Frontend (.env.local)
 NEXT_PUBLIC_API_BASE_URL=http://localhost:5255/api
 NEXT_PUBLIC_API_TIMEOUT=30000
+AUTH_SECRET=<generate: openssl rand -base64 32>
+AUTH_TRUST_HOST=true
+AUTH_ENTRA_ISSUER=https://aipatterns.ciamlogin.com/aipatterns.onmicrosoft.com/v2.0
+AUTH_ENTRA_CLIENT_ID=<frontend-app-client-id>
+AUTH_ENTRA_CLIENT_SECRET=<frontend-app-client-secret>
+AUTH_API_SCOPE_READ=api://aipatterns-api/patterns.read
+AUTH_API_SCOPE_WRITE=api://aipatterns-api/patterns.write
 # Backend: ConnectionString:DefaultConnection (empty=SQLite dev), FrontendUrl (CORS)
+# Backend auth: Authentication:Authority, Authentication:Audience, Authentication:RequireHttpsMetadata
 ```
 
 ## API Endpoints
 
 Base: `http://localhost:5255/api`
 
-| Method | Endpoint | Rate Limit |
-|--------|----------|------------|
-| GET | `/patterns` | api (50/min) |
-| GET | `/patterns/featured` | api |
-| GET | `/patterns/trending` | api |
-| GET | `/patterns/{slug}` | api |
-| POST | `/patterns/{id}/vote` | vote (10/min) |
-| POST/PUT/DELETE | `/patterns[/{id}]` | api |
-| GET | `/health`, `/health/ready` | — |
+| Method | Endpoint | Auth Required | Rate Limit |
+|--------|----------|---------------|------------|
+| GET | `/patterns` | None | api (50/min) |
+| GET | `/patterns/featured` | None | api |
+| GET | `/patterns/trending` | None | api |
+| GET | `/patterns/{slug}` | None | api |
+| POST | `/patterns/{id}/vote` | None | vote (10/min) |
+| POST | `/patterns` | RequireEditor | api |
+| PUT | `/patterns/{id}` | RequireEditor | api |
+| DELETE | `/patterns/{id}` | RequireAdmin | api |
+| GET | `/auth/me` | Authorize | — |
+| GET | `/health`, `/health/ready` | None | — |
 
 ## Database
 
@@ -123,9 +157,11 @@ Base: `http://localhost:5255/api`
 
 ## Testing
 
-- **Frontend:** `npm test` (Jest + React Testing Library); target 70%+ coverage
-- **Backend:** `dotnet test` (xUnit + Moq); 83/83 tests passing, ~85% testable coverage
-- **Key areas:** Category mapping, CORS, null/undefined handling, optimistic update revert
+- **Frontend:** `npm test` (Jest + React Testing Library); 286/286 tests, 70%+ coverage
+- **Backend:** `dotnet test` (xUnit + Moq); 87/87 tests passing (~85% testable coverage)
+- **Auth test strategy:** next-auth/react mocked globally in jest.setup.ts (unauthenticated default); per-test overrides via `(useSession as jest.Mock).mockReturnValue(...)`
+- **Radix UI in tests:** Mock `@/components/ui/dropdown-menu` inline in test files (portals don't render in jsdom)
+- **Backend auth tests:** TestAuthHandler (header-driven: `X-Test-Roles`) replaces JwtBearer in WebApplicationFactory
 - **CI/CD:** Tests must pass before deployment
 
 ## Documentation Rules

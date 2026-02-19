@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { Logo } from '@/components/shared/Logo'
 import { Navigation } from '@/components/layout/Navigation'
+import { UserMenu } from '@/components/layout/UserMenu'
 
 export function Header() {
   return (
@@ -29,6 +30,7 @@ export function Header() {
           >
             About
           </Link>
+          <UserMenu />
         </nav>
       </div>
     </header>

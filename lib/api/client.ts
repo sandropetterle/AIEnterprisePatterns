@@ -1,10 +1,20 @@
 /**
  * Base HTTP Client
- * Generic fetch wrapper with timeout, error handling, and base URL configuration
+ * Generic fetch wrapper with timeout, error handling, and base URL configuration.
+ *
+ * Token forwarding: pass `token` in options to attach an Authorization: Bearer header.
+ * This keeps the client provider-agnostic — the caller (server component via auth(),
+ * or client component via useSession()) obtains the token and passes it in.
  */
 
 import { apiConfig } from './config'
 import { handleApiError } from './error'
+
+type RequestOptions = {
+  timeout?: number
+  /** Access token to forward as Authorization: Bearer {token} */
+  token?: string
+}
 
 /**
  * Creates an AbortSignal that triggers after the specified timeout
@@ -16,21 +26,27 @@ function createTimeoutSignal(timeout: number): AbortSignal {
 }
 
 /**
+ * Builds request headers, optionally including an Authorization bearer token.
+ */
+function buildHeaders(token?: string): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`
+  }
+  return headers
+}
+
+/**
  * Generic GET request
  */
-async function get<T>(
-  endpoint: string,
-  options?: { timeout?: number }
-): Promise<T> {
+async function get<T>(endpoint: string, options?: RequestOptions): Promise<T> {
   const url = `${apiConfig.baseUrl}${endpoint}`
   const timeout = options?.timeout || apiConfig.timeout
 
   try {
     const response = await fetch(url, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: buildHeaders(options?.token),
       credentials: 'include',
       signal: createTimeoutSignal(timeout),
     })
@@ -54,7 +70,7 @@ async function get<T>(
 async function post<T>(
   endpoint: string,
   body?: unknown,
-  options?: { timeout?: number }
+  options?: RequestOptions
 ): Promise<T> {
   const url = `${apiConfig.baseUrl}${endpoint}`
   const timeout = options?.timeout || apiConfig.timeout
@@ -62,9 +78,7 @@ async function post<T>(
   try {
     const response = await fetch(url, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: buildHeaders(options?.token),
       credentials: 'include',
       body: body ? JSON.stringify(body) : undefined,
       signal: createTimeoutSignal(timeout),
@@ -94,7 +108,7 @@ async function post<T>(
 async function put<T>(
   endpoint: string,
   body: unknown,
-  options?: { timeout?: number }
+  options?: RequestOptions
 ): Promise<T> {
   const url = `${apiConfig.baseUrl}${endpoint}`
   const timeout = options?.timeout || apiConfig.timeout
@@ -102,9 +116,7 @@ async function put<T>(
   try {
     const response = await fetch(url, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: buildHeaders(options?.token),
       credentials: 'include',
       body: JSON.stringify(body),
       signal: createTimeoutSignal(timeout),
@@ -126,19 +138,14 @@ async function put<T>(
 /**
  * Generic DELETE request
  */
-async function del(
-  endpoint: string,
-  options?: { timeout?: number }
-): Promise<void> {
+async function del(endpoint: string, options?: RequestOptions): Promise<void> {
   const url = `${apiConfig.baseUrl}${endpoint}`
   const timeout = options?.timeout || apiConfig.timeout
 
   try {
     const response = await fetch(url, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: buildHeaders(options?.token),
       credentials: 'include',
       signal: createTimeoutSignal(timeout),
     })
