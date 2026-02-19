@@ -97,30 +97,35 @@ backend/
 
 ### 3.2 Frontend Test Structure
 ```
-frontend/
-├── __tests__/                     # Test utilities and global setup
+(project root)
+├── __tests__/                          # Test utilities and global setup
 │   ├── setup.ts
 │   └── testUtils.tsx
 ├── lib/
 │   ├── api/
-│   │   ├── client.test.ts        # Unit tests for API client
-│   │   └── mappers.test.ts       # Unit tests for mappers
+│   │   ├── client.test.ts             # Unit tests for API client
+│   │   ├── mappers.test.ts            # Unit tests for category/DTO mappers
+│   │   └── patterns.test.ts           # Unit tests for pattern API functions
 │   └── utils/
-│       └── helpers.test.ts       # Unit tests for utilities
+│       └── dateFormat.test.ts
 ├── components/
 │   ├── patterns/
-│   │   ├── PatternCard.test.tsx  # Component unit tests
-│   │   └── FilterPanel.test.tsx
-│   └── ui/
-│       └── button.test.tsx
+│   │   ├── PatternCard.test.tsx
+│   │   ├── FilterPanel.test.tsx
+│   │   ├── SearchBar.test.tsx
+│   │   └── details/
+│   │       ├── VotingButton.test.tsx
+│   │       ├── PatternContent.test.tsx
+│   │       └── Breadcrumb.test.tsx
+│   └── layout/
+│       ├── Header.test.tsx
+│       └── Footer.test.tsx
 ├── app/
 │   ├── patterns/
-│   │   └── page.test.tsx         # Page integration tests
+│   │   └── page.test.tsx
 │   └── page.test.tsx
-└── e2e/                           # Playwright E2E tests
-    ├── homepage.spec.ts
-    ├── patterns-listing.spec.ts
-    └── pattern-detail.spec.ts
+└── e2e/                                # Playwright E2E tests
+    └── critical-flows.spec.ts          # 20 critical user-journey tests
 ```
 
 ### 3.3 Test Results & Documentation
@@ -258,41 +263,35 @@ Tests run automatically in GitHub Actions on:
 
 ---
 
-## 9. Summary & Implementation Roadmap
+## 9. Summary & Current State
 
-### Current State (Phase 4 Complete)
-- ✅ Backend and frontend deployed to Azure
-- ✅ Manual testing completed via COMPREHENSIVE_TEST_PLAN
-- ⚠️ **No automated test suite currently exists**
+### Phase 4.5 Complete (Testing Foundation & Operational Readiness)
 
-### Next Steps (Phase 5)
-1. **Set up test infrastructure** (Week 1-2)
-   - Configure Jest + React Testing Library for frontend
-   - Create xUnit test projects for backend
-   - Set up Playwright for E2E testing
-   - Integrate axe-core for accessibility testing
+**Backend (xUnit + Moq):**
+- ✅ 83/83 tests passing (~85% testable coverage)
+- PatternService, PatternRepository, PatternsController, CORS middleware, validators, slug value object
 
-2. **Write initial test suite** (Week 3-4)
-   - Backend unit tests (PatternService, repositories)
-   - Backend integration tests (API endpoints)
-   - Frontend component tests (PatternCard, FilterPanel, etc.)
-   - Frontend integration tests (page components)
+**Frontend (Jest + React Testing Library):**
+- ✅ 262/262 tests passing
+- Coverage: 70.56% stmt / 80.82% branch / 71.81% fn / 71.01% line
+- Components: PatternCard, FilterPanel, SearchBar, VotingButton, PatternContent, Breadcrumb, Header, Footer
+- Pages: home, patterns listing, pattern detail
+- Lib: API client, mappers, patterns functions, date formatter
 
-3. **Achieve 80%+ coverage** (Week 5-6)
-   - Focus on Core and Data layers (backend)
-   - Focus on lib/ and components/ (frontend)
-   - Add E2E tests for critical user flows
+**E2E (Playwright — Chromium):**
+- ✅ 20/20 tests passing (`e2e/critical-flows.spec.ts`)
+- Covers: Home Page (3), Browse Patterns (6), Pattern Detail (6), Error Handling (2), Page Titles (3)
+- Network mocking: `page.addInitScript` to override `window.fetch` for vote endpoint (see Decision 12)
+- CI integration: built frontend with API URL baked in, starts `next start`, polls health, then runs Playwright
 
-4. **Integrate with CI/CD** (Week 7)
-   - Add test execution to GitHub Actions
-   - Configure coverage reporting
-   - Set up quality gates
+**CI/CD Gates (`.github/workflows/test.yml`):**
+- ✅ Backend tests → Frontend tests → E2E tests must all pass before deployment
 
-### Phase 6 Enhancements
-- Visual regression testing (Percy/Chromatic)
-- Performance testing (Lighthouse CI)
-- Load testing (k6)
-- Cross-browser testing automation
+### Next Phase: Phase 5
+- Authentication (JWT / session)
+- CRUD UI (create/edit/delete patterns)
+- Advanced search
+- Accessibility (axe-core integration in E2E)
 
 ### Maintenance
 - Update tests as features are added/modified
@@ -303,6 +302,8 @@ Tests run automatically in GitHub Actions on:
 ---
 
 For test implementation examples, see:
-- Backend: `backend/tests/` folder (to be created in Phase 5)
-- Frontend: `__tests__/` and `.test.tsx` files (to be created in Phase 5)
+- Backend: `backend/tests/`
+- Frontend: `__tests__/` and `*.test.tsx` files throughout the project
+- E2E: `e2e/critical-flows.spec.ts`
 - Manual tests: `documentation/COMPREHENSIVE_TEST_PLAN.md`
+- Results: `documentation/test_results/`
