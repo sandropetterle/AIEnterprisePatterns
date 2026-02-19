@@ -1,15 +1,219 @@
 /**
- * Pattern API Helper Functions Tests
- * Tests client-side utility functions for pattern data manipulation
+ * Pattern API Functions Tests
+ * Tests both async API functions and client-side utility helpers
  */
 
-import { describe, it, expect } from '@jest/globals'
+import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals'
+import type { Pattern } from '@/lib/types/pattern'
+import type { PatternDetailDto, PaginatedResponse, PatternListDto } from '../types'
+import { apiClient } from '../client'
 import {
   getAllCategories,
   getAllTags,
   getPatternStats,
+  getPatterns,
+  getFeaturedPatterns,
+  getTrendingPatterns,
+  getPatternBySlug,
+  voteForPattern,
 } from '../patterns'
-import type { Pattern } from '@/lib/types/pattern'
+
+// Typed spies set up in beforeEach
+let getSpy: ReturnType<typeof jest.spyOn>
+let postSpy: ReturnType<typeof jest.spyOn>
+
+const makeDetailDto = (overrides: Partial<PatternDetailDto> = {}): PatternDetailDto => ({
+  id: 'test-id',
+  title: 'Test Pattern',
+  slug: 'test-pattern',
+  shortDescription: 'A test pattern',
+  fullContent: null,
+  category: 'Architecture',
+  tags: ['react'],
+  author: null,
+  createdDate: '2024-01-15T00:00:00Z',
+  updatedDate: '2024-01-15T00:00:00Z',
+  voteCount: 5,
+  status: 'published',
+  isFeatured: false,
+  isTrending: false,
+  ...overrides,
+})
+
+const makePaginatedResponse = (dtos: PatternListDto[]): PaginatedResponse<PatternListDto> => ({
+  patterns: dtos,
+  totalCount: dtos.length,
+  currentPage: 1,
+  pageSize: 9,
+  totalPages: 1,
+})
+
+describe('Async Pattern API Functions', () => {
+  beforeEach(() => {
+    getSpy = jest.spyOn(apiClient, 'get')
+    postSpy = jest.spyOn(apiClient, 'post')
+  })
+
+  afterEach(() => {
+    jest.restoreAllMocks()
+  })
+
+  describe('getPatterns', () => {
+    it('calls GET /patterns with default params', async () => {
+      const dto = makeDetailDto() as unknown as PatternListDto
+      getSpy.mockResolvedValueOnce(makePaginatedResponse([dto]))
+
+      const result = await getPatterns()
+
+      expect(getSpy).toHaveBeenCalledWith(
+        expect.stringContaining('/patterns?')
+      )
+      expect(result.currentPage).toBe(1)
+      expect(result.patterns).toHaveLength(1)
+    })
+
+    it('passes category param mapped to backend format', async () => {
+      getSpy.mockResolvedValueOnce(makePaginatedResponse([]))
+
+      await getPatterns({ category: 'Design Patterns' })
+
+      expect(getSpy).toHaveBeenCalledWith(
+        expect.stringContaining('category=DesignPatterns')
+      )
+    })
+
+    it('passes tags as comma-separated string', async () => {
+      getSpy.mockResolvedValueOnce(makePaginatedResponse([]))
+
+      await getPatterns({ tags: ['react', 'node'] })
+
+      const url = getSpy.mock.calls[0][0] as string
+      expect(url).toContain('tags=')
+      expect(url).toContain('react')
+      expect(url).toContain('node')
+    })
+
+    it('passes search param', async () => {
+      getSpy.mockResolvedValueOnce(makePaginatedResponse([]))
+
+      await getPatterns({ search: 'my query' })
+
+      expect(getSpy).toHaveBeenCalledWith(
+        expect.stringContaining('search=')
+      )
+    })
+
+    it('does not append category param when not provided', async () => {
+      getSpy.mockResolvedValueOnce(makePaginatedResponse([]))
+
+      await getPatterns({ sortBy: 'votes' })
+
+      const url = getSpy.mock.calls[0][0] as string
+      expect(url).not.toContain('category=')
+    })
+
+    it('does not append tags param when tags is empty', async () => {
+      getSpy.mockResolvedValueOnce(makePaginatedResponse([]))
+
+      await getPatterns({ tags: [] })
+
+      const url = getSpy.mock.calls[0][0] as string
+      expect(url).not.toContain('tags=')
+    })
+
+    it('does not append search param when not provided', async () => {
+      getSpy.mockResolvedValueOnce(makePaginatedResponse([]))
+
+      await getPatterns({ page: 2 })
+
+      const url = getSpy.mock.calls[0][0] as string
+      expect(url).not.toContain('search=')
+    })
+  })
+
+  describe('getFeaturedPatterns', () => {
+    it('calls GET /patterns/featured', async () => {
+      getSpy.mockResolvedValueOnce([makeDetailDto({ isFeatured: true })])
+
+      const result = await getFeaturedPatterns()
+
+      expect(getSpy).toHaveBeenCalledWith('/patterns/featured')
+      expect(result).toHaveLength(1)
+    })
+
+    it('returns mapped Pattern objects', async () => {
+      getSpy.mockResolvedValueOnce([makeDetailDto({ title: 'Featured One' })])
+
+      const result = await getFeaturedPatterns()
+
+      expect(result[0].title).toBe('Featured One')
+    })
+
+    it('returns empty array when no featured patterns', async () => {
+      getSpy.mockResolvedValueOnce([])
+
+      const result = await getFeaturedPatterns()
+
+      expect(result).toHaveLength(0)
+    })
+  })
+
+  describe('getTrendingPatterns', () => {
+    it('calls GET /patterns/trending', async () => {
+      getSpy.mockResolvedValueOnce([makeDetailDto({ isTrending: true })])
+
+      const result = await getTrendingPatterns()
+
+      expect(getSpy).toHaveBeenCalledWith('/patterns/trending')
+      expect(result).toHaveLength(1)
+    })
+
+    it('maps trending pattern fields correctly', async () => {
+      getSpy.mockResolvedValueOnce([makeDetailDto({ title: 'Trending', voteCount: 99 })])
+
+      const result = await getTrendingPatterns()
+
+      expect(result[0].voteCount).toBe(99)
+    })
+  })
+
+  describe('getPatternBySlug', () => {
+    it('returns a mapped pattern on success', async () => {
+      getSpy.mockResolvedValueOnce(makeDetailDto({ slug: 'test-slug' }))
+
+      const result = await getPatternBySlug('test-slug')
+
+      expect(getSpy).toHaveBeenCalledWith('/patterns/test-slug')
+      expect(result).not.toBeNull()
+      expect(result?.slug).toBe('test-slug')
+    })
+
+    it('returns null when API returns 404 error', async () => {
+      getSpy.mockRejectedValueOnce(new Error('404 Not Found'))
+
+      const result = await getPatternBySlug('missing-slug')
+
+      expect(result).toBeNull()
+    })
+
+    it('re-throws non-404 errors', async () => {
+      getSpy.mockRejectedValueOnce(new Error('500 Internal Server Error'))
+
+      await expect(getPatternBySlug('any-slug')).rejects.toThrow('500')
+    })
+  })
+
+  describe('voteForPattern', () => {
+    it('calls POST /patterns/{id}/vote', async () => {
+      postSpy.mockResolvedValueOnce({ patternId: 'abc', voteCount: 11 })
+
+      const result = await voteForPattern('abc')
+
+      expect(postSpy).toHaveBeenCalledWith('/patterns/abc/vote')
+      expect(result.voteCount).toBe(11)
+    })
+  })
+})
 
 describe('Pattern Helper Functions', () => {
   const mockPatterns: Pattern[] = [

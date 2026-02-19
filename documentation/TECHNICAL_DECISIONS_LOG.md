@@ -571,3 +571,71 @@ This deployment session involved **9 major technical decisions** focused on:
 - Consider min replicas = 1 if traffic increases
 - Evaluate Azure Functions for truly serverless architecture
 - Document all federated credential subjects for maintenance
+
+---
+
+## Decision 10: Jest Module Mocking Strategy — spyOn vs Factory Pattern
+
+**Date:** 2026-02-19
+**Title:** Use `jest.spyOn` for module-level mocking instead of `jest.mock` factory with `jest.fn()`
+**Category:** Testing
+
+### Decision Details
+
+When writing tests for `lib/api/patterns.ts` (which calls `apiClient.get/post`), the initial approach used `jest.mock('../client', () => ({ apiClient: { get: jest.fn(), post: jest.fn() } }))`. This caused `TypeError: mockedGet.mockResolvedValueOnce is not a function` at runtime under Jest 30 with the Next.js SWC transformer.
+
+The fix: import the module directly and use `jest.spyOn(apiClient, 'get').mockResolvedValueOnce(...)` within `beforeEach`, restoring with `jest.restoreAllMocks()` in `afterEach`.
+
+### Why It Works
+`apiClient` is a plain object (`export const apiClient = { get, post, put, delete: del }`). Jest's `spyOn` wraps the object property directly, meaning the spy intercepts calls made by any code that imported the same module instance — including the module under test.
+
+### Pros
+- Works reliably with SWC transformer (no hoist/factory scoping issue)
+- Type-safe with `ReturnType<typeof jest.spyOn>`
+- Per-test return values via `mockResolvedValueOnce`
+- Clean restoration via `jest.restoreAllMocks()`
+
+### Cons
+- Requires the real module to be imported (not isolated)
+- spyOn won't work if the export is a frozen object or primitive
+
+### Alternatives Evaluated
+1. **`jest.mock` with factory** (rejected) — `jest.fn()` inside factory unreliable with SWC
+2. **Manual mock file** (`__mocks__/client.ts`) — heavier, more maintenance
+3. **Auto-mock** (`jest.mock('../client')` no factory) — relies on Jest inferring mock shape, less explicit
+
+---
+
+## Decision 11: Mock ESM Dependencies in Component Tests (react-markdown)
+
+**Date:** 2026-02-19
+**Title:** Mock `react-markdown` and its plugins rather than adding SWC transform exceptions
+**Category:** Testing
+
+### Decision Details
+
+`PatternContent.tsx` imports `react-markdown`, `remark-gfm`, and `rehype-sanitize`, all of which publish ES modules (`export {}`). Jest's default `transformIgnorePatterns` excludes `node_modules`, causing `SyntaxError: Unexpected token 'export'` when the test file is loaded.
+
+Chose to mock the ESM packages at the test-file level rather than modifying `transformIgnorePatterns` to include a long list of transitive ESM dependencies.
+
+```ts
+jest.mock('react-markdown', () => function ReactMarkdown({ children }) {
+  return <div data-testid="markdown-content">{children}</div>
+})
+jest.mock('remark-gfm', () => () => ({}))
+jest.mock('rehype-sanitize', () => () => ({}))
+```
+
+### Pros
+- Zero changes to shared jest config — no risk of breaking other tests
+- Simpler: one mock per file, no need to enumerate all transitive ESM deps
+- Tests `PatternContent`'s render logic (prose wrapper, content passing) without testing `react-markdown` internals
+
+### Cons
+- Custom component renderers (h2, h3, code, blockquote, etc.) defined in `PatternContent` are not exercised
+- Any bugs in those renderers are invisible to unit tests — covered by E2E instead
+
+### Alternatives Evaluated
+1. **Modify `transformIgnorePatterns`** (rejected) — requires enumerating ~15 transitive ESM packages; brittle across package updates
+2. **Use `jest.config.ts` `moduleNameMapper`** — could map to stub, but same trade-off as mocking
+3. **E2E-only for PatternContent** — deferred; unit coverage gap would persist until Playwright E2E are fixed
