@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import {
@@ -13,23 +14,32 @@ import {
 } from '@/components/ui/sheet'
 import { Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { deletePattern } from '@/lib/api/patterns'
+import { hasRole } from '@/lib/types/auth'
 
 type PatternActionsProps = {
   slug: string
+  patternId: string
 }
 
-export function PatternActions({ slug }: PatternActionsProps) {
+export function PatternActions({ slug, patternId }: PatternActionsProps) {
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
+  const { data: session, status } = useSession()
+
+  // Don't render while session is loading or if user is not an editor/admin
+  if (status === 'loading' || !hasRole(session?.user?.roles, 'Editor')) {
+    return null
+  }
 
   const handleDelete = async () => {
     setIsDeleting(true)
     try {
-      await fetch(`/api/patterns/${slug}`, { method: 'DELETE' })
+      await deletePattern(patternId, session?.accessToken)
       setShowDeleteConfirm(false)
       router.push('/patterns')
-    } catch (error) {
+    } catch {
       toast.error('Failed to delete pattern. Please try again.')
     } finally {
       setIsDeleting(false)

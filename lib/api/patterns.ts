@@ -4,7 +4,7 @@
  */
 
 import type { Pattern, PatternCategory } from '@/lib/types/pattern'
-import type { PatternDetailDto, PatternListDto, PaginatedResponse, VoteResponse } from './types'
+import type { PatternDetailDto, PatternListDto, PaginatedResponse, VoteResponse, CreatePatternDto, UpdatePatternDto } from './types'
 import { apiClient } from './client'
 import { ApiError } from './error'
 import {
@@ -115,6 +115,70 @@ export async function getPatternBySlug(slug: string): Promise<Pattern | null> {
  */
 export async function voteForPattern(id: string): Promise<VoteResponse> {
   return await apiClient.post<VoteResponse>(`/patterns/${id}/vote`)
+}
+
+/**
+ * POST /api/patterns - Create a new pattern (requires Editor role)
+ */
+export async function createPattern(
+  data: {
+    title: string
+    shortDescription: string
+    fullContent?: string
+    category: PatternCategory
+    tags: string[]
+    author?: string
+  },
+  token?: string
+): Promise<Pattern> {
+  const dto: CreatePatternDto = {
+    title: data.title,
+    shortDescription: data.shortDescription,
+    fullContent: data.fullContent,
+    category: mapCategoryToApi(data.category),
+    tags: data.tags,
+    author: data.author,
+  }
+  const response = await apiClient.post<PatternDetailDto>('/patterns', dto, { token })
+  return mapPatternDetailDto(response)
+}
+
+/**
+ * PUT /api/patterns/{id} - Update an existing pattern (requires Editor role)
+ */
+export async function updatePattern(
+  id: string,
+  data: {
+    title: string
+    shortDescription: string
+    fullContent?: string
+    category: PatternCategory
+    tags: string[]
+    author?: string
+    isFeatured: boolean
+    isTrending: boolean
+  },
+  token?: string
+): Promise<Pattern> {
+  const dto: UpdatePatternDto = {
+    title: data.title,
+    shortDescription: data.shortDescription,
+    fullContent: data.fullContent,
+    category: mapCategoryToApi(data.category),
+    tags: data.tags,
+    author: data.author,
+    isFeatured: data.isFeatured,
+    isTrending: data.isTrending,
+  }
+  const response = await apiClient.put<PatternDetailDto>(`/patterns/${id}`, dto, { token })
+  return mapPatternDetailDto(response)
+}
+
+/**
+ * DELETE /api/patterns/{id} - Delete a pattern (requires Admin role)
+ */
+export async function deletePattern(id: string, token?: string): Promise<void> {
+  await apiClient.delete(`/patterns/${id}`, { token })
 }
 
 // ============================================================================
