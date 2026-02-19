@@ -7,6 +7,9 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { X } from 'lucide-react'
+import { DateRangeFilter } from './DateRangeFilter'
+import { SavedSearches } from './SavedSearches'
+import { RecentlyViewedSidebar } from './RecentlyViewedSidebar'
 
 type FilterPanelProps = {
   categories: string[]
@@ -20,44 +23,87 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
   const selectedCategory = searchParams.get('category') || 'all'
   const selectedTags =
     searchParams.get('tags')?.split(',').filter(Boolean) || []
+  const tagMode = searchParams.get('tagMode') || 'any'
+  const dateFrom = searchParams.get('dateFrom') || undefined
+  const dateTo = searchParams.get('dateTo') || undefined
 
-  const hasActiveFilters = selectedCategory !== 'all' || selectedTags.length > 0
+  const hasActiveFilters =
+    selectedCategory !== 'all' ||
+    selectedTags.length > 0 ||
+    !!dateFrom ||
+    !!dateTo
 
-  const updateParams = useCallback((updates: Record<string, string | null>) => {
-    const params = new URLSearchParams(searchParams.toString())
+  // Build description for live region
+  const activeFilterDescription = (() => {
+    const parts: string[] = []
+    if (selectedCategory !== 'all') parts.push(`Category: ${selectedCategory}`)
+    if (selectedTags.length > 0)
+      parts.push(`${selectedTags.length} tag${selectedTags.length > 1 ? 's' : ''}`)
+    if (dateFrom || dateTo) parts.push('date range')
+    return parts.length > 0 ? `Filtered by ${parts.join(', ')}` : ''
+  })()
 
-    Object.entries(updates).forEach(([key, value]) => {
-      if (value === null || value === '') {
-        params.delete(key)
-      } else {
-        params.set(key, value)
-      }
-    })
+  const updateParams = useCallback(
+    (updates: Record<string, string | null>) => {
+      const params = new URLSearchParams(searchParams.toString())
 
-    // Reset to page 1 on filter change
-    params.delete('page')
+      Object.entries(updates).forEach(([key, value]) => {
+        if (value === null || value === '') {
+          params.delete(key)
+        } else {
+          params.set(key, value)
+        }
+      })
 
-    router.push(`/patterns?${params.toString()}`)
-  }, [searchParams, router])
+      // Reset to page 1 on filter change
+      params.delete('page')
 
-  const handleCategoryChange = useCallback((category: string) => {
-    updateParams({ category: category === 'all' ? null : category })
-  }, [updateParams])
+      router.push(`/patterns?${params.toString()}`)
+    },
+    [searchParams, router]
+  )
 
-  const handleTagToggle = useCallback((tag: string) => {
-    const newTags = selectedTags.includes(tag)
-      ? selectedTags.filter((t) => t !== tag)
-      : [...selectedTags, tag]
+  const handleCategoryChange = useCallback(
+    (category: string) => {
+      updateParams({ category: category === 'all' ? null : category })
+    },
+    [updateParams]
+  )
 
-    updateParams({ tags: newTags.length > 0 ? newTags.join(',') : null })
-  }, [selectedTags, updateParams])
+  const handleTagToggle = useCallback(
+    (tag: string) => {
+      const newTags = selectedTags.includes(tag)
+        ? selectedTags.filter((t) => t !== tag)
+        : [...selectedTags, tag]
+
+      updateParams({ tags: newTags.length > 0 ? newTags.join(',') : null })
+    },
+    [selectedTags, updateParams]
+  )
+
+  const handleTagModeChange = useCallback(
+    (mode: 'any' | 'all') => {
+      updateParams({ tagMode: mode === 'any' ? null : mode })
+    },
+    [updateParams]
+  )
 
   const handleClearFilters = () => {
-    updateParams({ category: null, tags: null })
+    updateParams({ category: null, tags: null, dateFrom: null, dateTo: null, tagMode: null })
   }
 
   return (
     <aside className="w-64 space-y-6">
+      {/* SR live region for filter changes */}
+      <div
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {activeFilterDescription}
+      </div>
+
       {/* Header with clear button */}
       <div className="flex items-center justify-between">
         <h3 className="text-lg font-semibold">Filters</h3>
@@ -105,9 +151,42 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
         </div>
       </div>
 
+      {/* Date Range Filter */}
+      <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} />
+
       {/* Tags Filter */}
       <div className="space-y-3">
         <Label className="text-sm font-medium">Tags</Label>
+
+        {/* AND/OR toggle — only shown when 2+ tags selected */}
+        {selectedTags.length >= 2 && (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-muted-foreground">Match:</span>
+            <button
+              onClick={() => handleTagModeChange('any')}
+              aria-pressed={tagMode === 'any'}
+              className={`px-2 py-0.5 rounded border text-xs transition-colors ${
+                tagMode === 'any'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-input hover:bg-muted'
+              }`}
+            >
+              Any
+            </button>
+            <button
+              onClick={() => handleTagModeChange('all')}
+              aria-pressed={tagMode === 'all'}
+              className={`px-2 py-0.5 rounded border text-xs transition-colors ${
+                tagMode === 'all'
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'border-input hover:bg-muted'
+              }`}
+            >
+              All
+            </button>
+          </div>
+        )}
+
         <div className="space-y-2">
           {tags.map((tag) => (
             <div key={tag} className="flex items-center space-x-2">
@@ -138,6 +217,7 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
                 <button
                   onClick={() => handleCategoryChange('all')}
                   className="ml-1 hover:text-foreground"
+                  aria-label={`Remove category filter: ${selectedCategory}`}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -149,6 +229,7 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
                 <button
                   onClick={() => handleTagToggle(tag)}
                   className="ml-1 hover:text-foreground"
+                  aria-label={`Remove tag filter: ${tag}`}
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -157,6 +238,12 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
           </div>
         </div>
       )}
+
+      {/* Saved Searches */}
+      <SavedSearches />
+
+      {/* Recently Viewed */}
+      <RecentlyViewedSidebar />
     </aside>
   )
 }

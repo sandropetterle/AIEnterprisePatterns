@@ -48,7 +48,8 @@ public class PatternServiceTests
             PageSize = 10
         };
         _patternRepositoryMock
-            .Setup(r => r.GetPatternsAsync(1, 10, null, null, null, null, default))
+            .Setup(r => r.GetPatternsAsync(1, 10, null, null, null, null,
+                It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
@@ -56,7 +57,8 @@ public class PatternServiceTests
 
         // Assert
         result.Should().Be(expectedResult);
-        _patternRepositoryMock.Verify(r => r.GetPatternsAsync(1, 10, null, null, null, null, default), Times.Once);
+        _patternRepositoryMock.Verify(r => r.GetPatternsAsync(1, 10, null, null, null, null,
+            It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -72,7 +74,8 @@ public class PatternServiceTests
             PageSize = 20
         };
         _patternRepositoryMock
-            .Setup(r => r.GetPatternsAsync(2, 20, "votes", "Architecture", tags, "search", default))
+            .Setup(r => r.GetPatternsAsync(2, 20, "votes", "Architecture", tags, "search",
+                It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(expectedResult);
 
         // Act
@@ -80,7 +83,8 @@ public class PatternServiceTests
 
         // Assert
         result.Should().Be(expectedResult);
-        _patternRepositoryMock.Verify(r => r.GetPatternsAsync(2, 20, "votes", "Architecture", tags, "search", default), Times.Once);
+        _patternRepositoryMock.Verify(r => r.GetPatternsAsync(2, 20, "votes", "Architecture", tags, "search",
+            It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     #endregion

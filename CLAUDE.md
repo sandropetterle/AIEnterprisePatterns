@@ -12,7 +12,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Database:** SQLite (development), Azure SQL (production)
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend)
-- **Current Phase:** 5.1 - Authentication & Authorization (complete)
+- **Current Phase:** 5.4 - Accessibility Improvements (complete)
 
 ## Development Commands
 
@@ -157,8 +157,8 @@ Base: `http://localhost:5255/api`
 
 ## Testing
 
-- **Frontend:** `npm test` (Jest + React Testing Library); 286/286 tests, 70%+ coverage
-- **Backend:** `dotnet test` (xUnit + Moq); 87/87 tests passing (~85% testable coverage)
+- **Frontend:** `npm test` (Jest + React Testing Library); 380/380 tests, 70%+ coverage
+- **Backend:** `dotnet test` (xUnit + Moq); 93/93 tests passing (~85% testable coverage)
 - **Auth test strategy:** next-auth/react mocked globally in jest.setup.ts (unauthenticated default); per-test overrides via `(useSession as jest.Mock).mockReturnValue(...)`
 - **Radix UI in tests:** Mock `@/components/ui/dropdown-menu` inline in test files (portals don't render in jsdom)
 - **Backend auth tests:** TestAuthHandler (header-driven: `X-Test-Roles`) replaces JwtBearer in WebApplicationFactory

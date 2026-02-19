@@ -17,6 +17,7 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent } from '@/components/ui/card'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
+import { RecentlyViewedTracker } from '@/components/patterns/RecentlyViewedTracker'
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -104,6 +105,11 @@ export default async function PatternDetailPage({ params }: PageProps) {
 
   return (
     <>
+      <RecentlyViewedTracker
+        slug={pattern.slug}
+        title={pattern.title}
+        category={pattern.category}
+      />
       <Breadcrumb items={breadcrumbs} />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">

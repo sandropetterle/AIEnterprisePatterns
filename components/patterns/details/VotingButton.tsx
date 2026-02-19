@@ -18,6 +18,7 @@ export function VotingButton({
   const [voteCount, setVoteCount] = useState(initialVoteCount)
   const [hasVoted, setHasVoted] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
+  const [justVoted, setJustVoted] = useState(false)
 
   const handleVote = async () => {
     if (isLoading || hasVoted) return
@@ -30,6 +31,9 @@ export function VotingButton({
     try {
       const response = await voteForPattern(patternId)
       setVoteCount(response.voteCount) // Use actual count from backend
+      setJustVoted(true)
+      // Clear announcement after a short delay
+      setTimeout(() => setJustVoted(false), 3000)
     } catch (error) {
       // Revert on error
       setVoteCount((prev) => prev - 1)
@@ -41,20 +45,34 @@ export function VotingButton({
   }
 
   return (
-    <Button
-      onClick={handleVote}
-      variant="outline"
-      size="sm"
-      className="gap-2"
-      disabled={isLoading || hasVoted}
-    >
-      <Heart
-        className={`h-4 w-4 transition-all ${
-          hasVoted ? 'fill-red-500 text-red-500 scale-125' : ''
-        }`}
-      />
-      <span className="font-medium">{voteCount}</span>
-      <span className="text-muted-foreground">votes</span>
-    </Button>
+    <>
+      <Button
+        onClick={handleVote}
+        variant="outline"
+        size="sm"
+        className="gap-2"
+        disabled={isLoading || hasVoted}
+        aria-pressed={hasVoted}
+        aria-label={`Vote for this pattern. ${voteCount} votes`}
+        aria-busy={isLoading}
+      >
+        <Heart
+          className={`h-4 w-4 transition-all ${
+            hasVoted ? 'fill-red-500 text-red-500 scale-125' : ''
+          }`}
+          aria-hidden="true"
+        />
+        <span className="font-medium">{voteCount}</span>
+        <span className="text-muted-foreground">votes</span>
+      </Button>
+      <span
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {justVoted ? `Voted! ${voteCount} total votes` : ''}
+      </span>
+    </>
   )
 }

@@ -207,6 +207,8 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
               }}
               placeholder="e.g. CQRS Pattern for Event-Driven Systems"
               maxLength={255}
+              aria-required="true"
+              aria-invalid={!!errors.title}
               aria-describedby={errors.title ? 'title-error' : undefined}
             />
             {slugPreview && (
@@ -244,6 +246,8 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
               placeholder="A brief summary of the pattern (shown in listings)"
               rows={3}
               maxLength={500}
+              aria-required="true"
+              aria-invalid={!!errors.shortDescription}
               aria-describedby={
                 errors.shortDescription ? 'shortDescription-error' : undefined
               }
@@ -342,6 +346,7 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
               placeholder="Write the full pattern content in Markdown..."
               rows={20}
               className="font-mono text-sm"
+              aria-invalid={!!errors.fullContent}
               aria-describedby={errors.fullContent ? 'fullContent-error' : undefined}
             />
             {errors.fullContent && (

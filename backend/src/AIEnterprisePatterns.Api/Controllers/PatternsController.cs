@@ -30,7 +30,8 @@ public class PatternsController : ControllerBase
         var tagList = query.Tags?.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries).ToList();
 
         var result = await _patternService.GetPatternsAsync(
-            query.Page, query.PageSize, query.SortBy, query.Category, tagList, query.Search, ct);
+            query.Page, query.PageSize, query.SortBy, query.Category, tagList, query.Search,
+            query.DateFrom, query.DateTo, query.TagMode, ct);
 
         return Ok(new PaginatedResponse<PatternListDto>
         {

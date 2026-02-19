@@ -75,7 +75,114 @@ public class PatternRepositoryTests : IDisposable
         result.Items.Should().NotBeEmpty();
         result.Items.Should().OnlyContain(p =>
             p.Title.Contains("Architecture", StringComparison.OrdinalIgnoreCase) ||
-            p.ShortDescription.Contains("Architecture", StringComparison.OrdinalIgnoreCase));
+            p.ShortDescription.Contains("Architecture", StringComparison.OrdinalIgnoreCase) ||
+            p.Tags.Any(t => t.Name.Contains("Architecture", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [Fact]
+    public async Task GetPatternsAsync_WithSearchTerm_SearchesFullContent()
+    {
+        // Arrange - Add a pattern with unique content only in FullContent
+        var pattern = CreatePattern("Regular Title", "full-content-search-slug");
+        pattern.FullContent = "UniqueFullContentToken12345";
+        _context.Patterns.Add(pattern);
+        await _context.SaveChangesAsync();
+
+        // Act
+        var result = await _sut.GetPatternsAsync(1, 10, null, null, null, "UniqueFullContentToken12345");
+
+        // Assert
+        result.Items.Should().NotBeEmpty();
+        result.Items.Should().Contain(p => p.Slug == "full-content-search-slug");
+    }
+
+    [Fact]
+    public async Task GetPatternsAsync_WithSearchTerm_SearchesTags()
+    {
+        // Arrange - tag3 is "Performance", seeded in SeedTestData
+        // Act
+        var result = await _sut.GetPatternsAsync(1, 10, null, null, null, "Performance");
+
+        // Assert
+        result.Items.Should().NotBeEmpty();
+        result.Items.Should().OnlyContain(p =>
+            p.Title.Contains("Performance", StringComparison.OrdinalIgnoreCase) ||
+            p.ShortDescription.Contains("Performance", StringComparison.OrdinalIgnoreCase) ||
+            p.Tags.Any(t => t.Name.Contains("Performance", StringComparison.OrdinalIgnoreCase)));
+    }
+
+    [Fact]
+    public async Task GetPatternsAsync_WithDateRange_FiltersCorrectly()
+    {
+        // Arrange
+        var oldPattern = CreatePattern("Old Pattern", "old-pattern");
+        oldPattern.CreatedDate = DateTime.UtcNow.AddDays(-30);
+        var newPattern = CreatePattern("New Pattern", "new-pattern");
+        newPattern.CreatedDate = DateTime.UtcNow.AddDays(-1);
+        _context.Patterns.AddRange(oldPattern, newPattern);
+        await _context.SaveChangesAsync();
+
+        var from = DateTime.UtcNow.AddDays(-7);
+        var to = DateTime.UtcNow;
+
+        // Act
+        var result = await _sut.GetPatternsAsync(1, 100, null, null, null, null, from, to);
+
+        // Assert
+        result.Items.Should().Contain(p => p.Slug == "new-pattern");
+        result.Items.Should().NotContain(p => p.Slug == "old-pattern");
+    }
+
+    [Fact]
+    public async Task GetPatternsAsync_WithDateFrom_OnlyReturnsNewerPatterns()
+    {
+        // Arrange
+        var oldPattern = CreatePattern("Old Pattern B", "old-pattern-b");
+        oldPattern.CreatedDate = DateTime.UtcNow.AddDays(-60);
+        _context.Patterns.Add(oldPattern);
+        await _context.SaveChangesAsync();
+
+        var from = DateTime.UtcNow.AddDays(-10);
+
+        // Act
+        var result = await _sut.GetPatternsAsync(1, 100, null, null, null, null, from);
+
+        // Assert
+        result.Items.Should().NotContain(p => p.Slug == "old-pattern-b");
+    }
+
+    [Fact]
+    public async Task GetPatternsAsync_WithTagModeAll_RequiresAllTags()
+    {
+        // Arrange - seeded: "Architecture Pattern 1" has tag "Architecture"
+        // "Design Pattern with Testing" has tag "Testing"
+        // No pattern has both "Architecture" AND "Testing"
+        var tags = new List<string> { "Architecture", "Testing" };
+
+        // Act
+        var result = await _sut.GetPatternsAsync(1, 10, null, null, tags, null, tagMode: "all");
+
+        // Assert
+        result.Items.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetPatternsAsync_WithTagModeAll_ReturnsPatternWithAllTags()
+    {
+        // Arrange - create a pattern that has BOTH tags
+        var tag1 = _context.Tags.First(t => t.Name == "Architecture");
+        var tag2 = _context.Tags.First(t => t.Name == "Testing");
+        var multiTagPattern = CreatePattern("Multi Tag Pattern", "multi-tag-pattern", tags: new[] { tag1, tag2 });
+        _context.Patterns.Add(multiTagPattern);
+        await _context.SaveChangesAsync();
+
+        var tags = new List<string> { "Architecture", "Testing" };
+
+        // Act
+        var result = await _sut.GetPatternsAsync(1, 10, null, null, tags, null, tagMode: "all");
+
+        // Assert
+        result.Items.Should().Contain(p => p.Slug == "multi-tag-pattern");
     }
 
     [Fact]

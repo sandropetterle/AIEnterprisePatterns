@@ -21,12 +21,12 @@ export function FilterSheet({ categories, tags }: FilterSheetProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
-        <Button variant="outline" size="sm" className="gap-2">
-          <Filter className="h-4 w-4" />
+        <Button variant="outline" size="sm" className="gap-2" aria-label="Open filters">
+          <Filter className="h-4 w-4" aria-hidden="true" />
           Filters
         </Button>
       </SheetTrigger>
-      <SheetContent side="left" className="w-80 overflow-y-auto">
+      <SheetContent side="left" className="w-80 overflow-y-auto" aria-label="Filter options">
         <SheetHeader>
           <SheetTitle>Filter Patterns</SheetTitle>
           <SheetDescription>

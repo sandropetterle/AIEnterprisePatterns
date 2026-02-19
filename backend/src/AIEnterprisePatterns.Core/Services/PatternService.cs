@@ -32,9 +32,11 @@ public class PatternService : IPatternService
 
     public Task<PaginatedResult<Pattern>> GetPatternsAsync(
         int page, int pageSize, string? sortBy, string? category,
-        List<string>? tags, string? search, CancellationToken ct = default)
+        List<string>? tags, string? search,
+        DateTime? dateFrom = null, DateTime? dateTo = null,
+        string? tagMode = "any", CancellationToken ct = default)
     {
-        return _patternRepository.GetPatternsAsync(page, pageSize, sortBy, category, tags, search, ct);
+        return _patternRepository.GetPatternsAsync(page, pageSize, sortBy, category, tags, search, dateFrom, dateTo, tagMode, ct);
     }
 
     public Task<Pattern?> GetBySlugAsync(string slug, CancellationToken ct = default)

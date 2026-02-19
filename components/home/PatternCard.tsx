@@ -19,11 +19,17 @@ function PatternCardComponent({ pattern }: PatternCardProps) {
     : pattern.shortDescription
 
   return (
-    <Link href={`/patterns/${pattern.slug}`} className="block h-full">
+    <Link
+      href={`/patterns/${pattern.slug}`}
+      className="block h-full"
+      aria-label={`View pattern: ${pattern.title}`}
+    >
       <Card className="h-full transition-all hover:shadow-lg hover:border-primary/50">
         <CardHeader>
           <div className="flex items-start justify-between gap-2 mb-2">
-            <Badge variant="default">{pattern.category}</Badge>
+            <Badge variant="default" aria-label={`Category: ${pattern.category}`}>
+              {pattern.category}
+            </Badge>
           </div>
           <CardTitle className="text-xl line-clamp-2">{pattern.title}</CardTitle>
           <CardDescription className="line-clamp-3">
@@ -31,7 +37,7 @@ function PatternCardComponent({ pattern }: PatternCardProps) {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" aria-label="Tags">
             {displayTags.map((tag) => (
               <Badge key={tag} variant="secondary" className="text-xs">
                 {tag}
@@ -40,10 +46,13 @@ function PatternCardComponent({ pattern }: PatternCardProps) {
           </div>
         </CardContent>
         <CardFooter className="flex items-center justify-between text-sm text-muted-foreground">
-          <div className="flex items-center gap-1">
-            <ThumbsUp className="h-4 w-4" />
+          <span
+            className="flex items-center gap-1"
+            aria-label={`${pattern.voteCount} votes`}
+          >
+            <ThumbsUp className="h-4 w-4" aria-hidden="true" />
             <span>{pattern.voteCount}</span>
-          </div>
+          </span>
           {pattern.author && (
             <span className="truncate">by {pattern.author}</span>
           )}
