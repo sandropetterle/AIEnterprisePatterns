@@ -26,9 +26,15 @@ COPY . .
 # Ensure public directory exists (even if empty)
 RUN mkdir -p public
 
-# Set build-time environment variable
+# Set build-time environment variables
 ARG NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
+
+# Auth.js v5 reads AUTH_SECRET during next build (server component pre-checks).
+# A placeholder is sufficient here; the real secret is injected at runtime via
+# Container Apps environment variables and never baked into the final image.
+ARG AUTH_SECRET=build-time-placeholder
+ENV AUTH_SECRET=$AUTH_SECRET
 
 # Build Next.js application
 RUN npm run build

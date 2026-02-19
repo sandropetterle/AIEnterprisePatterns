@@ -5,8 +5,11 @@ using AIEnterprisePatterns.Data;
 using AIEnterprisePatterns.Data.Repositories;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.OpenApi.Models;
 using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,11 +35,34 @@ builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
 {
-    options.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    options.SwaggerDoc("v1", new OpenApiInfo
     {
         Title = "AI Enterprise Patterns API",
         Version = "v1",
         Description = "RESTful API for managing AI enterprise patterns"
+    });
+    options.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+    {
+        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer {token}'",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.Http,
+        Scheme = "bearer",
+        BearerFormat = "JWT"
+    });
+    options.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference
+                {
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
+                }
+            },
+            Array.Empty<string>()
+        }
     });
 });
 
@@ -100,6 +126,37 @@ builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPatternService, PatternService>();
 builder.Services.AddMemoryCache();
 builder.Services.AddSingleton(TimeProvider.System);
+
+// Authorization policies — always registered so [Authorize(Policy = "...")] resolves
+// correctly even when no OIDC provider is configured (e.g., integration tests, local dev).
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("RequireAdmin", policy => policy.RequireRole("Admin"))
+    .AddPolicy("RequireEditor", policy => policy.RequireRole("Admin", "Editor"))
+    .AddPolicy("RequireViewer", policy => policy.RequireRole("Admin", "Editor", "Viewer"));
+
+// Authentication — provider-agnostic OIDC JWT validation.
+// Guard clause: when Authority is empty the API boots without an authentication scheme,
+// preserving backward compatibility for integration tests and local dev without Entra.
+var authAuthority = builder.Configuration["Authentication:Authority"];
+if (!string.IsNullOrEmpty(authAuthority))
+{
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(options =>
+        {
+            options.Authority = authAuthority;
+            options.Audience = builder.Configuration["Authentication:Audience"];
+            options.RequireHttpsMetadata = builder.Configuration.GetValue<bool>("Authentication:RequireHttpsMetadata", true);
+            options.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                RoleClaimType = "roles",
+                NameClaimType = "name"
+            };
+        });
+}
 
 // Health checks
 builder.Services.AddHealthChecks()

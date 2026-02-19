@@ -755,13 +755,21 @@ The project will be:
 
 **Requirements:**
 
-5.1. **User Authentication & Authorization**
-* Implement Azure AD B2C integration
-* Add JWT token handling
-* Create user registration and login flows
-* Implement role-based access control (Admin, Editor, Viewer)
-* Add user profile management
-* Secure API endpoints with authentication middleware
+5.1. **User Authentication & Authorization** ✅ COMPLETE (2026-02-19)
+* ~~Implement Azure AD B2C integration~~ → **Azure Entra External ID** (B2C deprecated May 2025)
+* Auth.js v5 (NextAuth) with generic OIDC provider — provider-agnostic, swap by changing env vars
+* Standard ASP.NET Core JwtBearer middleware — no Microsoft-specific packages
+* JWT session strategy — no database tables needed; roles embedded in access token
+* Roles: Admin (full access), Editor (create/edit), Viewer (read-only) — via Entra App Roles
+* Protected endpoints: POST/PUT patterns → Editor+; DELETE → Admin only; all GET endpoints anonymous
+* Custom branded /login page → redirects to Entra-hosted sign-in (branded to match site)
+* UserMenu in header: Sign In button (unauthenticated) / name + role dropdown (authenticated)
+* API client token forwarding via optional `token` parameter in request options
+* 401/403 error handling in API error layer
+* CSP headers updated for ciamlogin.com domain
+* **Tests:** 87 backend (4 new auth boundary tests) + 24 new frontend auth tests = 311 total
+* **Setup guide:** `documentation/operations/AUTH_SETUP_GUIDE.md`
+* **Technical decisions:** 14–17 in TECHNICAL_DECISIONS_LOG.md
 
 5.2. **Pattern Management UI**
 * Create pattern creation form with markdown editor
@@ -1071,8 +1079,9 @@ The project will be:
 | Phase 2 | ✅ Complete | 2024-Q1 | ASP.NET Core backend |
 | Phase 3 | ✅ Complete | 2026-02-10 | Frontend-backend integration |
 | Phase 4 | ✅ Complete | 2026-02-11 | Azure deployment, CI/CD, security hardening |
-| **Phase 4.5** | **🚀 Active** | **2026-02-13** (started) | **Automated tests, monitoring, operational docs** |
-| Phase 5 | 📋 Planned | TBD | Authentication, CRUD UI |
+| Phase 4.5 | ✅ Complete | 2026-02-19 | Automated tests, monitoring, operational docs |
+| **Phase 5.1** | **✅ Complete** | **2026-02-19** | **Authentication & Authorization (Entra External ID)** |
+| Phase 5 (remaining) | 📋 Planned | TBD | CRUD UI, advanced search, accessibility |
 | Phase 6 | 📋 Planned | TBD | User engagement, UX |
 | Phase 7 | 📋 Planned | TBD | Advanced content management |
 | Phase 8 | 📋 Future | TBD | Enterprise features |

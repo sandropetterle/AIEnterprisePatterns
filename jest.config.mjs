@@ -52,8 +52,9 @@ const config = {
   ],
 
   // Transform configuration
+  // next-auth v5 is ESM; exclude it from the ignore list so SWC can transform it.
   transformIgnorePatterns: [
-    '/node_modules/',
+    '/node_modules/(?!(next-auth|@auth)/)',
     '^.+\\.module\\.(css|sass|scss)$',
   ],
 }
