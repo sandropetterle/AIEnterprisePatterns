@@ -327,8 +327,9 @@ Use this matrix to choose the right deployment model:
 1. **Let it scale to zero** (default behavior)
 2. **Optimize Docker images** (smaller = faster startup)
 3. **Use SQL Serverless** (auto-pause when idle)
-4. **Monitor logs** (don't exceed 5GB/month free tier)
-5. **Clean up old images** in ACR (storage costs add up)
+4. **Right-size SQL storage** — default provisioned size is 32 GB ($3.68/month); set `--max-size 2GB` for small apps to save ~$3.45/month
+5. **Monitor logs** (don't exceed 5GB/month free tier)
+6. **Clean up old images** in ACR (storage costs add up)
 
 ---
 

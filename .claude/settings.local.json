@@ -46,7 +46,10 @@
       "Bash(az monitor app-insights component show:*)",
       "Bash(az monitor metrics alert list:*)",
       "Bash(az monitor metrics alert show:*)",
-      "Bash(dotnet ef migrations list:*)"
+      "Bash(dotnet ef migrations list:*)",
+      "Bash(cmd /c \"dir C:\\\\Users\\\\sandr\\\\.claude\")",
+      "Bash(npm run test:ci:*)",
+      "Bash(npx jest:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\deployment"

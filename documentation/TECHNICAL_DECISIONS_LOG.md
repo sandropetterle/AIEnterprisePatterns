@@ -693,3 +693,49 @@ await page.addInitScript(() => {
 2. **`page.route` with `route.fulfill()` including explicit CORS headers** (rejected) — complex and brittle; depends on Playwright correctly proxying the OPTIONS response
 3. **`page.evaluate` post-navigation** — works but runs after the initial page scripts; `addInitScript` is cleaner and more reliable
 4. **Disable CORS in backend for tests** (rejected) — changes production code behaviour; test should adapt to production config
+
+---
+
+## Decision 13: Azure SQL Storage Reduction — 32 GB → 2 GB
+
+**Date:** 2026-02-19
+**Title:** Reduce Azure SQL Database Max Storage from Default 32 GB to 2 GB
+**Category:** Infrastructure / Cost Optimisation
+
+### Decision Details
+The Azure SQL Serverless database (`sqldb-aipatterns-prod`) was created without an explicit `--max-size`, so it defaulted to **32 GB** of provisioned storage. For a small-scale application with 6 seeded patterns and minimal data growth expected, 32 GB is heavily over-provisioned.
+
+Changed via:
+```bash
+az sql db update \
+  --resource-group rg-aipatterns-prod \
+  --server sql-aipatterns-sandr-1770754196 \
+  --name sqldb-aipatterns-prod \
+  --max-size 2GB
+```
+
+### Rationale
+- Application data footprint is tiny (6 patterns, 18 tags, text content)
+- 2 GB is a comfortable upper bound — would require tens of thousands of patterns to approach the limit
+- Azure General Purpose storage is billed at $0.115/GB/month regardless of actual usage; provisioned size determines the charge
+
+### Savings
+| | Before | After |
+|---|---|---|
+| Provisioned storage | 32 GB | 2 GB |
+| Monthly storage cost | ~$3.68 | ~$0.23 |
+| **Monthly saving** | | **~$3.45** |
+
+This is significant relative to total infrastructure cost ($5–12/month) and represents ~30–50% of the idle monthly bill.
+
+### Pros
+- Immediate ~$3.45/month saving with zero functional impact
+- Storage can be increased again at any time via the same command or Azure Portal
+- Backup storage allocation also shrinks proportionally
+
+### Cons
+- If data grows unexpectedly beyond 2 GB, an explicit resize will be required (non-disruptive, takes ~seconds)
+
+### Alternatives Evaluated
+1. **Leave at 32 GB default** (rejected) — unnecessary cost, no benefit for this workload
+2. **1 GB minimum** (not chosen) — Azure General Purpose minimum is 1 GB, but 2 GB gives comfortable headroom
