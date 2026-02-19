@@ -541,12 +541,13 @@ fi
 
 ## Summary
 
-This deployment session involved **9 major technical decisions** focused on:
+This log now covers **12 major technical decisions** across deployment and testing phases:
 - **Security** (OIDC, Managed Identity, non-root containers, port privileges)
 - **Cost Optimization** (scale-to-zero)
 - **Build Reliability** (API fallback, public folder handling)
 - **Deployment Configuration** (port mapping, multi-stage builds)
 - **Quality Assurance** (content-verified health checks)
+- **Testing** (Jest mocking strategy, ESM dependencies, Playwright E2E fetch interception)
 
 ### Key Themes
 1. **Security-first approach**: Eliminated credential storage wherever possible, maintained non-root container execution
@@ -639,3 +640,56 @@ jest.mock('rehype-sanitize', () => () => ({}))
 1. **Modify `transformIgnorePatterns`** (rejected) — requires enumerating ~15 transitive ESM packages; brittle across package updates
 2. **Use `jest.config.ts` `moduleNameMapper`** — could map to stub, but same trade-off as mocking
 3. **E2E-only for PatternContent** — deferred; unit coverage gap would persist until Playwright E2E are fixed
+
+---
+
+## Decision 12: Playwright Vote Mocking — `page.addInitScript` vs `page.route`
+
+**Date:** 2026-02-19
+**Title:** Override `window.fetch` via `page.addInitScript` instead of using `page.route` for cross-origin vote API interception
+**Category:** Testing / E2E
+
+### Decision Details
+
+The VotingButton E2E tests need to intercept `POST /api/patterns/{id}/vote` (cross-origin: frontend port 3000 → backend port 5255) and return a controlled 201 response. The initial implementation used `page.route(/\/patterns\/[^/]+\/vote/, handler)` — a standard Playwright network interception pattern.
+
+**Problem:** `page.route` silently failed to intercept requests. `page.waitForRequest(regex)` timed out with no request fired, even after verifying React hydration was complete. The `apiClient.post` call uses `credentials: 'include'`, which triggers a CORS preflight (OPTIONS). When Playwright fulfills the OPTIONS request with a plain JSON response (no CORS headers), the browser's CORS policy blocks the subsequent POST — and Playwright's CDP-level interception doesn't inject the correct `Access-Control-Allow-*` headers automatically for pre-flight responses in cross-origin dev scenarios.
+
+**Solution:** Use `page.addInitScript` to replace `window.fetch` in the browser's JavaScript runtime before the app bundle loads. This intercepts the vote fetch at the JS level, bypassing CORS entirely.
+
+```typescript
+await page.addInitScript(() => {
+  const orig = window.fetch.bind(window)
+  window.fetch = async function (input, init) {
+    const url = typeof input === 'string' ? input : (input as Request).url
+    if (url.includes('/vote')) {
+      await new Promise<void>(r => setTimeout(r, 500)) // delay for optimistic UI
+      return new Response(
+        JSON.stringify({ voteCount: 99, patternId: 'mocked' }),
+        { status: 201, headers: { 'Content-Type': 'application/json' } }
+      )
+    }
+    return orig(input, init)
+  }
+})
+```
+
+`page.addInitScript` runs in the browser context before any page scripts, so the override is in place when `handleVote` calls `voteForPattern`. Only `/vote` URLs are intercepted, leaving all data-fetching requests (`/patterns`, `/patterns/{slug}`) intact.
+
+### Pros
+- Bypasses CORS completely — no preflight issues
+- Guaranteed to run before app scripts (addInitScript ordering)
+- Works regardless of `NEXT_PUBLIC_API_BASE_URL` value or backend availability
+- Simpler test assertions — no `waitForRequest`, just check DOM state
+- Captures optimistic UI behavior accurately: `setHasVoted(true)` is synchronous, so button disables immediately on click
+
+### Cons
+- `page.addInitScript` must be called before `page.goto` (not re-usable if page is already open)
+- Overriding `window.fetch` could in theory conflict with Next.js's patched fetch; filtered by URL to minimize risk
+- Does not test that a real network request is actually made (network-level verification traded for reliability)
+
+### Alternatives Evaluated
+1. **`page.route` with regex** (rejected) — CORS preflight issue silently prevented POST from firing; `waitForRequest` timed out reliably
+2. **`page.route` with `route.fulfill()` including explicit CORS headers** (rejected) — complex and brittle; depends on Playwright correctly proxying the OPTIONS response
+3. **`page.evaluate` post-navigation** — works but runs after the initial page scripts; `addInitScript` is cleaner and more reliable
+4. **Disable CORS in backend for tests** (rejected) — changes production code behaviour; test should adapt to production config
