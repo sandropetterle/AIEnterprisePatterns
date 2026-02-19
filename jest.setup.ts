@@ -1,5 +1,6 @@
 // Learn more: https://github.com/testing-library/jest-dom
 import '@testing-library/jest-dom'
+import 'jest-axe/extend-expect'
 
 // Mock environment variables
 process.env.NEXT_PUBLIC_API_BASE_URL = 'http://localhost:5255/api'

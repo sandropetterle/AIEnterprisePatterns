@@ -21,4 +21,13 @@ public class GetPatternsQuery
 
     [MaxLength(200)]
     public string? Search { get; set; }
+
+    [DataType(DataType.Date)]
+    public DateTime? DateFrom { get; set; }
+
+    [DataType(DataType.Date)]
+    public DateTime? DateTo { get; set; }
+
+    [MaxLength(3)]
+    public string TagMode { get; set; } = "any"; // "any" | "all"
 }

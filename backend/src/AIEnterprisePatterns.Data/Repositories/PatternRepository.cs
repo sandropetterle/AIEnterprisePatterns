@@ -16,7 +16,9 @@ public class PatternRepository : IPatternRepository
 
     public async Task<PaginatedResult<Pattern>> GetPatternsAsync(
         int page, int pageSize, string? sortBy, string? category,
-        List<string>? tags, string? search, CancellationToken ct = default)
+        List<string>? tags, string? search,
+        DateTime? dateFrom = null, DateTime? dateTo = null,
+        string? tagMode = "any", CancellationToken ct = default)
     {
         var query = _context.Patterns
             .Include(p => p.Tags)
@@ -30,20 +32,37 @@ public class PatternRepository : IPatternRepository
             query = query.Where(p => p.Category == parsedCategory);
         }
 
-        // Filter by tags
+        // Filter by tags (AND or OR mode)
         if (tags is { Count: > 0 })
         {
-            query = query.Where(p => p.Tags.Any(t => tags.Contains(t.Name)));
+            if (tagMode == "all")
+            {
+                query = tags.Aggregate(query, (current, tag) =>
+                    current.Where(p => p.Tags.Any(t => t.Name == tag)));
+            }
+            else
+            {
+                query = query.Where(p => p.Tags.Any(t => tags.Contains(t.Name)));
+            }
         }
 
-        // Search
+        // Search (title, short description, full content, and tags)
         if (!string.IsNullOrWhiteSpace(search))
         {
             var searchLower = search.ToLower();
             query = query.Where(p =>
                 p.Title.ToLower().Contains(searchLower) ||
-                p.ShortDescription.ToLower().Contains(searchLower));
+                p.ShortDescription.ToLower().Contains(searchLower) ||
+                p.FullContent.ToLower().Contains(searchLower) ||
+                p.Tags.Any(t => t.Name.ToLower().Contains(searchLower)));
         }
+
+        // Date range filter
+        if (dateFrom.HasValue)
+            query = query.Where(p => p.CreatedDate >= dateFrom.Value);
+
+        if (dateTo.HasValue)
+            query = query.Where(p => p.CreatedDate <= dateTo.Value.AddDays(1)); // inclusive end
 
         // Get total count before pagination
         var totalCount = await query.CountAsync(ct);

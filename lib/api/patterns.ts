@@ -35,6 +35,9 @@ type GetPatternsParams = {
   category?: PatternCategory
   tags?: string[]
   search?: string
+  dateFrom?: string
+  dateTo?: string
+  tagMode?: 'any' | 'all'
 }
 
 /**
@@ -50,6 +53,9 @@ export async function getPatterns(
     category,
     tags,
     search,
+    dateFrom,
+    dateTo,
+    tagMode,
   } = params
 
   // Build query string
@@ -69,6 +75,18 @@ export async function getPatterns(
 
   if (search) {
     queryParams.append('search', search)
+  }
+
+  if (dateFrom) {
+    queryParams.append('dateFrom', dateFrom)
+  }
+
+  if (dateTo) {
+    queryParams.append('dateTo', dateTo)
+  }
+
+  if (tagMode && tagMode !== 'any') {
+    queryParams.append('tagMode', tagMode)
   }
 
   const response = await apiClient.get<PaginatedResponse<PatternListDto>>(

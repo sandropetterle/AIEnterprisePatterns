@@ -23,6 +23,9 @@ type SearchParams = Promise<{
   tags?: string
   sort?: SortOption
   page?: string
+  dateFrom?: string
+  dateTo?: string
+  tagMode?: string
 }>
 
 export const metadata: Metadata = {
@@ -67,6 +70,9 @@ export default async function PatternsPage(props: {
   const tags = searchParams.tags?.split(',').filter(Boolean)
   const sortBy = (searchParams.sort as SortOption) || 'recent'
   const page = parseInt(searchParams.page || '1', 10)
+  const dateFrom = searchParams.dateFrom
+  const dateTo = searchParams.dateTo
+  const tagMode = searchParams.tagMode as 'any' | 'all' | undefined
 
   // Fetch patterns from API with server-side filtering, sorting, and pagination
   // Handle API unavailable during build (e.g., Docker build)
@@ -89,9 +95,12 @@ export default async function PatternsPage(props: {
       tags,
       search: searchQuery,
       sortBy,
+      dateFrom,
+      dateTo,
+      tagMode,
     })
 
-    // Get all patterns for filter options
+    // Get all patterns for filter options and suggestions
     const allPatterns = await getPatterns({ pageSize: 100 })
     allCategories = getAllCategories(allPatterns.patterns)
     allTags = getAllTags(allPatterns.patterns)
@@ -100,7 +109,7 @@ export default async function PatternsPage(props: {
     // Will show empty state, page will be generated on-demand
   }
 
-  const hasActiveFilters = !!(searchQuery || category || tags?.length)
+  const hasActiveFilters = !!(searchQuery || category || tags?.length || dateFrom || dateTo)
 
   // JSON-LD for SEO
   const jsonLd = {
@@ -138,7 +147,7 @@ export default async function PatternsPage(props: {
                 <div className="h-10 bg-muted animate-pulse rounded" />
               }
             >
-              <SearchBar />
+              <SearchBar allPatterns={result.patterns} allTags={allTags} />
             </Suspense>
           </div>
           <div className="flex gap-2">
@@ -170,6 +179,13 @@ export default async function PatternsPage(props: {
 
           {/* Patterns Grid */}
           <div className="flex-1">
+            {/* SR live region for results count */}
+            <p role="status" aria-live="polite" className="sr-only">
+              {result.totalCount === 0
+                ? 'No patterns found'
+                : `${result.totalCount} pattern${result.totalCount === 1 ? '' : 's'} found`}
+            </p>
+
             {result.patterns.length > 0 ? (
               <>
                 <PatternsGrid patterns={result.patterns} />

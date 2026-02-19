@@ -4,6 +4,235 @@ This document captures significant technical design decisions made during the de
 
 ---
 
+## Decision 24: Global `*:focus-visible` Override for Consistent Focus Rings
+
+**Date:** 2026-02-19
+**Title:** Global Focus-Visible Styles in globals.css
+**Category:** Accessibility
+
+### Decision Details
+
+Added a global `*:focus-visible` rule to `app/globals.css` using the CSS custom property `--ring` (already defined by shadcn/ui) to provide a consistent focus ring across all interactive elements.
+
+```css
+*:focus-visible {
+  outline: 2px solid hsl(var(--ring));
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+```
+
+### Rationale
+
+shadcn/ui components have their own focus styles via Tailwind utilities (e.g., `focus-visible:ring-2`). But non-shadcn interactive elements (native `<a>`, `<button>`, custom `<input>`) may rely on the browser's default `:focus` outline, which varies across browsers and themes.
+
+A global `*:focus-visible` rule:
+- Uses `focus-visible` (not `focus`), so it only applies during keyboard navigation — mouse clicks do not trigger the ring
+- References `--ring` from the shadcn theme, so it respects light/dark mode
+- Applies `border-radius: 4px` to avoid sharp corners on rounded elements
+
+### Alternatives Evaluated
+
+- **Per-component `focus-visible:ring` utility classes** — comprehensive but requires touching every component and easy to miss in future additions
+- **Removing browser defaults via `outline: none` and relying on shadcn** — leaves non-shadcn elements without visible focus, a WCAG 2.1 AA violation
+- **Global `*:focus` (not `focus-visible`)** — would show rings on mouse clicks too, visually distracting
+
+---
+
+## Decision 23: jest-axe for Automated Accessibility Regression Testing
+
+**Date:** 2026-02-19
+**Title:** jest-axe Integration for WCAG Violation Detection
+**Category:** Testing
+
+### Decision Details
+
+Installed `jest-axe` and `@types/jest-axe` and extended Jest matchers in `jest.setup.ts` with `import 'jest-axe/extend-expect'`. Created four accessibility test files under `__tests__/accessibility/`:
+
+- `patterns-listing.a11y.test.tsx` — FilterPanel, EmptyState, Pagination
+- `pattern-detail.a11y.test.tsx` — VotingButton
+- `pattern-form.a11y.test.tsx` — PatternForm (create mode)
+- `layout.a11y.test.tsx` — PatternCard
+
+Tests use `axe(container)` and assert with `expect(results).toHaveNoViolations()`.
+
+### Rationale
+
+jest-axe runs axe-core (the industry-standard accessibility engine) in the Jest/jsdom environment. It catches common WCAG violations (missing labels, invalid ARIA, contrast issues) automatically during unit test runs — before code reaches a browser or manual audit.
+
+**Benefits:**
+- Runs in CI with no browser required
+- Catches regressions when components are modified
+- Lightweight — no additional tooling or browser setup
+- Integrates naturally with existing React Testing Library tests
+
+### Limitations
+
+- jsdom doesn't compute CSS, so colour-contrast violations are not detected
+- Some complex ARIA patterns require a real browser (e.g., focus traps, live region timing)
+- Supplements but does not replace manual keyboard testing
+
+---
+
+## Decision 22: AlertDialog for Delete Confirmation (Replacing window.confirm)
+
+**Date:** 2026-02-19
+**Title:** Accessible Delete Confirmation via shadcn AlertDialog
+**Category:** Accessibility & UX
+
+### Decision Details
+
+Replaced the `window.confirm()` call in `PatternActions` with a shadcn `AlertDialog` component. The AlertDialog is always rendered in the component tree; the trigger button opens it.
+
+```tsx
+<AlertDialog>
+  <AlertDialogTrigger asChild>
+    <Button variant="destructive">Delete</Button>
+  </AlertDialogTrigger>
+  <AlertDialogContent>
+    <AlertDialogTitle>Delete Pattern?</AlertDialogTitle>
+    <AlertDialogDescription>This action cannot be undone.</AlertDialogDescription>
+    <AlertDialogFooter>
+      <AlertDialogCancel>Cancel</AlertDialogCancel>
+      <AlertDialogAction onClick={handleDelete}>Delete</AlertDialogAction>
+    </AlertDialogFooter>
+  </AlertDialogContent>
+</AlertDialog>
+```
+
+### Rationale
+
+`window.confirm()` is not accessible:
+- The browser dialog is not announced by screen readers in a standard ARIA way
+- Focus is not managed — no focus trap within the dialog
+- Cannot be styled or localized
+- Blocked by some browser popup-blockers in certain contexts
+
+shadcn `AlertDialog` (built on Radix UI Dialog primitive) provides:
+- **Focus trap** — keyboard users cannot Tab out of the dialog while it is open
+- **Escape to close** — standard keyboard interaction
+- **ARIA roles** — `role="alertdialog"`, `aria-modal="true"`, `aria-labelledby`, `aria-describedby` set automatically by Radix
+- **Screen reader announcement** — dialog title and description are announced on open
+- **Consistent styling** — matches the app's design system
+
+### Test Impact
+
+The 9 existing `PatternActions` tests were updated to mock `@/components/ui/alert-dialog` inline (same pattern as DropdownMenu — avoids Radix portal issues in jsdom). The mock always renders all dialog content, so confirm/cancel buttons are always accessible in tests without needing to open the dialog.
+
+---
+
+## Decision 21: localStorage for Recently Viewed and Saved Searches
+
+**Date:** 2026-02-19
+**Title:** Client-Side localStorage Persistence for User-Specific UX State
+**Category:** Architecture & Data Storage
+
+### Decision Details
+
+`useRecentlyViewed` (max 5 entries, key `recently-viewed-patterns`) and `useSavedSearches` (max 10 entries, key `saved-searches`) both persist to `localStorage`. No backend API or database storage is involved.
+
+Both hooks are SSR-safe: the initial state is always `[]` (empty array), and localStorage is only read after mount via `useEffect`, preventing hydration mismatches.
+
+### Rationale
+
+- **No backend needed** — recently viewed and saved search state is purely presentational and user-agent specific; it does not need to be shared across devices or users
+- **Zero latency** — reads from localStorage are synchronous and instant; no network round-trip
+- **No authentication required** — works for anonymous users too
+- **Simple implementation** — no API endpoints, no database migrations, no backend changes
+
+### Trade-offs
+
+| Pro | Con |
+|-----|-----|
+| Zero infrastructure cost | Data lost if user clears browser storage |
+| Works offline | Not synced across devices/browsers |
+| Anonymous-user friendly | 5-10 MB localStorage quota shared across origin |
+| No backend changes | No server-side search analytics |
+
+### Limits
+
+- Recently Viewed: **5 patterns** — prevents stale list becoming noise; most recent replaces oldest
+- Saved Searches: **10 searches** — balances utility vs localStorage clutter; 11th would require deleting old (currently rejected with toast)
+
+---
+
+## Decision 20: Client-Side Search Suggestions (No Dedicated API Endpoint)
+
+**Date:** 2026-02-19
+**Title:** Search Autocomplete Sourced from Page Data, Not a Dedicated Endpoint
+**Category:** Architecture & Performance
+
+### Decision Details
+
+The `useSearchSuggestions` hook generates autocomplete suggestions client-side by filtering the `allPatterns` and `allTags` arrays already passed as props to `SearchBar`. No new API endpoint was added.
+
+- Debounce: 200ms
+- Minimum query length: 2 characters
+- Max suggestions: 8
+- Priority: pattern title matches first, then tag matches
+- Case-insensitive substring matching
+
+### Rationale
+
+The patterns listing page already fetches the full (paginated) pattern list on the server. Passing pattern titles and tag names to `SearchBar` via props costs negligible extra bytes (strings only — no content bodies). Client-side filtering avoids a network round-trip for every keystroke.
+
+**Compared to a dedicated `/api/patterns/suggest?q=...` endpoint:**
+
+| | Client-side | Dedicated endpoint |
+|-|-------------|-------------------|
+| Latency | ~0ms (local filter) | ~50-200ms (network) |
+| Infrastructure | None | New controller action + caching |
+| Freshness | Reflects current page data | Could be independently cached |
+| Scale | Degrades with >1000 patterns | Stays fast at any scale |
+| Offline | Works | Fails |
+
+At the current scale (<100 patterns), client-side is the right trade-off. If the pattern library grows beyond ~500 entries, a dedicated suggest endpoint with server-side prefix indexing should be evaluated.
+
+---
+
+## Decision 19: Radix UI Select Mock Pattern for Jest
+
+**Date:** 2026-02-19
+**Title:** Context-Based Mock for Radix Select to Support id/value Wiring
+**Category:** Testing
+
+### Decision Details
+
+Radix UI `Select` component cannot be used directly in jsdom tests because it relies on browser-native pointer event APIs. A context-based mock was created inside the `jest.mock()` factory:
+
+```typescript
+jest.mock('@/components/ui/select', () => {
+  const React = require('react')
+  const SelectCtx = React.createContext<{ value: string; onChange: (v: string) => void }>({
+    value: '', onChange: () => {},
+  })
+  return {
+    Select: ({ value, onValueChange, children }: any) => (
+      <SelectCtx.Provider value={{ value, onChange: onValueChange }}>
+        <div>{children}</div>
+      </SelectCtx.Provider>
+    ),
+    SelectTrigger: ({ id, children }: any) => {
+      const { value, onChange } = React.useContext(SelectCtx)
+      return <select id={id} value={value} onChange={e => onChange(e.target.value)}>{children}</select>
+    },
+    SelectValue: ({ placeholder }: any) => <option value="">{placeholder}</option>,
+    SelectContent: ({ children }: any) => <>{children}</>,
+    SelectItem: ({ value, children }: any) => <option value={value}>{children}</option>,
+  }
+})
+```
+
+The `SelectTrigger` renders a native `<select>` element with the `id` from the parent `Select`'s context, making `getByLabelText` work in tests via `htmlFor`/`id` linkage.
+
+### Alternatives Evaluated
+
+- **`@testing-library/user-event` with real Radix** — fails because jsdom lacks pointer events and focus APIs
+- **Flat mock with no context** — `SelectTrigger` cannot access parent `Select`'s `value`/`onValueChange` without context
+- **`data-testid` selectors** — works but bypasses label/role accessibility checks
+
+---
+
 ## Decision 18: Entra External ID OIDC Issuer Uses Tenant-ID Subdomain
 
 **Date:** 2026-02-19
