@@ -7,6 +7,7 @@ import { describe, it, expect, jest, beforeEach, afterEach } from '@jest/globals
 import type { Pattern } from '@/lib/types/pattern'
 import type { PatternDetailDto, PaginatedResponse, PatternListDto } from '../types'
 import { apiClient } from '../client'
+import { ApiError } from '../error'
 import {
   getAllCategories,
   getAllTags,
@@ -189,7 +190,7 @@ describe('Async Pattern API Functions', () => {
     })
 
     it('returns null when API returns 404 error', async () => {
-      getSpy.mockRejectedValueOnce(new Error('404 Not Found'))
+      getSpy.mockRejectedValueOnce(new ApiError('Not Found', 404, '/patterns/missing-slug'))
 
       const result = await getPatternBySlug('missing-slug')
 
