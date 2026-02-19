@@ -81,7 +81,6 @@ export default async function PatternDetailPage({ params }: PageProps) {
   // Get all patterns for related patterns computation (MVP approach)
   const allPatterns = await getPatterns({ pageSize: 100 })
   const relatedPatterns = getRelatedPatterns(pattern, allPatterns.patterns)
-  const isAuthorized = false // Mock authorization - always false for Phase 1
 
   const breadcrumbs = [
     { label: 'Home', href: '/' },
@@ -138,7 +137,7 @@ export default async function PatternDetailPage({ params }: PageProps) {
                   patternId={pattern.id}
                 />
               </ErrorBoundary>
-              {isAuthorized && <PatternActions slug={pattern.slug} />}
+              <PatternActions slug={pattern.slug} patternId={pattern.id} />
             </div>
 
             {/* Full Content (Markdown) */}

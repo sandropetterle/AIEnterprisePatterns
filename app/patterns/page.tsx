@@ -15,6 +15,7 @@ import { FilterSheet } from '@/components/patterns/FilterSheet'
 import { PatternsGrid } from '@/components/patterns/PatternsGrid'
 import { EmptyState } from '@/components/patterns/EmptyState'
 import { Pagination } from '@/components/patterns/Pagination'
+import { NewPatternButton } from '@/components/patterns/NewPatternButton'
 
 type SearchParams = Promise<{
   q?: string
@@ -116,14 +117,17 @@ export default async function PatternsPage(props: {
     <>
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12">
         {/* Page Header */}
-        <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
-            Browse Patterns
-          </h1>
-          <p className="text-muted-foreground">
-            Discover {result.totalCount}{' '}
-            {result.totalCount === 1 ? 'pattern' : 'patterns'} in our library
-          </p>
+        <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div>
+            <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
+              Browse Patterns
+            </h1>
+            <p className="text-muted-foreground">
+              Discover {result.totalCount}{' '}
+              {result.totalCount === 1 ? 'pattern' : 'patterns'} in our library
+            </p>
+          </div>
+          <NewPatternButton />
         </div>
 
         {/* Search and Sort Controls */}

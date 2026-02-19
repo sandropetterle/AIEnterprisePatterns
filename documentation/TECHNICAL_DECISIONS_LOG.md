@@ -935,3 +935,92 @@ For integration tests, a `TestAuthHandler` reads the `X-Test-Roles` request head
 2. **Skip [Authorize] in tests via mock middleware** (rejected) — hides real authorization behavior; tests wouldn't catch missing policies
 3. **Separate test appsettings** (considered) — viable but adds file proliferation; TestAuthHandler is more explicit
 
+---
+
+## Decision 18: Client-Side Auth Checks for Conditional UI in Pattern Management
+
+**Date:** 2026-02-19
+**Title:** Use Client-Side Session Checks for Edit/Delete/New Buttons; Server-Side Auth Only for Form Pages
+**Category:** Architecture & Security
+
+### Decision Details
+Phase 5.2 added CRUD UI (create/edit/delete patterns). Two approaches were evaluated for showing auth-gated UI elements (Edit button, Delete button, "New Pattern" button):
+
+**Approach A (chosen for conditional UI):** Client components check `useSession()` and return `null` when not authorized. This is the same pattern used by the existing `UserMenu` component.
+
+**Approach B (chosen for form pages):** Server components call `auth()` (Auth.js server-side) and `redirect()` for hard access control gates.
+
+**Decision:** Use *both* in appropriate contexts:
+- `PatternActions` (edit/delete buttons on detail page): client-side `useSession()` check → returns `null` for non-editors. Page stays ISR-cacheable.
+- `NewPatternButton` (on listings page): client-side `useSession()` check → renders `null` for non-editors. Page stays ISR-cacheable.
+- `/patterns/new` and `/patterns/[slug]/edit` pages: server-side `auth()` check → `redirect('/login')` or `redirect('/patterns')`. Prevents unauthorized users from even loading the form.
+
+This dual approach avoids a "flash of unauthorized content" on form pages while keeping the read-heavy listing/detail pages in ISR cache.
+
+### Pros
+- **ISR caching preserved** for listing/detail pages (no dynamic auth call on the server)
+- **Hard gate on write pages** — unauthenticated users redirected before form loads
+- **Consistent with existing pattern** — UserMenu already uses client-side session check
+- **No flash on form pages** — server redirect happens before any HTML is returned
+
+### Cons
+- **Brief null state** while session loads on listing/detail pages (same as UserMenu behavior; acceptable)
+- **Two mental models**: conditional UI vs. access control gates behave differently
+
+### Alternatives Evaluated
+1. **Server-side auth on all pages** (rejected for listing/detail) — makes ISR-cached pages dynamic, losing caching benefits
+2. **Client-side only everywhere** (rejected for form pages) — allows brief render of form HTML before redirect; form submits would still fail at API but UX is confusing
+
+---
+
+## Decision 19: Context-Based Radix UI Select Mock for Jest Tests
+
+**Date:** 2026-02-19
+**Title:** Use React.createContext in Jest Mock Factory for Radix UI Select
+**Category:** Testing
+
+### Decision Details
+The `PatternForm` component uses the shadcn/ui `Select` (Radix UI `@radix-ui/react-select`). Radix UI Select uses portals which don't render in jsdom. The component structure separates `Select` (value/onChange owner), `SelectTrigger` (renders the trigger element with `id`), and `SelectContent`/`SelectItem` (render options).
+
+**Problem:** A naïve mock that renders a native `<select>` inside the `Select` component caused:
+1. HTML nesting errors (`<span>` inside `<select>` from `SelectValue`)
+2. `getByLabelText` failures because the native select lacked the `id` that was on `SelectTrigger`
+
+**Solution:** A context-based mock factory using `React.createContext`:
+```typescript
+jest.mock('@/components/ui/select', () => {
+  const React = require('react')
+  const Ctx = React.createContext({ value: '', onValueChange: () => {} })
+  return {
+    Select: ({ value, onValueChange, children }) =>
+      <Ctx.Provider value={{ value, onValueChange }}>{children}</Ctx.Provider>,
+    SelectTrigger: ({ id, children }) => {
+      const ctx = React.useContext(Ctx)
+      return <select id={id} value={ctx.value} onChange={e => ctx.onValueChange(e.target.value)}>{children}</select>
+    },
+    SelectValue: () => null,  // prevents <span> inside <select>
+    SelectContent: ({ children }) => <>{children}</>,
+    SelectItem: ({ value, children }) => <option value={value}>{children}</option>,
+  }
+})
+```
+
+This correctly:
+- Links the `<Label htmlFor="category">` to the `<select id="category">` for `getByLabelText`
+- Propagates `value` and `onValueChange` from `Select` to `SelectTrigger` via context
+- Renders valid HTML (`<option>` elements only inside `<select>`)
+
+### Pros
+- **Semantically correct**: `getByLabelText` works; `userEvent.selectOptions` works
+- **Valid HTML**: No hydration-style console errors in tests
+- **Reusable pattern**: Same approach works for any Radix-style compound component
+
+### Cons
+- **Mock complexity**: Requires `React.createContext` inside mock factory
+- **Fragile to component prop changes**: If `id` moves from `SelectTrigger` to `Select`, mock breaks
+
+### Alternatives Evaluated
+1. **Skip category field in tests** (rejected) — hides real validation logic
+2. **Use `data-testid`** (rejected) — breaks `getByLabelText` accessibility-first testing pattern
+3. **Mock entire component file** with simpler structure (rejected) — loses label association
+
