@@ -82,11 +82,13 @@ test.describe('Browse Patterns Page', () => {
 
   test('clearing the search removes the q parameter', async ({ page }) => {
     await page.goto('/patterns?q=architecture')
-    await page.waitForLoadState('networkidle')
 
-    // SearchBar renders a ghost button with "Clear search" sr-only text
+    // Wait for the clear button directly — proves the page loaded with the
+    // query applied. Avoids waitForLoadState('networkidle') which times out
+    // in CI because Next.js production builds prefetch link targets
+    // indefinitely, preventing the idle state from ever being reached.
     const clearButton = page.getByRole('button', { name: /Clear search/i })
-    await expect(clearButton).toBeVisible()
+    await expect(clearButton).toBeVisible({ timeout: 15_000 })
     await clearButton.click()
 
     await page.waitForURL((url) => !url.href.includes('q='))
@@ -110,11 +112,12 @@ test.describe('Browse Patterns Page', () => {
 
   test('active category filter can be cleared', async ({ page }) => {
     await page.goto('/patterns?category=Architecture')
-    await page.waitForLoadState('networkidle')
 
-    // FilterPanel shows a "Clear all" button when filters are active
+    // Wait for "Clear all" directly — proves the filter is active and the
+    // FilterPanel rendered. Avoids waitForLoadState('networkidle') timeout
+    // caused by Next.js production prefetching.
     const clearAll = page.getByRole('button', { name: 'Clear all' })
-    await expect(clearAll).toBeVisible()
+    await expect(clearAll).toBeVisible({ timeout: 15_000 })
     await clearAll.click()
 
     await page.waitForURL((url) => !url.href.includes('category='))
