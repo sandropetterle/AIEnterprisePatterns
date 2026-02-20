@@ -6,6 +6,11 @@ import { defineConfig, devices } from '@playwright/test';
 export default defineConfig({
   testDir: './e2e',
 
+  /* Global setup: logs in as Editor and Admin (if credentials are configured) and
+   * saves storageState files that authenticated-flows.spec.ts reuses.
+   * Runs before any test. Skips gracefully when E2E_EDITOR_EMAIL is not set. */
+  globalSetup: './e2e/global.setup.ts',
+
   /* Run tests in files in parallel */
   fullyParallel: true,
 
