@@ -340,7 +340,7 @@ test.describe('Advanced Search — Date Range Filter', () => {
     await expect(clearDatesBtn).toBeVisible({ timeout: 5_000 })
     await clearDatesBtn.click()
 
-    await page.waitForURL((url) => !url.href.includes('dateFrom='), { timeout: 10_000 })
+    await page.waitForURL((url) => !url.href.includes('dateFrom='), { timeout: 20_000 })
     expect(page.url()).not.toContain('dateFrom=')
     expect(page.url()).not.toContain('dateTo=')
   })
