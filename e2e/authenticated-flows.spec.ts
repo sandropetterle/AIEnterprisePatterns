@@ -1,28 +1,55 @@
 /**
- * Authenticated E2E Tests — Admin Flows (includes all Editor capabilities)
+ * Authenticated E2E Tests
  *
  * Tests that exercise pages and actions that require a signed-in user.
- * Auth state is set up once by e2e/global.setup.ts (runs before all tests)
- * and reused here via Playwright storageState to avoid repeated login
- * round-trips to Entra External ID.
+ * Auth state is set up by e2e/global.setup.ts (runs before all tests) using
+ * direct session injection — no Entra CIAM browser login needed.
  *
- * Admin users have all Editor permissions plus the ability to delete patterns,
- * so all authenticated tests run under a single Admin account. Only two secrets
- * are required:
- *   E2E_ADMIN_EMAIL     — email of an Entra user with the Admin app role
- *   E2E_ADMIN_PASSWORD  — their password
+ * ┌─────────────────────────────────────────────────────────────────────────┐
+ * │ Describe block          │ Auth required │ When it runs                  │
+ * ├─────────────────────────────────────────────────────────────────────────│
+ * │ Unauthenticated guards  │ None          │ Always                        │
+ * │ Authenticated — UI      │ Session only  │ Always (AUTH_SECRET required)  │
+ * │ Authenticated — API     │ Real token    │ Only when E2E_API_WRITES=true  │
+ * └─────────────────────────────────────────────────────────────────────────┘
  *
- * When credentials are not set the authenticated describe block is skipped
- * automatically. The unauthenticated guard tests always run.
+ * "Authenticated — UI" tests use the synthetic session cookie created by
+ * global.setup.ts. They verify server-side auth() checks and client-side
+ * useSession() rendering without making protected API calls.
+ *
+ * "Authenticated — API writes" tests (create/edit/delete patterns) require a
+ * real Entra access token in the session because the ASP.NET Core API validates
+ * tokens against Entra's JWKS endpoint. These tests are skipped unless the
+ * E2E_API_WRITES env var is set to "true". To enable them, obtain a real
+ * session via a full Entra CIAM browser login and replace admin.json manually.
  */
 
 import { test, expect } from '@playwright/test'
 import path from 'path'
+import fs from 'fs'
 
 // Mirror the storage path from global.setup.ts
 const ADMIN_STORAGE = path.resolve(process.cwd(), 'e2e/.auth/admin.json')
 
-const hasAdminCreds = !!process.env.E2E_ADMIN_EMAIL
+/**
+ * True when the admin.json storageState contains at least one cookie — meaning
+ * global.setup.ts successfully created a session (either direct injection or
+ * a real Entra login). False when AUTH_SECRET was missing or setup failed.
+ */
+function hasValidSession(): boolean {
+  try {
+    const state = JSON.parse(fs.readFileSync(ADMIN_STORAGE, 'utf-8'))
+    return Array.isArray(state.cookies) && state.cookies.length > 0
+  } catch {
+    return false
+  }
+}
+
+/**
+ * API-write tests require a real Entra access token so the backend's JWKS
+ * validation passes. Opt in by setting E2E_API_WRITES=true in the environment.
+ */
+const runApiTests = process.env.E2E_API_WRITES === 'true'
 
 // ---------------------------------------------------------------------------
 // Unauthenticated access guards — no credentials required
@@ -63,14 +90,15 @@ test.describe('Unauthenticated access guards', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Authenticated flows — Admin account (includes all Editor capabilities)
+// Authenticated flows — UI checks (session injection, no Entra credentials needed)
 // ---------------------------------------------------------------------------
 
-test.describe('Authenticated flows (Admin)', () => {
-  test.skip(!hasAdminCreds, 'Skipped: E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not configured')
+test.describe('Authenticated — UI', () => {
+  test.skip(
+    !hasValidSession(),
+    'Skipped: AUTH_SECRET not set or global.setup failed to create session'
+  )
   test.use({ storageState: ADMIN_STORAGE })
-
-  // --- Editor capabilities ---
 
   test('New Pattern button is visible on the patterns listing', async ({ page }) => {
     await page.goto('/patterns')
@@ -81,18 +109,48 @@ test.describe('Authenticated flows (Admin)', () => {
 
   test('navigating to /patterns/new shows the create form (no redirect)', async ({ page }) => {
     await page.goto('/patterns/new')
+    // CardTitle renders as a <div>, not a heading element, so check the form's
+    // aria-label and the submit button to confirm the form rendered (not redirected)
     await expect(
-      page.getByRole('heading', { name: 'New Pattern' })
+      page.locator('[aria-label="Create pattern form"]')
     ).toBeVisible({ timeout: 10_000 })
     await expect(page.getByRole('button', { name: /Create Pattern/i })).toBeVisible()
   })
+
+  test('Edit button is visible on pattern detail page', async ({ page }) => {
+    await page.goto('/patterns/clean-architecture-ai-refactoring')
+    await page.waitForLoadState('networkidle')
+    await expect(
+      page.getByRole('link', { name: 'Edit', exact: true })
+    ).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('Delete button is visible on pattern detail page', async ({ page }) => {
+    await page.goto('/patterns/clean-architecture-ai-refactoring')
+    await page.waitForLoadState('networkidle')
+    await expect(
+      page.getByRole('button', { name: 'Delete', exact: true })
+    ).toBeVisible({ timeout: 5_000 })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Authenticated flows — API writes (require real Entra access token)
+// ---------------------------------------------------------------------------
+
+test.describe('Authenticated — API writes', () => {
+  test.skip(
+    !runApiTests,
+    'Skipped: set E2E_API_WRITES=true with a real Entra session to run create/edit/delete tests'
+  )
+  test.use({ storageState: ADMIN_STORAGE })
 
   test('can create a new pattern end-to-end', async ({ page }) => {
     const title = `E2E Test Pattern ${Date.now()}`
 
     await page.goto('/patterns/new')
     await expect(
-      page.getByRole('heading', { name: 'New Pattern' })
+      page.locator('[aria-label="Create pattern form"]')
     ).toBeVisible({ timeout: 10_000 })
 
     await page.fill('#title', title)
@@ -104,18 +162,10 @@ test.describe('Authenticated flows (Admin)', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText(title)
   })
 
-  test('Edit button is visible on pattern detail page', async ({ page }) => {
-    await page.goto('/patterns/clean-architecture-ai-refactoring')
-    await page.waitForLoadState('networkidle')
-    await expect(
-      page.getByRole('link', { name: 'Edit', exact: true })
-    ).toBeVisible({ timeout: 5_000 })
-  })
-
   test('can edit an existing pattern and save changes', async ({ page }) => {
     await page.goto('/patterns/repository-pattern-ef-core/edit')
     await expect(
-      page.getByRole('heading', { name: 'Edit Pattern' })
+      page.locator('[aria-label="Edit pattern form"]')
     ).toBeVisible({ timeout: 10_000 })
 
     // Update the author field (safe — doesn't affect the slug or break other tests)
@@ -127,23 +177,13 @@ test.describe('Authenticated flows (Admin)', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Repository Pattern')
   })
 
-  // --- Admin-only capabilities ---
-
-  test('Delete button is visible on pattern detail page', async ({ page }) => {
-    await page.goto('/patterns/clean-architecture-ai-refactoring')
-    await page.waitForLoadState('networkidle')
-    await expect(
-      page.getByRole('button', { name: 'Delete', exact: true })
-    ).toBeVisible({ timeout: 5_000 })
-  })
-
   test('can create and immediately delete a pattern end-to-end', async ({ page }) => {
     const title = `E2E Delete Test ${Date.now()}`
 
     // Step 1: Create a temporary pattern
     await page.goto('/patterns/new')
     await expect(
-      page.getByRole('heading', { name: 'New Pattern' })
+      page.locator('[aria-label="Create pattern form"]')
     ).toBeVisible({ timeout: 10_000 })
     await page.fill('#title', title)
     await page.fill('#shortDescription', 'Temporary pattern created for the delete E2E test.')
