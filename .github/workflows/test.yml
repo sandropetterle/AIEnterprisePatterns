@@ -184,12 +184,12 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
-      - name: Upload login failure screenshot
+      - name: Upload login diagnostic screenshots
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: login-failure-screenshot
-          path: e2e/.auth/login-failure.png
+          name: login-diagnostic-screenshots
+          path: e2e/.auth/*.png
           if-no-files-found: ignore
           retention-days: 7
 
