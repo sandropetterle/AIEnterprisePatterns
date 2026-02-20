@@ -315,14 +315,26 @@ test.describe('Advanced Search — Date Range Filter', () => {
   })
 
   test('setting a To date updates the URL with dateTo parameter', async ({ page }) => {
+    // Pre-navigate with dateFrom set so the "To" input has a valid min attribute.
+    // Without a valid min, Chromium silently rejects fill() on type="date" inputs
+    // and the React onChange never fires.
+    await page.goto('/patterns?dateFrom=2024-01-01')
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
+
     await page.fill('#date-to', '2024-12-31')
     await page.waitForURL(/dateTo=2024-12-31/, { timeout: 10_000 })
     expect(page.url()).toContain('dateTo=2024-12-31')
   })
 
   test('Clear dates button removes date parameters from URL', async ({ page }) => {
-    await page.fill('#date-from', '2024-01-01')
-    await page.waitForURL(/dateFrom=/, { timeout: 10_000 })
+    // Navigate directly with both params pre-set — avoids relying on fill()
+    // to set up state; only tests the Clear button interaction itself.
+    await page.goto('/patterns?dateFrom=2024-01-01&dateTo=2024-12-31')
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
 
     const clearDatesBtn = page.getByRole('button', { name: /Clear dates/i })
     await expect(clearDatesBtn).toBeVisible({ timeout: 5_000 })
@@ -489,7 +501,9 @@ test.describe('Saved Searches', () => {
     // Step 3: apply the saved search from the sidebar.
     const savedList = page.getByRole('list', { name: 'Saved searches' })
     await expect(savedList).toBeVisible({ timeout: 5_000 })
-    await savedList.getByRole('button', { name: 'My Architecture' }).click()
+    // exact: true prevents matching the delete button whose aria-label is
+    // "Delete saved search: My Architecture" (contains the name as substring).
+    await savedList.getByRole('button', { name: 'My Architecture', exact: true }).click()
 
     await page.waitForURL(/category=Architecture/, { timeout: 10_000 })
     expect(page.url()).toContain('category=Architecture')
