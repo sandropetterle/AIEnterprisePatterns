@@ -65,12 +65,13 @@ async function saveAuthState(email: string, password: string, storagePath: strin
     await passwordInput.fill(password)
     await page.locator('button:has-text("Sign in"), button:has-text("Next"), #continue, button[type="submit"]').first().click()
 
-    // Entra may show a "Stay signed in?" (KMSI) prompt after sign-in — dismiss it
-    const kmsiNo = page.locator('button:has-text("No")')
-    await kmsiNo.waitFor({ state: 'visible', timeout: 8_000 }).then(
-      () => kmsiNo.click(),
-      () => { /* KMSI prompt not shown — proceed directly */ }
-    )
+    // Entra may show a "Stay signed in?" (KMSI) prompt after sign-in — dismiss it.
+    // click() has built-in visibility waiting; catch the timeout if the prompt is absent.
+    try {
+      await page.locator('button:has-text("No")').click({ timeout: 8_000 })
+    } catch {
+      // Prompt not shown — proceed directly to the app redirect
+    }
 
     // Wait for redirect back to the application
     await page.waitForURL(BASE_URL + '**', { timeout: 30_000 })
