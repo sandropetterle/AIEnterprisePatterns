@@ -126,10 +126,12 @@ test.describe('Browse Patterns Page', () => {
 
   test('tag checkbox toggles a tags parameter in the URL', async ({ page }) => {
     // Tags are rendered as labelled checkboxes: <Checkbox id="tag-{tag}"> + <label>
-    const cleanArchLabel = page.getByLabel('Clean Architecture')
+    // Use getByRole('checkbox') to avoid ambiguity with PatternCard aria-labels
+    // added in Phase 5.4 accessibility work.
+    const cleanArchCheckbox = page.getByRole('checkbox', { name: 'Clean Architecture' })
 
-    await expect(cleanArchLabel).toBeVisible({ timeout: 5_000 })
-    await cleanArchLabel.click()
+    await expect(cleanArchCheckbox).toBeVisible({ timeout: 5_000 })
+    await cleanArchCheckbox.click()
 
     await page.waitForURL(/\/patterns\?.*tags=/)
     expect(page.url()).toContain('tags=')
@@ -287,6 +289,230 @@ test.describe('Error Handling', () => {
     await expect(
       page.getByRole('heading', { name: 'AI Enterprise Patterns Library', level: 1 })
     ).toBeVisible()
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Advanced Search — Date Range Filter (Phase 5.3)
+// ---------------------------------------------------------------------------
+
+test.describe('Advanced Search — Date Range Filter', () => {
+  // DateRangeFilter lives inside FilterPanel which is desktop-only (lg:block).
+  // Desktop Chrome viewport (1280×720) satisfies the lg breakpoint.
+
+  test.beforeEach(async ({ page }) => {
+    await page.goto('/patterns')
+    // Wait for the FilterPanel heading to confirm the panel is rendered.
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
+  })
+
+  test('setting a From date updates the URL with dateFrom parameter', async ({ page }) => {
+    await page.fill('#date-from', '2024-01-01')
+    await page.waitForURL(/dateFrom=2024-01-01/, { timeout: 10_000 })
+    expect(page.url()).toContain('dateFrom=2024-01-01')
+  })
+
+  test('setting a To date updates the URL with dateTo parameter', async ({ page }) => {
+    await page.fill('#date-to', '2024-12-31')
+    await page.waitForURL(/dateTo=2024-12-31/, { timeout: 10_000 })
+    expect(page.url()).toContain('dateTo=2024-12-31')
+  })
+
+  test('Clear dates button removes date parameters from URL', async ({ page }) => {
+    await page.fill('#date-from', '2024-01-01')
+    await page.waitForURL(/dateFrom=/, { timeout: 10_000 })
+
+    const clearDatesBtn = page.getByRole('button', { name: /Clear dates/i })
+    await expect(clearDatesBtn).toBeVisible({ timeout: 5_000 })
+    await clearDatesBtn.click()
+
+    await page.waitForURL((url) => !url.href.includes('dateFrom='), { timeout: 10_000 })
+    expect(page.url()).not.toContain('dateFrom=')
+    expect(page.url()).not.toContain('dateTo=')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Advanced Search — Tag AND/OR Mode Toggle (Phase 5.3)
+// ---------------------------------------------------------------------------
+
+test.describe('Advanced Search — Tag Mode Toggle', () => {
+  test('selecting two tags reveals the Any / All toggle', async ({ page }) => {
+    await page.goto('/patterns')
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Select first tag (Clean Architecture)
+    const firstTag = page.getByRole('checkbox', { name: 'Clean Architecture' })
+    await expect(firstTag).toBeVisible({ timeout: 5_000 })
+    await firstTag.click()
+    await page.waitForURL(/tags=/, { timeout: 10_000 })
+
+    // Select a second tag (CQRS) — toggles comma-separated tags list
+    const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
+    await expect(secondTag).toBeVisible({ timeout: 5_000 })
+    await secondTag.click()
+
+    // With 2+ tags the Any / All buttons should appear
+    await expect(
+      page.getByRole('button', { name: 'Any', exact: true })
+    ).toBeVisible({ timeout: 5_000 })
+    await expect(
+      page.getByRole('button', { name: 'All', exact: true })
+    ).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('clicking "All" sets tagMode=all in the URL', async ({ page }) => {
+    await page.goto('/patterns')
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Pre-select two tags then switch to All mode
+    const firstTag = page.getByRole('checkbox', { name: 'Clean Architecture' })
+    await expect(firstTag).toBeVisible({ timeout: 5_000 })
+    await firstTag.click()
+    await page.waitForURL(/tags=/, { timeout: 10_000 })
+
+    const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
+    await expect(secondTag).toBeVisible({ timeout: 5_000 })
+    await secondTag.click()
+
+    const allBtn = page.getByRole('button', { name: 'All', exact: true })
+    await expect(allBtn).toBeVisible({ timeout: 5_000 })
+    await allBtn.click()
+
+    await page.waitForURL(/tagMode=all/, { timeout: 10_000 })
+    expect(page.url()).toContain('tagMode=all')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Recently Viewed Patterns (Phase 5.3)
+// ---------------------------------------------------------------------------
+
+test.describe('Recently Viewed Patterns', () => {
+  test('visiting a pattern then browsing shows it in the Recently Viewed sidebar', async ({
+    page,
+  }) => {
+    // Visit the pattern detail page — RecentlyViewedTracker records it in localStorage.
+    await page.goto('/patterns/clean-architecture-ai-refactoring')
+    await page.waitForLoadState('networkidle')
+
+    // Navigate to the patterns listing.
+    await page.goto('/patterns')
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
+
+    // The "Recently viewed patterns" list should be visible in the sidebar.
+    const recentList = page.getByRole('list', { name: 'Recently viewed patterns' })
+    await expect(recentList).toBeVisible({ timeout: 5_000 })
+
+    // The visited pattern should appear as a link.
+    await expect(
+      recentList.getByRole('link', { name: /Clean Architecture/i })
+    ).toBeVisible()
+  })
+
+  test('Clear recently viewed button removes entries and hides the sidebar section', async ({
+    page,
+  }) => {
+    await page.goto('/patterns/clean-architecture-ai-refactoring')
+    await page.waitForLoadState('networkidle')
+
+    await page.goto('/patterns')
+
+    const recentList = page.getByRole('list', { name: 'Recently viewed patterns' })
+    await expect(recentList).toBeVisible({ timeout: 10_000 })
+
+    await page.getByRole('button', { name: 'Clear recently viewed history' }).click()
+
+    // Once cleared the list disappears (component renders nothing when empty).
+    await expect(recentList).not.toBeVisible({ timeout: 5_000 })
+  })
+})
+
+// ---------------------------------------------------------------------------
+// Saved Searches (Phase 5.3)
+// ---------------------------------------------------------------------------
+
+test.describe('Saved Searches', () => {
+  test('active filters reveal the "Save current" button', async ({ page }) => {
+    // Navigate with a pre-applied category filter.
+    await page.goto('/patterns?category=Architecture')
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
+
+    await expect(
+      page.getByRole('button', { name: 'Save current' })
+    ).toBeVisible({ timeout: 5_000 })
+  })
+
+  test('saving a named search persists it in the saved list', async ({ page }) => {
+    await page.goto('/patterns?category=Architecture')
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
+
+    // Open the save dialog.
+    await page.getByRole('button', { name: 'Save current' }).click()
+
+    // Fill in the search name and confirm.
+    await page.fill('#search-name', 'Architecture searches')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+    // The saved search should now appear in the list.
+    const savedList = page.getByRole('list', { name: 'Saved searches' })
+    await expect(savedList).toBeVisible({ timeout: 5_000 })
+    await expect(savedList.getByText('Architecture searches')).toBeVisible()
+  })
+
+  test('applying a saved search updates the URL with the saved filters', async ({ page }) => {
+    // Step 1: save a search while filters are active.
+    await page.goto('/patterns?category=Architecture')
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
+
+    await page.getByRole('button', { name: 'Save current' }).click()
+    await page.fill('#search-name', 'My Architecture')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+    // Step 2: navigate away to clear all URL params.
+    await page.goto('/patterns')
+
+    // Step 3: apply the saved search from the sidebar.
+    const savedList = page.getByRole('list', { name: 'Saved searches' })
+    await expect(savedList).toBeVisible({ timeout: 5_000 })
+    await savedList.getByRole('button', { name: 'My Architecture' }).click()
+
+    await page.waitForURL(/category=Architecture/, { timeout: 10_000 })
+    expect(page.url()).toContain('category=Architecture')
+  })
+
+  test('deleting a saved search removes it from the list', async ({ page }) => {
+    // Save a search first.
+    await page.goto('/patterns?category=Architecture')
+    await expect(
+      page.getByRole('heading', { name: 'Filters' })
+    ).toBeVisible({ timeout: 10_000 })
+
+    await page.getByRole('button', { name: 'Save current' }).click()
+    await page.fill('#search-name', 'Delete Me')
+    await page.getByRole('button', { name: 'Save', exact: true }).click()
+
+    const savedList = page.getByRole('list', { name: 'Saved searches' })
+    await expect(savedList.getByText('Delete Me')).toBeVisible({ timeout: 5_000 })
+
+    // Delete it.
+    await page.getByRole('button', { name: 'Delete saved search: Delete Me' }).click()
+
+    await expect(savedList.getByText('Delete Me')).not.toBeVisible({ timeout: 5_000 })
   })
 })
 

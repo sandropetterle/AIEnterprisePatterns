@@ -34,6 +34,12 @@ const config = {
     '!**/coverage/**',
     '!**/jest.config.mjs',
     '!**/jest.setup.ts',
+    // Next.js App Router server components — these render on the server only
+    // and cannot be executed in jsdom. They are covered by Playwright E2E tests.
+    '!app/**/page.tsx',
+    '!app/**/layout.tsx',
+    '!app/**/not-found.tsx',
+    '!app/api/**',
   ],
   coverageThreshold: {
     global: {

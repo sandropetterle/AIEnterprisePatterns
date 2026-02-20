@@ -4,6 +4,59 @@ This document captures significant technical design decisions made during the de
 
 ---
 
+## Decision 26: Playwright E2E Test Locator — Role-Based Checkbox Selection
+
+**Date:** 2026-02-20
+**Title:** Use `getByRole('checkbox')` Instead of `getByLabel()` for Tag Checkboxes
+**Category:** Testing
+
+### Decision Details
+
+Changed the E2E test locator for tag filter checkboxes from `page.getByLabel('Clean Architecture')` to `page.getByRole('checkbox', { name: 'Clean Architecture' })` in `e2e/critical-flows.spec.ts`.
+
+### Rationale
+
+Phase 5.4 accessibility work added `aria-label` attributes to `PatternCard` link elements (e.g., `aria-label="Clean Architecture with AI-Assisted Refactoring — Architecture"`). The `getByLabel()` locator matches any element with an `aria-label` containing the text, so it now matched both the tag checkbox label *and* the PatternCard link, causing a Playwright strict mode violation (`resolved to 2 elements`).
+
+`getByRole('checkbox', { name: '...' })` is strictly scoped to checkbox-role elements, eliminating the ambiguity.
+
+### Alternatives Evaluated
+- Scope `getByLabel` to a container: more fragile, depends on DOM structure
+- Use `getByTestId`: avoids semantic HTML; we don't use data-testid attributes
+- Role-based query: semantically precise, resistant to future aria-label additions elsewhere
+
+---
+
+## Decision 25: Jest Coverage — Exclude Next.js Server Components from Collection
+
+**Date:** 2026-02-20
+**Title:** Exclude App Router Page/Layout Files from Jest Coverage Collection
+**Category:** Testing
+
+### Decision Details
+
+Added exclusion patterns to `collectCoverageFrom` in `jest.config.mjs` for Next.js App Router server component files:
+
+```javascript
+'!app/**/page.tsx',
+'!app/**/layout.tsx',
+'!app/**/not-found.tsx',
+'!app/api/**',
+```
+
+### Rationale
+
+Next.js App Router `page.tsx` / `layout.tsx` files are `async` React Server Components. They cannot be imported or rendered in the jsdom environment used by Jest — doing so produces 0% coverage for every statement/function/line, which dragged the global coverage below the 70% threshold even though all testable client-side code was well-covered.
+
+These files are covered by Playwright E2E tests instead, which run the full server + client stack. Including them in the Jest coverage metric is misleading and causes false CI failures.
+
+### Alternatives Evaluated
+- Lower the global threshold to ~65%: honest but hides genuine gaps in testable code
+- Add unit tests for server components: not feasible — they require a real Next.js server runtime, not jsdom
+- Per-file threshold overrides: more complex config with no material benefit
+
+---
+
 ## Decision 24: Global `*:focus-visible` Override for Consistent Focus Rings
 
 **Date:** 2026-02-19
