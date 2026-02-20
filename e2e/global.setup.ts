@@ -65,17 +65,27 @@ async function saveAuthState(email: string, password: string, storagePath: strin
     await passwordInput.fill(password)
     await page.locator('button:has-text("Sign in"), button:has-text("Next"), #continue, button[type="submit"]').first().click()
 
-    // Entra may show a "Stay signed in?" (KMSI) prompt after sign-in — dismiss it.
-    // Entra takes 10-15 s to process credentials before showing KMSI, so the
-    // timeout must exceed that processing delay (8 s was too short).
-    try {
-      await page.locator('button:has-text("No")').click({ timeout: 25_000 })
-    } catch {
-      // Prompt not shown — proceed directly to the app redirect
-    }
+    // After credential validation, Entra navigates from the /authorize URL to either:
+    //   • ciamlogin.com/.../login  — the KMSI "Stay signed in?" prompt page
+    //   • BASE_URL                 — direct redirect (no KMSI, rare)
+    // We wait for whichever happens first, then handle KMSI if needed.
+    await page.waitForURL(
+      url =>
+        (url.host.includes('ciamlogin.com') && url.pathname.endsWith('/login')) ||
+        url.href.startsWith(BASE_URL),
+      { timeout: 30_000 }
+    )
 
-    // Wait for redirect back to the application
-    await page.waitForURL(BASE_URL + '**', { timeout: 30_000 })
+    // If Entra showed the KMSI prompt, dismiss it with "No"
+    if (page.url().includes('ciamlogin.com')) {
+      try {
+        await page.locator('button:has-text("No")').click({ timeout: 10_000 })
+      } catch {
+        // Prompt not present — redirect already in progress
+      }
+      // Wait for the final OIDC redirect back to the application
+      await page.waitForURL(BASE_URL + '**', { timeout: 30_000 })
+    }
 
     // Persist the authenticated session
     fs.mkdirSync(path.dirname(storagePath), { recursive: true })
