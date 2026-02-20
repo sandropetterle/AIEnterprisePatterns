@@ -1,29 +1,27 @@
 /**
- * Authenticated E2E Tests — Editor & Admin Flows
+ * Authenticated E2E Tests — Admin Flows (includes all Editor capabilities)
  *
  * Tests that exercise pages and actions that require a signed-in user.
  * Auth state is set up once by e2e/global.setup.ts (runs before all tests)
  * and reused here via Playwright storageState to avoid repeated login
  * round-trips to Entra External ID.
  *
- * Required GitHub Secrets / local env vars to enable the authenticated blocks:
- *   E2E_EDITOR_EMAIL     — email of an Entra user with the Editor app role
- *   E2E_EDITOR_PASSWORD  — their password
- *   E2E_ADMIN_EMAIL      — email of an Entra user with the Admin app role
- *   E2E_ADMIN_PASSWORD   — their password
+ * Admin users have all Editor permissions plus the ability to delete patterns,
+ * so all authenticated tests run under a single Admin account. Only two secrets
+ * are required:
+ *   E2E_ADMIN_EMAIL     — email of an Entra user with the Admin app role
+ *   E2E_ADMIN_PASSWORD  — their password
  *
- * When credentials are not set the authenticated describe blocks are skipped
+ * When credentials are not set the authenticated describe block is skipped
  * automatically. The unauthenticated guard tests always run.
  */
 
 import { test, expect } from '@playwright/test'
 import path from 'path'
 
-// Mirror the storage paths from global.setup.ts
-const EDITOR_STORAGE = path.resolve(process.cwd(), 'e2e/.auth/editor.json')
+// Mirror the storage path from global.setup.ts
 const ADMIN_STORAGE = path.resolve(process.cwd(), 'e2e/.auth/admin.json')
 
-const hasEditorCreds = !!process.env.E2E_EDITOR_EMAIL
 const hasAdminCreds = !!process.env.E2E_ADMIN_EMAIL
 
 // ---------------------------------------------------------------------------
@@ -65,12 +63,14 @@ test.describe('Unauthenticated access guards', () => {
 })
 
 // ---------------------------------------------------------------------------
-// Editor flows
+// Authenticated flows — Admin account (includes all Editor capabilities)
 // ---------------------------------------------------------------------------
 
-test.describe('Editor — authenticated flows', () => {
-  test.skip(!hasEditorCreds, 'Skipped: E2E_EDITOR_EMAIL / E2E_EDITOR_PASSWORD not configured')
-  test.use({ storageState: EDITOR_STORAGE })
+test.describe('Authenticated flows (Admin)', () => {
+  test.skip(!hasAdminCreds, 'Skipped: E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not configured')
+  test.use({ storageState: ADMIN_STORAGE })
+
+  // --- Editor capabilities ---
 
   test('New Pattern button is visible on the patterns listing', async ({ page }) => {
     await page.goto('/patterns')
@@ -104,7 +104,7 @@ test.describe('Editor — authenticated flows', () => {
     await expect(page.getByRole('heading', { level: 1 })).toContainText(title)
   })
 
-  test('Edit button is visible on pattern detail page for an Editor', async ({ page }) => {
+  test('Edit button is visible on pattern detail page', async ({ page }) => {
     await page.goto('/patterns/clean-architecture-ai-refactoring')
     await page.waitForLoadState('networkidle')
     await expect(
@@ -126,17 +126,10 @@ test.describe('Editor — authenticated flows', () => {
     await page.waitForURL(/\/patterns\/repository-pattern-ef-core$/, { timeout: 20_000 })
     await expect(page.getByRole('heading', { level: 1 })).toContainText('Repository Pattern')
   })
-})
 
-// ---------------------------------------------------------------------------
-// Admin flows
-// ---------------------------------------------------------------------------
+  // --- Admin-only capabilities ---
 
-test.describe('Admin — authenticated flows', () => {
-  test.skip(!hasAdminCreds, 'Skipped: E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not configured')
-  test.use({ storageState: ADMIN_STORAGE })
-
-  test('Delete button is visible on pattern detail page for an Admin', async ({ page }) => {
+  test('Delete button is visible on pattern detail page', async ({ page }) => {
     await page.goto('/patterns/clean-architecture-ai-refactoring')
     await page.waitForLoadState('networkidle')
     await expect(
@@ -147,7 +140,7 @@ test.describe('Admin — authenticated flows', () => {
   test('can create and immediately delete a pattern end-to-end', async ({ page }) => {
     const title = `E2E Delete Test ${Date.now()}`
 
-    // Step 1: Create a temporary pattern (Admin has Editor role too)
+    // Step 1: Create a temporary pattern
     await page.goto('/patterns/new')
     await expect(
       page.getByRole('heading', { name: 'New Pattern' })

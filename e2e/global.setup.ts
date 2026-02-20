@@ -3,10 +3,14 @@ import path from 'path'
 import fs from 'fs'
 
 /**
- * Paths to persisted Playwright storageState files.
- * Imported by authenticated-flows.spec.ts so both files reference the same paths.
+ * Path to the persisted Playwright storageState file for the Admin account.
+ * Imported by authenticated-flows.spec.ts so both files reference the same path.
+ *
+ * Admin users have all Editor permissions, so a single set of credentials
+ * covers all authenticated tests. Configure only:
+ *   E2E_ADMIN_EMAIL    — email of an Entra user with the Admin app role
+ *   E2E_ADMIN_PASSWORD — their password
  */
-export const EDITOR_STORAGE = path.resolve(process.cwd(), 'e2e/.auth/editor.json')
 export const ADMIN_STORAGE = path.resolve(process.cwd(), 'e2e/.auth/admin.json')
 
 const BASE_URL = process.env.PLAYWRIGHT_BASE_URL || 'http://localhost:3000'
@@ -65,36 +69,23 @@ async function saveAuthState(email: string, password: string, storagePath: strin
 }
 
 export default async function globalSetup(_config: FullConfig) {
-  // Always ensure the .auth/ directory and placeholder files exist so
+  // Always ensure the .auth/ directory and placeholder file exist so
   // test.use({ storageState }) never throws a file-not-found error
   // even when credentials are not configured.
-  fs.mkdirSync(path.dirname(EDITOR_STORAGE), { recursive: true })
+  fs.mkdirSync(path.dirname(ADMIN_STORAGE), { recursive: true })
   const empty = JSON.stringify({ cookies: [], origins: [] })
-  if (!fs.existsSync(EDITOR_STORAGE)) fs.writeFileSync(EDITOR_STORAGE, empty)
   if (!fs.existsSync(ADMIN_STORAGE)) fs.writeFileSync(ADMIN_STORAGE, empty)
 
-  const editorEmail = process.env.E2E_EDITOR_EMAIL
-  const editorPassword = process.env.E2E_EDITOR_PASSWORD
   const adminEmail = process.env.E2E_ADMIN_EMAIL
   const adminPassword = process.env.E2E_ADMIN_PASSWORD
 
-  if (!editorEmail || !editorPassword) {
+  if (!adminEmail || !adminPassword) {
     console.log(
-      '  ⚠  E2E_EDITOR_EMAIL / E2E_EDITOR_PASSWORD not set — authenticated tests will be skipped'
+      '  ⚠  E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set — authenticated tests will be skipped'
     )
     return
   }
 
-  console.log('  → Logging in as Editor…')
-  await saveAuthState(editorEmail, editorPassword, EDITOR_STORAGE)
-
-  if (adminEmail && adminPassword) {
-    console.log('  → Logging in as Admin…')
-    await saveAuthState(adminEmail, adminPassword, ADMIN_STORAGE)
-  } else {
-    console.log(
-      '  ⚠  E2E_ADMIN_EMAIL / E2E_ADMIN_PASSWORD not set — Admin tests will be skipped'
-    )
-    fs.writeFileSync(ADMIN_STORAGE, empty)
-  }
+  console.log('  → Logging in as Admin…')
+  await saveAuthState(adminEmail, adminPassword, ADMIN_STORAGE)
 }
