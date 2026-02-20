@@ -4,6 +4,52 @@ This document captures significant technical design decisions made during the de
 
 ---
 
+## Decision 27: E2E Authentication — Direct Session Injection Replaces Entra Browser Login
+
+**Date:** 2026-02-20
+**Title:** Use `@auth/core/jwt` `encode()` to Synthesise Auth.js Session Cookies in Playwright globalSetup
+**Category:** Testing / Authentication
+
+### Decision Details
+
+Replaced the Playwright browser-based Entra CIAM login flow in `e2e/global.setup.ts` with direct session cookie creation using Auth.js's own `encode()` function from `@auth/core/jwt`.
+
+New files/changes:
+- **`e2e/auth-helpers.ts`** (new): `createSessionCookie({ roles })` encrypts a JWT payload with `AUTH_SECRET` using JWE A256CBC-HS512 (Auth.js's native format); `buildStorageState()` wraps the cookie in the Playwright storageState JSON structure.
+- **`e2e/global.setup.ts`**: The entire 120-line headless Chromium login flow is replaced by a single `createSessionCookie()` call. Setup takes <100ms and requires only `AUTH_SECRET` (already a CI secret).
+- **`e2e/authenticated-flows.spec.ts`**: Tests split into three describe blocks — `Unauthenticated guards` (always run), `Authenticated — UI` (always run, synthetic session sufficient), `Authenticated — API writes` (skipped by default; needs real Entra JWKS-valid token, opt-in via `E2E_API_WRITES=true`).
+
+### Rationale
+
+The browser-based approach failed in CI headless Chrome across 9 consecutive commits. Root cause: Entra External ID's "Stay signed in?" (KMSI) prompt renders inside a `position:fixed` container whose buttons have `offsetParent === null`. Playwright's visibility checks (waitFor, click) time out because they require a non-zero bounding box. Approaches tried:
+
+1. Direct `click({ timeout: 25s })` — timed out before KMSI rendered
+2. `waitForURL('/login')` then click — URL resolved before Entra's JS rendered KMSI content
+3. `waitFor({ state: 'visible', timeout: 30s })` — still timed out (offsetParent===null)
+4. `page.addInitScript()` with `MutationObserver` to auto-click "No" on DOM insertion — executed, but page navigated to `ciamlogin.com/login` 4 times without redirecting to `localhost:3000`
+
+The fundamental issue is that Entra's hosted CIAM UI behaviour differs between headed/headless, local/CI, with/without existing Entra session cookies, and may change at any time. Testing authenticated flows via the real IdP in CI is inherently fragile.
+
+### Pros
+- **Deterministic**: same `AUTH_SECRET` always produces a valid session; no external network call
+- **Fast**: <100ms vs 45-60s for the full OIDC browser flow
+- **Stable**: does not depend on Entra UI structure, KMSI prompt behaviour, or network latency
+- **Minimal CI surface**: only `AUTH_SECRET` required; no `E2E_ADMIN_EMAIL`/`PASSWORD` secrets needed for UI tests
+- **Uses public Auth.js API**: `encode()` is the documented export from `@auth/core/jwt`
+
+### Cons / Trade-offs
+- The injected `accessToken` is a placeholder (`e2e-placeholder-token`), rejected by the ASP.NET Core API's JWKS validation. Tests that call protected API endpoints (POST/PUT/DELETE `/api/patterns`) must be skipped or run with `E2E_API_WRITES=true` and a real token.
+- Does not exercise the actual Entra OIDC login flow — that flow is untested end-to-end in CI.
+
+### Alternatives Evaluated
+- **Persist a real token from a one-time manual login**: Would expire (Entra tokens last 1 hour); cannot be refreshed without user interaction in a CIAM tenant.
+- **ROPC (Resource Owner Password Credential) grant**: Not supported by Entra External ID CIAM tenants.
+- **Client credentials grant**: Gets an app token (no user context); doesn't carry user roles in the same way.
+- **Test-only auth bypass endpoint**: Adds a `/api/auth/test-session` route gated by a secret; increases attack surface and adds application complexity.
+- **Continue fixing the MutationObserver approach**: All viable dismissal strategies exhausted; the Entra CIAM UI is a moving target.
+
+---
+
 ## Decision 26: Playwright E2E Test Locator — Role-Based Checkbox Selection
 
 **Date:** 2026-02-20
