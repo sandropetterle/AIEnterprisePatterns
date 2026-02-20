@@ -31,6 +31,27 @@ async function saveAuthState(email: string, password: string, storagePath: strin
   const context = await browser.newContext()
   const page = await context.newPage()
 
+  // Inject a MutationObserver that automatically dismisses Entra's "Stay signed in?"
+  // (KMSI) prompt the instant the "No" button appears in the DOM.
+  //
+  // Why not use Playwright's waitFor / click here instead:
+  //   • Entra's KMSI dialog renders inside a position:fixed container whose
+  //     buttons have offsetParent===null while loading — Playwright's visibility
+  //     checks time out waiting for a non-zero bounding box.
+  //   • addInitScript bypasses CSP and fires before page JS runs, so the
+  //     MutationObserver is active before the SPA has a chance to insert KMSI.
+  await page.addInitScript(() => {
+    const observer = new MutationObserver(() => {
+      const btn = Array.from(document.querySelectorAll('button'))
+        .find(b => b.textContent?.trim() === 'No')
+      if (btn) {
+        btn.click()
+        observer.disconnect()
+      }
+    })
+    observer.observe(document.documentElement, { childList: true, subtree: true })
+  })
+
   try {
     // Navigate to the app login page and trigger the OIDC redirect
     await page.goto(`${BASE_URL}/login`)
@@ -38,23 +59,19 @@ async function saveAuthState(email: string, password: string, storagePath: strin
 
     // Wait for Entra's hosted login page
     await page.waitForURL(/ciamlogin\.com|login\.microsoftonline\.com/, { timeout: 30_000 })
-    // Let the SPA-style login page finish its initial render
     await page.waitForLoadState('domcontentloaded')
     console.log(`  → Entra login page: ${page.url()}`)
 
     // --- Step 1: Email ---
-    // Entra External ID CIAM shows an "Email address" input and a "Next" button.
-    // The input does NOT use type="email" or name="signInName" — match by placeholder.
     const emailInput = page.locator(
       'input[placeholder="Email address"], input[placeholder*="email" i], ' +
       '#email, input[name="signInName"], input[type="email"]'
     ).first()
     await emailInput.waitFor({ state: 'visible', timeout: 30_000 })
     await emailInput.fill(email)
-    // Button text is "Next" on the CIAM page (not "Continue")
     await page.locator('button:has-text("Next"), #continue, button[type="submit"]').first().click()
 
-    // --- Step 2: Password (same page or a new page after email submission) ---
+    // --- Step 2: Password ---
     const passwordInput = page
       .locator(
         'input[placeholder="Password"], input[placeholder*="password" i], ' +
@@ -65,27 +82,11 @@ async function saveAuthState(email: string, password: string, storagePath: strin
     await passwordInput.fill(password)
     await page.locator('button:has-text("Sign in"), button:has-text("Next"), #continue, button[type="submit"]').first().click()
 
-    // After credential validation, Entra navigates from the /authorize URL to either:
-    //   • ciamlogin.com/.../login  — the KMSI "Stay signed in?" prompt page
-    //   • BASE_URL                 — direct redirect (no KMSI, rare)
-    // We wait for whichever happens first, then handle KMSI if needed.
-    await page.waitForURL(
-      url =>
-        (url.host.includes('ciamlogin.com') && url.pathname.endsWith('/login')) ||
-        url.href.startsWith(BASE_URL),
-      { timeout: 30_000 }
-    )
-
-    // If Entra showed the KMSI prompt, dismiss it with "No"
-    if (page.url().includes('ciamlogin.com')) {
-      try {
-        await page.locator('button:has-text("No")').click({ timeout: 10_000 })
-      } catch {
-        // Prompt not present — redirect already in progress
-      }
-      // Wait for the final OIDC redirect back to the application
-      await page.waitForURL(BASE_URL + '**', { timeout: 30_000 })
-    }
+    // The MutationObserver (injected above) will auto-click "No" on KMSI as soon as
+    // the button appears in the DOM — no explicit KMSI handling needed here.
+    // Use a generous timeout: Entra credential processing + KMSI render can take 30-45 s.
+    await page.waitForURL(BASE_URL + '**', { timeout: 60_000 })
+    console.log(`  → Redirected to app: ${page.url()}`)
 
     // Persist the authenticated session
     fs.mkdirSync(path.dirname(storagePath), { recursive: true })
