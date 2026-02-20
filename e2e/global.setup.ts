@@ -66,9 +66,10 @@ async function saveAuthState(email: string, password: string, storagePath: strin
     await page.locator('button:has-text("Sign in"), button:has-text("Next"), #continue, button[type="submit"]').first().click()
 
     // Entra may show a "Stay signed in?" (KMSI) prompt after sign-in — dismiss it.
-    // click() has built-in visibility waiting; catch the timeout if the prompt is absent.
+    // Entra takes 10-15 s to process credentials before showing KMSI, so the
+    // timeout must exceed that processing delay (8 s was too short).
     try {
-      await page.locator('button:has-text("No")').click({ timeout: 8_000 })
+      await page.locator('button:has-text("No")').click({ timeout: 25_000 })
     } catch {
       // Prompt not shown — proceed directly to the app redirect
     }
