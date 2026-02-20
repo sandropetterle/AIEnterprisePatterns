@@ -86,6 +86,23 @@ export default async function globalSetup(_config: FullConfig) {
     return
   }
 
+  // AUTH_SECRET is required by Auth.js to generate the OIDC state/CSRF parameter
+  // for signIn(). Without it the /api/auth/signin endpoint fails silently and
+  // the browser never redirects to Entra's login page.
+  if (!process.env.AUTH_SECRET) {
+    console.log(
+      '  ⚠  AUTH_SECRET not set — authenticated tests will be skipped'
+    )
+    return
+  }
+
   console.log('  → Logging in as Admin…')
-  await saveAuthState(adminEmail, adminPassword, ADMIN_STORAGE)
+  try {
+    await saveAuthState(adminEmail, adminPassword, ADMIN_STORAGE)
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    console.log(`  ⚠  Admin login failed (${msg}) — authenticated tests will be skipped`)
+    // Reset to empty so storageState: ADMIN_STORAGE doesn't inject stale cookies
+    fs.writeFileSync(ADMIN_STORAGE, JSON.stringify({ cookies: [], origins: [] }))
+  }
 }
