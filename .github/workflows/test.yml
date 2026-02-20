@@ -184,6 +184,15 @@ jobs:
           path: playwright-report/
           retention-days: 30
 
+      - name: Upload login failure screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: login-failure-screenshot
+          path: e2e/.auth/login-failure.png
+          if-no-files-found: ignore
+          retention-days: 7
+
   test-summary:
     name: Test Summary
     runs-on: ubuntu-latest

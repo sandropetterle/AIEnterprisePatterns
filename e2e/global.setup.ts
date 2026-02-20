@@ -38,20 +38,22 @@ async function saveAuthState(email: string, password: string, storagePath: strin
 
     // Wait for Entra's hosted login page
     await page.waitForURL(/ciamlogin\.com|login\.microsoftonline\.com/, { timeout: 30_000 })
+    // Let the SPA-style login page finish its initial render
+    await page.waitForLoadState('domcontentloaded')
+    console.log(`  → Entra login page: ${page.url()}`)
 
     // --- Step 1: Email ---
     // Common Entra CIAM selectors (try id="email" first, then name, then type)
-    await page
-      .locator('#email, input[name="signInName"], input[type="email"]')
-      .first()
-      .fill(email)
+    const emailInput = page.locator('#email, input[name="signInName"], input[type="email"]').first()
+    await emailInput.waitFor({ state: 'visible', timeout: 30_000 })
+    await emailInput.fill(email)
     await page.locator('#continue, button[type="submit"]').first().click()
 
     // --- Step 2: Password (same page or a new page after email submission) ---
     const passwordInput = page
       .locator('#password, input[name="password"], input[type="password"]')
       .first()
-    await passwordInput.waitFor({ timeout: 20_000 })
+    await passwordInput.waitFor({ state: 'visible', timeout: 20_000 })
     await passwordInput.fill(password)
     await page.locator('#continue, button[type="submit"]').first().click()
 
@@ -63,6 +65,14 @@ async function saveAuthState(email: string, password: string, storagePath: strin
     await context.storageState({ path: storagePath })
 
     console.log(`  ✓ Auth state saved: ${path.relative(process.cwd(), storagePath)}`)
+  } catch (err) {
+    // Capture a screenshot so the CI artifact shows exactly what Entra rendered
+    const screenshotDir = path.resolve(process.cwd(), 'e2e/.auth')
+    fs.mkdirSync(screenshotDir, { recursive: true })
+    await page.screenshot({ path: path.join(screenshotDir, 'login-failure.png'), fullPage: true }).catch(() => {})
+    console.log(`  ⚠  Login failed at URL: ${page.url()}`)
+    console.log(`  ⚠  Page title: ${await page.title().catch(() => 'n/a')}`)
+    throw err
   } finally {
     await browser.close()
   }
