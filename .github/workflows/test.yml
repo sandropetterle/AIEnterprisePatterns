@@ -148,12 +148,29 @@ jobs:
           timeout 60 bash -c 'until curl -sf http://localhost:3000 > /dev/null; do sleep 2; done'
         env:
           NEXT_PUBLIC_API_BASE_URL: http://localhost:5255/api
+          # Auth.js needs these at runtime: AUTH_SECRET signs session cookies;
+          # AUTH_ENTRA_* enables signIn() to construct the OIDC authorization URL.
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_ENTRA_ISSUER: ${{ secrets.AUTH_ENTRA_ISSUER }}
+          AUTH_ENTRA_CLIENT_ID: ${{ secrets.AUTH_ENTRA_CLIENT_ID }}
+          AUTH_ENTRA_CLIENT_SECRET: ${{ secrets.AUTH_ENTRA_CLIENT_SECRET }}
+          AUTH_API_SCOPE_READ: ${{ secrets.AUTH_API_SCOPE_READ }}
+          AUTH_API_SCOPE_WRITE: ${{ secrets.AUTH_API_SCOPE_WRITE }}
+          AUTH_TRUST_HOST: true
 
       - name: Run E2E tests
         run: npm run test:e2e
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_API_BASE_URL: http://localhost:5255/api
+          # Auth.js env vars are needed for server components rendered during E2E tests
+          AUTH_SECRET: ${{ secrets.AUTH_SECRET }}
+          AUTH_ENTRA_ISSUER: ${{ secrets.AUTH_ENTRA_ISSUER }}
+          AUTH_ENTRA_CLIENT_ID: ${{ secrets.AUTH_ENTRA_CLIENT_ID }}
+          AUTH_ENTRA_CLIENT_SECRET: ${{ secrets.AUTH_ENTRA_CLIENT_SECRET }}
+          AUTH_API_SCOPE_READ: ${{ secrets.AUTH_API_SCOPE_READ }}
+          AUTH_API_SCOPE_WRITE: ${{ secrets.AUTH_API_SCOPE_WRITE }}
+          AUTH_TRUST_HOST: true
           # Admin credentials cover all authenticated tests (Admin has all Editor permissions)
           # Optional — authenticated tests are skipped when not set
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
