@@ -43,19 +43,27 @@ async function saveAuthState(email: string, password: string, storagePath: strin
     console.log(`  → Entra login page: ${page.url()}`)
 
     // --- Step 1: Email ---
-    // Common Entra CIAM selectors (try id="email" first, then name, then type)
-    const emailInput = page.locator('#email, input[name="signInName"], input[type="email"]').first()
+    // Entra External ID CIAM shows an "Email address" input and a "Next" button.
+    // The input does NOT use type="email" or name="signInName" — match by placeholder.
+    const emailInput = page.locator(
+      'input[placeholder="Email address"], input[placeholder*="email" i], ' +
+      '#email, input[name="signInName"], input[type="email"]'
+    ).first()
     await emailInput.waitFor({ state: 'visible', timeout: 30_000 })
     await emailInput.fill(email)
-    await page.locator('#continue, button[type="submit"]').first().click()
+    // Button text is "Next" on the CIAM page (not "Continue")
+    await page.locator('button:has-text("Next"), #continue, button[type="submit"]').first().click()
 
     // --- Step 2: Password (same page or a new page after email submission) ---
     const passwordInput = page
-      .locator('#password, input[name="password"], input[type="password"]')
+      .locator(
+        'input[placeholder="Password"], input[placeholder*="password" i], ' +
+        '#password, input[name="password"], input[type="password"]'
+      )
       .first()
     await passwordInput.waitFor({ state: 'visible', timeout: 20_000 })
     await passwordInput.fill(password)
-    await page.locator('#continue, button[type="submit"]').first().click()
+    await page.locator('button:has-text("Sign in"), button:has-text("Next"), #continue, button[type="submit"]').first().click()
 
     // Wait for redirect back to the application
     await page.waitForURL(BASE_URL + '**', { timeout: 30_000 })
