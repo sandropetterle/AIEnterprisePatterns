@@ -154,9 +154,8 @@ jobs:
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_API_BASE_URL: http://localhost:5255/api
-          # Authenticated E2E test credentials (optional — tests are skipped when absent)
-          E2E_EDITOR_EMAIL: ${{ secrets.E2E_EDITOR_EMAIL }}
-          E2E_EDITOR_PASSWORD: ${{ secrets.E2E_EDITOR_PASSWORD }}
+          # Admin credentials cover all authenticated tests (Admin has all Editor permissions)
+          # Optional — authenticated tests are skipped when not set
           E2E_ADMIN_EMAIL: ${{ secrets.E2E_ADMIN_EMAIL }}
           E2E_ADMIN_PASSWORD: ${{ secrets.E2E_ADMIN_PASSWORD }}
 
