@@ -60,3 +60,6 @@ deployment/DEPLOYMENT_SUMMARY.txt
 deployment/azure-resources-output.txt
 deployment/azure-container-apps-output.txt
 deployment/github-secrets-values.txt
+
+# Playwright auth state (contains session cookies — never commit)
+/e2e/.auth/
