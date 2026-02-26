@@ -1633,4 +1633,156 @@ Integrated Strapi 5 as a headless CMS to manage the 300+ hardcoded static conten
 - ✅ CMS.2: Infrastructure (docker-compose, Dockerfile, provisioning script, CI/CD)
 - ✅ CMS.3: Strapi project setup (schemas, seed script)
 - ✅ CMS.4: Frontend integration — Phase 1 (lib/cms/, layout, home, login, 404)
+- ✅ CMS.5: Production deployment (Azure MySQL + Blob Storage + Container App, seeded, live)
+
+---
+
+## Decision 33: Strapi 5 Production Dockerfile — tsconfig.json + config/ Required at Runtime
+
+**Date:** 2026-02-26
+**Title:** Strapi 5 Production Image Must Include tsconfig.json and config/ Source Files
+**Category:** Infrastructure / Docker / CMS
+
+### Decision Details
+
+Strapi 5's TypeScript production mode requires both `tsconfig.json` and the `config/` source TypeScript files to be present at runtime, even though the app runs from compiled `dist/`. This is a non-obvious requirement that caused repeated container crashes during initial production deployment.
+
+### Root Cause
+
+Strapi 5 uses `tsUtils.resolveOutDirSync()` to locate the compiled output directory by reading `outDir` from `tsconfig.json`. Without `tsconfig.json`, this function returns `null` and Strapi falls back to loading raw config from `config/` (source), which doesn't exist in a production image that only contains `dist/`. Result: `db.config.connection` is undefined → crash.
+
+If only `tsconfig.json` is present (without `config/` source files), Strapi attempts to recompile TypeScript at startup and fails with `TS18003: No inputs were found in config file` because no `.ts` source files are in the image.
+
+### Fix Applied (cms/Dockerfile production stage)
+
+```dockerfile
+# Strapi 5 requires tsconfig.json + config/ source at runtime to resolve compiled config paths
+COPY --from=build --chown=strapi:strapi /app/tsconfig.json ./tsconfig.json
+COPY --from=build --chown=strapi:strapi /app/config ./config
+
+# Create writable directories required at runtime (non-root user cannot mkdir)
+RUN mkdir -p /app/public/uploads /app/database/migrations && \
+    chown -R strapi:strapi /app/public /app/database
+```
+
+### Why This Matters
+
+- Omitting `tsconfig.json` → silent crash, misleading error about `db.config.connection`
+- Omitting `config/` → TS compilation error at startup (not a build error)
+- The pre-created `/app/database/migrations` directory is required because the non-root `strapi` user cannot `mkdir` at runtime
+
+### Alternatives Considered
+
+- **Patch tsconfig.json** to point `outDir` to `.` (no subdirectory) — would break the build stage
+- **Use `node:alpine` without TypeScript support** — Strapi 5 does not support plain JavaScript projects at production time
+- **Custom entrypoint that skips TS resolution** — too fragile, depends on internal Strapi internals
+
+---
+
+## Decision 34: Azure MySQL Flexible Server — francecentral Region Required
+
+**Date:** 2026-02-26
+**Title:** MySQL Flexible Server Unavailable in centralus; francecentral Used
+**Category:** Infrastructure / Azure / Database
+
+### Decision Details
+
+Azure MySQL Flexible Server (Burstable B1ms SKU) is not available in `centralus` or `eastus2` for this subscription tier. `francecentral` was confirmed as the closest available region.
+
+### Impact
+
+- MySQL server located in `francecentral`, Container App environment in `centralus`
+- Cross-region latency is negligible for a low-traffic CMS (Strapi reads happen at Next.js build/ISR time, not per user request)
+- `provision-cms.ps1` has explicit `$MysqlLocation = "francecentral"` parameter
+
+### Provider Registration
+
+Both `Microsoft.DBforMySQL` and `Microsoft.Storage` resource providers required explicit registration before provisioning:
+
+```bash
+az provider register --namespace Microsoft.DBforMySQL --wait
+az provider register --namespace Microsoft.Storage --wait
+```
+
+These are not auto-registered for all subscription types. The provisioning script now documents this as a prerequisite step.
+
+---
+
+## Decision 35: Azure Blob Storage — strapi-provider-upload-azure-storage-v5 for Strapi 5
+
+**Date:** 2026-02-26
+**Title:** Community Provider strapi-provider-upload-azure-storage-v5 Used for Azure Blob Media Uploads
+**Category:** Infrastructure / Storage / CMS
+
+### Decision Details
+
+The official Strapi upload provider `@strapi/provider-upload-azure-storage` does not exist on npm (despite being referenced in some Strapi documentation). The community package `strapi-provider-upload-azure-storage-v5` (v1.1.0, peer dep `@strapi/strapi: ^5.0.0`) is the correct Strapi 5 compatible provider.
+
+### Configuration
+
+Provider only activated when `AZURE_STORAGE_ACCOUNT` env var is set — falls back to local filesystem in dev:
+
+```typescript
+// cms/config/plugins.ts
+if (env('AZURE_STORAGE_ACCOUNT')) {
+  config.upload = {
+    config: {
+      provider: 'strapi-provider-upload-azure-storage-v5',
+      providerOptions: {
+        account: env('AZURE_STORAGE_ACCOUNT'),
+        accountKey: env('AZURE_STORAGE_ACCOUNT_KEY'),
+        containerName: env('AZURE_STORAGE_CONTAINER'),
+        ...
+      }
+    }
+  };
+}
+```
+
+### Blob Container Access
+
+Container set to `--public-access blob` (individual blob public read, container listing private). This allows CMS media URLs to work in the Next.js frontend without authentication, while preventing directory browsing.
+
+### Env Var Naming
+
+Must use `AZURE_STORAGE_*` prefix (not `STORAGE_*`) to match provider expectations:
+- `AZURE_STORAGE_ACCOUNT`
+- `AZURE_STORAGE_ACCOUNT_KEY`
+- `AZURE_STORAGE_CONTAINER`
+- `AZURE_STORAGE_URL`
+
+---
+
+## Decision 36: Strapi Production Deployment — Azure Container Apps with Image Digest Pinning
+
+**Date:** 2026-02-26
+**Title:** Pin Strapi Container App to Specific Image Digest to Avoid Stale Cache
+**Category:** Infrastructure / Deployment / Container Apps
+
+### Decision Details
+
+Azure Container Apps with `:latest` tag can serve stale images even after a new push because the platform may cache the previous layer locally. During initial Strapi production deployment, `az containerapp update --image ...latest` did not consistently pull the newly pushed image.
+
+### Fix
+
+Use explicit SHA256 digest when deploying a new image:
+
+```bash
+# Get the digest after push
+DIGEST=$(az acr repository show --name craipatternssp54426 --image aipatterns-cms:latest --query digest -o tsv)
+
+# Deploy with digest instead of :latest tag
+az containerapp update \
+  --name ca-aipatterns-cms-prod \
+  --resource-group rg-aipatterns-prod \
+  --image "craipatternssp54426.azurecr.io/aipatterns-cms@$DIGEST"
+```
+
+### CI/CD Implication
+
+The `cms-container-deploy.yml` workflow should be updated to retrieve the digest post-push and deploy with it, rather than relying on `:latest`. This ensures each deployment uses the exact image that was built.
+
+### Subscription Constraint
+
+ACR Tasks (`az acr build`) are not available on this subscription tier (`TasksOperationsNotAllowed`). All Docker builds must be done locally or in GitHub Actions runners, then pushed to ACR with `docker push`.
 - 🔲 CMS.4 Phase 2: about/docs pages, pattern label props propagation

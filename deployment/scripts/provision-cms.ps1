@@ -15,7 +15,7 @@
     Azure Resource Group (default: rg-aipatterns-prod)
 
 .PARAMETER Location
-    Azure region (default: centralus — matches existing apps)
+    Azure region (default: centralus -- matches existing apps)
 
 .PARAMETER MysqlAdminPassword
     Password for MySQL admin user. REQUIRED. Store securely (Key Vault / env var).
@@ -30,6 +30,8 @@ param(
     [string]$CmsImage       = "aipatterns-cms",
     [string]$MysqlServerName = "mysql-aipatterns-cms",
     [string]$MysqlAdminUser  = "strapiAdmin",
+    # MySQL Flexible Server is not available in centralus; francecentral confirmed working
+    [string]$MysqlLocation   = "francecentral",
     [Parameter(Mandatory)]
     [string]$MysqlAdminPassword,
     [string]$StorageAccountName = "staipatternsmedia",
@@ -39,14 +41,15 @@ param(
 )
 
 Set-StrictMode -Version Latest
-$ErrorActionPreference = "Stop"
+# Use Continue so az CLI warning output to stderr does not terminate the script.
+# Critical commands check $LASTEXITCODE explicitly.
+$ErrorActionPreference = "Continue"
 
-# ── Helpers ────────────────────────────────────────────────────────────────
-function Log-Step { param([string]$msg) Write-Host "`n▶ $msg" -ForegroundColor Cyan }
-function Log-Ok   { param([string]$msg) Write-Host "  ✓ $msg" -ForegroundColor Green }
-function Log-Info { param([string]$msg) Write-Host "  · $msg" -ForegroundColor Gray }
+function Log-Step { param([string]$msg) Write-Host "`n> $msg" -ForegroundColor Cyan }
+function Log-Ok   { param([string]$msg) Write-Host "  OK $msg" -ForegroundColor Green }
+function Log-Info { param([string]$msg) Write-Host "  . $msg" -ForegroundColor Gray }
 
-# ── 0. Verify logged in ────────────────────────────────────────────────────
+# -- 0. Verify logged in ---------------------------------------------------
 Log-Step "Verifying Azure CLI login"
 $account = az account show --query name -o tsv 2>$null
 if (-not $account) {
@@ -55,20 +58,20 @@ if (-not $account) {
 }
 Log-Ok "Logged in as: $account"
 
-# ── 1. MySQL Flexible Server (free tier) ──────────────────────────────────
+# -- 1. MySQL Flexible Server ----------------------------------------------
 Log-Step "Creating MySQL Flexible Server: $MysqlServerName"
 $mysqlExists = az mysql flexible-server show `
     --resource-group $ResourceGroup `
     --name $MysqlServerName `
     --query name -o tsv 2>$null
 
-if ($mysqlExists) {
-    Log-Info "MySQL server already exists — skipping creation"
+if ($mysqlExists -and $LASTEXITCODE -eq 0) {
+    Log-Info "MySQL server already exists -- skipping creation"
 } else {
     az mysql flexible-server create `
         --resource-group $ResourceGroup `
         --name $MysqlServerName `
-        --location $Location `
+        --location $MysqlLocation `
         --admin-user $MysqlAdminUser `
         --admin-password $MysqlAdminPassword `
         --sku-name Standard_B1ms `
@@ -107,15 +110,15 @@ $mysqlHost = az mysql flexible-server show `
 
 Log-Info "MySQL host: $mysqlHost"
 
-# ── 2. Azure Blob Storage ─────────────────────────────────────────────────
+# -- 2. Azure Blob Storage -------------------------------------------------
 Log-Step "Creating Storage Account: $StorageAccountName"
 $storageExists = az storage account show `
     --resource-group $ResourceGroup `
     --name $StorageAccountName `
     --query name -o tsv 2>$null
 
-if ($storageExists) {
-    Log-Info "Storage account already exists — skipping creation"
+if ($storageExists -and $LASTEXITCODE -eq 0) {
+    Log-Info "Storage account already exists -- skipping creation"
 } else {
     az storage account create `
         --resource-group $ResourceGroup `
@@ -124,7 +127,7 @@ if ($storageExists) {
         --sku Standard_LRS `
         --kind StorageV2 `
         --access-tier Hot `
-        --allow-blob-public-access false
+        --allow-blob-public-access true
     Log-Ok "Storage account created"
 }
 
@@ -133,17 +136,17 @@ $storageKey = az storage account keys list `
     --account-name $StorageAccountName `
     --query "[0].value" -o tsv
 
-# Create media container
+# Create media container with blob-level public read (individual blobs public, listing private)
 az storage container create `
     --account-name $StorageAccountName `
     --account-key $storageKey `
     --name $StorageContainer `
-    --public-access off 2>$null
-Log-Ok "Blob container '$StorageContainer' ready"
+    --public-access blob 2>$null
+Log-Ok "Blob container '$StorageContainer' ready (public blob read)"
 
 $storageUrl = "https://$StorageAccountName.blob.core.windows.net"
 
-# ── 3. Container App for Strapi ───────────────────────────────────────────
+# -- 3. Container App for Strapi -------------------------------------------
 Log-Step "Creating Strapi Container App: $CmsContainerApp"
 
 # Generate random secrets for Strapi
@@ -158,8 +161,8 @@ $cmsExists = az containerapp show `
     --name $CmsContainerApp `
     --query name -o tsv 2>$null
 
-if ($cmsExists) {
-    Log-Info "Container App already exists — updating image"
+if ($cmsExists -and $LASTEXITCODE -eq 0) {
+    Log-Info "Container App already exists -- updating image"
     az containerapp update `
         --resource-group $ResourceGroup `
         --name $CmsContainerApp `
@@ -178,7 +181,7 @@ if ($cmsExists) {
         --cpu 0.25 `
         --memory 0.5Gi `
         --env-vars `
-            "DATABASE_CLIENT=mysql2" `
+            "DATABASE_CLIENT=mysql" `
             "DATABASE_HOST=$mysqlHost" `
             "DATABASE_PORT=3306" `
             "DATABASE_NAME=strapi_cms" `
@@ -190,10 +193,10 @@ if ($cmsExists) {
             "ADMIN_JWT_SECRET=secretref:admin-jwt-secret" `
             "TRANSFER_TOKEN_SALT=secretref:transfer-token-salt" `
             "JWT_SECRET=secretref:jwt-secret" `
-            "STORAGE_ACCOUNT=$StorageAccountName" `
-            "STORAGE_ACCOUNT_KEY=secretref:storage-key" `
-            "STORAGE_CONTAINER_NAME=$StorageContainer" `
-            "STORAGE_URL=$storageUrl" `
+            "AZURE_STORAGE_ACCOUNT=$StorageAccountName" `
+            "AZURE_STORAGE_ACCOUNT_KEY=secretref:storage-key" `
+            "AZURE_STORAGE_CONTAINER=$StorageContainer" `
+            "AZURE_STORAGE_URL=$storageUrl" `
             "NODE_ENV=production" `
         --secrets `
             "db-password=$MysqlAdminPassword" `
@@ -206,12 +209,20 @@ if ($cmsExists) {
     Log-Ok "Container App created"
 }
 
-# ── 4. Summary ────────────────────────────────────────────────────────────
+# -- 4. Set PUBLIC_URL once FQDN is known ----------------------------------
 $cmsFqdn = az containerapp show `
     --resource-group $ResourceGroup `
     --name $CmsContainerApp `
     --query properties.configuration.ingress.fqdn -o tsv 2>$null
 
+Log-Step "Setting PUBLIC_URL = https://$cmsFqdn"
+az containerapp update `
+    --resource-group $ResourceGroup `
+    --name $CmsContainerApp `
+    --set-env-vars "PUBLIC_URL=https://$cmsFqdn" | Out-Null
+Log-Ok "PUBLIC_URL set"
+
+# -- 5. Summary ------------------------------------------------------------
 Log-Step "Provisioning complete"
 Write-Host ""
 Write-Host "  MySQL Host   : $mysqlHost" -ForegroundColor White
@@ -220,8 +231,16 @@ Write-Host "  Strapi CMS   : https://$cmsFqdn" -ForegroundColor White
 Write-Host "  Admin Panel  : https://$cmsFqdn/admin" -ForegroundColor White
 Write-Host ""
 Write-Host "  Next steps:" -ForegroundColor Yellow
-Write-Host "   1. Build and push CMS image: docker build -t $ContainerRegistry.azurecr.io/${CmsImage}:latest ./cms && docker push ..." -ForegroundColor Yellow
-Write-Host "   2. Open admin panel and create admin user" -ForegroundColor Yellow
-Write-Host "   3. Create a read-only API token and add it to Next.js STRAPI_API_TOKEN env var" -ForegroundColor Yellow
-Write-Host "   4. Run seed script: STRAPI_URL=https://$cmsFqdn STRAPI_API_TOKEN=<token> npx ts-node cms/data/seed.ts" -ForegroundColor Yellow
+Write-Host "   1. Build and push CMS image:" -ForegroundColor Yellow
+Write-Host "      az acr login --name $ContainerRegistry" -ForegroundColor Yellow
+Write-Host "      docker build --target production -t $ContainerRegistry.azurecr.io/${CmsImage}:latest ./cms" -ForegroundColor Yellow
+Write-Host "      docker push $ContainerRegistry.azurecr.io/${CmsImage}:latest" -ForegroundColor Yellow
+Write-Host "      az containerapp update --name $CmsContainerApp --resource-group $ResourceGroup --image $ContainerRegistry.azurecr.io/${CmsImage}:latest" -ForegroundColor Yellow
+Write-Host "   2. Open admin panel: https://$cmsFqdn/admin" -ForegroundColor Yellow
+Write-Host "      POST /admin/register-admin to create the first admin user" -ForegroundColor Yellow
+Write-Host "   3. Create a read-only API token in the admin panel" -ForegroundColor Yellow
+Write-Host "   4. Add to Next.js Container App env vars:" -ForegroundColor Yellow
+Write-Host "      STRAPI_URL=https://$cmsFqdn" -ForegroundColor Yellow
+Write-Host "      STRAPI_API_TOKEN=[read-only token from step 3]" -ForegroundColor Yellow
+Write-Host "   5. Seed: STRAPI_URL=https://$cmsFqdn npx tsx cms/data/seed.ts" -ForegroundColor Yellow
 Write-Host ""
