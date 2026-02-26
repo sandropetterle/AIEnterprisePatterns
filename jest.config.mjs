@@ -40,6 +40,8 @@ const config = {
     '!app/**/layout.tsx',
     '!app/**/not-found.tsx',
     '!app/api/**',
+    // CMS integration layer — requires live Strapi server, covered by E2E/Docker build
+    '!lib/cms/**',
   ],
   coverageThreshold: {
     global: {

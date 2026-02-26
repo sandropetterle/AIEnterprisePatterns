@@ -108,10 +108,10 @@ Adopt Strapi 5 as a headless CMS to manage all static frontend content (300+ ite
 
 ### Infrastructure
 
-- **Database:** Azure Database for MySQL Flexible Server (free tier: B1ms, 32 GiB storage, 12 months free)
+- **Database:** Azure Database for MySQL Flexible Server (B1ms Burstable, **20 GiB storage**, auto-grow/auto-IO disabled — see Decision 39)
 - **Hosting:** Azure Container App for Strapi (scale-to-zero, ~$5-10/month)
 - **Media:** Azure Blob Storage (~$0.02/month) via `@strapi/provider-upload-azure-storage`
-- **Total cost:** ~$10-15/month (MySQL free tier) → ~$23-28/month after free tier expires
+- **Total cost:** ~$23-28/month (MySQL ~$13/mo + Container App ~$5-10/mo + Storage ~$0.02/mo)
 
 ### Frontend Integration Pattern
 
@@ -1786,3 +1786,117 @@ The `cms-container-deploy.yml` workflow should be updated to retrieve the digest
 
 ACR Tasks (`az acr build`) are not available on this subscription tier (`TasksOperationsNotAllowed`). All Docker builds must be done locally or in GitHub Actions runners, then pushed to ACR with `docker push`.
 - 🔲 CMS.4 Phase 2: about/docs pages, pattern label props propagation
+
+---
+
+## Decision 37: CMS Client — Catch Network Errors for Build-Time Fallback
+
+**Date:** 2026-02-26
+**Title:** Wrap `fetch()` in try/catch in `fetchStrapi` to Handle Network Failures During Docker Build
+**Category:** Architecture / CMS / Build
+
+### Problem
+
+`lib/cms/client.ts::fetchStrapi` only threw `CmsUnavailableError` on HTTP-level failures (`res.ok === false`). Network-level errors — `TypeError: fetch failed` with `AggregateError` (ECONNREFUSED, DNS failure) — propagated unhandled. The `safeFetch` wrapper in `queries.ts` only catches `CmsUnavailableError`, so network errors crashed the build.
+
+This caused 3 consecutive CI failures: the Docker `npm run build` step pre-renders `/_not-found`, which calls `getNotFoundPage()` → `safeFetch` → `fetchStrapi`. With `STRAPI_URL` not reachable at build time (it's a runtime env var, not a build arg), `fetch()` throws `TypeError`, which bypassed the fallback entirely.
+
+### Fix
+
+```typescript
+let res: Response;
+try {
+  res = await fetch(url.toString(), { headers, next: { revalidate } });
+} catch {
+  // Network error (ECONNREFUSED, DNS failure, etc.) — treat as CMS unavailable
+  throw new CmsUnavailableError(path);
+}
+```
+
+Both network errors and HTTP errors now surface as `CmsUnavailableError`, which `safeFetch` catches and replaces with the hardcoded fallback object. The frontend renders with fallback content during Docker build when Strapi is unreachable, then fetches live content at request time via ISR.
+
+### Alternative Considered
+
+Pass `STRAPI_URL` as a Docker `--build-arg` so the build can reach Strapi. Rejected: Strapi is not guaranteed reachable from the CI runner, it couples the build to runtime infrastructure, and the fallback pattern is the correct abstraction.
+
+---
+
+## Decision 38: Strapi On-Demand ISR Webhook — Production Setup
+
+**Date:** 2026-02-26
+**Title:** `REVALIDATE_SECRET` as Container App Secret; CI Workflow Deploys All CMS Env Vars
+**Category:** Infrastructure / CMS / Security
+
+### Problem
+
+After deploying `app/api/revalidate/route.ts`, two infrastructure gaps prevented it from working:
+
+1. `REVALIDATE_SECRET` was not set in the production Container App — all webhook calls returned 401.
+2. `STRAPI_URL`, `STRAPI_API_TOKEN`, `REVALIDATE_SECRET`, `AUTH_URL` were absent from `frontend-container-deploy.yml` `--set-env-vars` — each CI deployment would silently clear them.
+3. The Strapi webhook had never been created (0 webhooks configured).
+
+### Resolution
+
+**Container App secrets** (via `az containerapp secret set`):
+- `strapi-api-token` — read-only Strapi API token
+- `revalidate-secret` — webhook shared secret
+
+**CI workflow** (`frontend-container-deploy.yml`):
+- Added `CMS_CONTAINER_APP: 'ca-aipatterns-cms-prod'` to env block
+- "Get Service URLs" step now resolves backend FQDN, CMS FQDN (`strapi_url`), and frontend FQDN (`auth_url`) from Azure at deploy time
+- Deploy step now sets: `AUTH_URL`, `STRAPI_URL`, `STRAPI_API_TOKEN=secretref:strapi-api-token`, `REVALIDATE_SECRET=secretref:revalidate-secret`
+
+**Strapi webhook** (Settings → Webhooks → "ISR Revalidation"):
+- URL: `https://<frontend-fqdn>/api/revalidate?secret=<REVALIDATE_SECRET>`
+- Events: all 5 entry events (create, update, delete, publish, unpublish)
+
+### Validation
+
+| Scenario | Result |
+|----------|--------|
+| Wrong/missing secret | 401 ✅ |
+| Valid secret + known model (`home-page/entry.update`) | 200 `{revalidated:true, paths:["/"]}` ✅ |
+| Valid secret + unknown model | 200 `{message:"Model not handled"}` ✅ |
+| Strapi Trigger button | Success ✅ |
+| Real save+publish — `entry.update` + `entry.publish` both fired | Confirmed via network log ✅ |
+
+---
+
+## Decision 39: Azure MySQL Flexible Server — Storage Reduced to 20 GB Minimum
+
+**Date:** 2026-02-26
+**Title:** Rebuild MySQL with 20 GB (minimum) Storage, Auto-Grow and Auto-IO Scaling Disabled
+**Category:** Infrastructure / Database / Cost Optimisation
+
+### Problem
+
+The original MySQL Flexible Server was provisioned with 32 GB storage (`--storage-size 32`), auto-grow enabled, and auto-IO scaling enabled. For a small Strapi CMS with a 572 KB database, this was heavily over-provisioned and created risk of silent cost escalation via auto-grow and auto-IOPS triggers.
+
+Azure does not support in-place storage reduction — a full delete-and-recreate was required.
+
+### Resolution
+
+1. Dumped `strapi_cms` database via Docker (`mysql:8.0 mysqldump`, 572 KB / 3154 lines).
+2. Deleted `mysql-aipatterns-cms` server.
+3. Recreated with minimum configuration:
+   - `--storage-size 20` (20 GB — Azure Flexible Server minimum)
+   - `--storage-auto-grow Disabled`
+   - `--auto-scale-iops Disabled`
+   - SKU remains `Standard_B1ms` (`Standard_B1s` is listed in `list-skus` but rejected at create time with `OperationNotSupportedStandardB1s`)
+4. Restored dump; verified Strapi admin panel returns HTTP 200.
+
+`provision-cms.ps1` updated to reflect all three flags.
+
+### Before / After
+
+| Setting | Before | After |
+|---------|--------|-------|
+| Storage | 32 GB | **20 GB** |
+| Auto-grow | Enabled | **Disabled** |
+| Auto-IO scaling | Enabled | **Disabled** |
+| SKU | Standard_B1ms | Standard_B1ms (unchanged) |
+
+### Alternatives Evaluated
+
+- **`Standard_B1s` SKU** — listed in `az mysql flexible-server list-skus` for francecentral 8.0.21, but Azure rejects creation with `OperationNotSupportedStandardB1s`. Not available on this subscription tier.
+- **In-place resize** — Azure MySQL Flexible Server only allows storage increases, not reductions. Delete-recreate is the only path.

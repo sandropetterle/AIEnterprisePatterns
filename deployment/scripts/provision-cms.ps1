@@ -76,7 +76,9 @@ if ($mysqlExists -and $LASTEXITCODE -eq 0) {
         --admin-password $MysqlAdminPassword `
         --sku-name Standard_B1ms `
         --tier Burstable `
-        --storage-size 32 `
+        --storage-size 20 `
+        --storage-auto-grow Disabled `
+        --auto-scale-iops Disabled `
         --version 8.0.21 `
         --public-access 0.0.0.0 `
         --yes
