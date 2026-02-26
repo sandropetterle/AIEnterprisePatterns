@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_sections_api_references",
+  "info": { "displayName": "API Reference", "icon": "server" },
+  "options": {},
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "description": { "type": "text" },
+    "baseUrl": { "type": "string" },
+    "endpoints": { "type": "component", "repeatable": true, "component": "shared.api-endpoint" },
+    "exampleCode": { "type": "richtext" },
+    "swaggerNote": { "type": "richtext" }
+  }
+}

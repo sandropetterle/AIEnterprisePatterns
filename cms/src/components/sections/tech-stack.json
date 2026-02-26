@@ -1,0 +1,9 @@
+{
+  "collectionName": "components_sections_tech_stacks",
+  "info": { "displayName": "Tech Stack", "icon": "code" },
+  "options": {},
+  "attributes": {
+    "heading": { "type": "string", "required": true },
+    "groups": { "type": "component", "repeatable": true, "component": "shared.tech-group" }
+  }
+}

@@ -1,0 +1,10 @@
+{
+  "collectionName": "components_sections_open_source_infos",
+  "info": { "displayName": "Open Source Info", "icon": "code" },
+  "options": {},
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "description": { "type": "richtext" },
+    "links": { "type": "component", "repeatable": true, "component": "layout.cta-button" }
+  }
+}

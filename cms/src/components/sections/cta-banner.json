@@ -1,0 +1,12 @@
+{
+  "collectionName": "components_sections_cta_banners",
+  "info": { "displayName": "CTA Banner", "icon": "megaphone" },
+  "options": {},
+  "attributes": {
+    "heading": { "type": "string", "required": true },
+    "description": { "type": "richtext" },
+    "primaryCTA": { "type": "component", "repeatable": false, "component": "layout.cta-button" },
+    "secondaryCTA": { "type": "component", "repeatable": false, "component": "layout.cta-button" },
+    "variant": { "type": "enumeration", "enum": ["default", "highlighted"], "default": "default" }
+  }
+}

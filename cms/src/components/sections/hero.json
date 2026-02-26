@@ -1,0 +1,12 @@
+{
+  "collectionName": "components_sections_heroes",
+  "info": { "displayName": "Hero", "icon": "landscape" },
+  "options": {},
+  "attributes": {
+    "heading": { "type": "string", "required": true },
+    "subheading": { "type": "richtext" },
+    "primaryCTA": { "type": "component", "repeatable": false, "component": "layout.cta-button" },
+    "secondaryCTA": { "type": "component", "repeatable": false, "component": "layout.cta-button" },
+    "backgroundImage": { "type": "media", "multiple": false, "allowedTypes": ["images"] }
+  }
+}

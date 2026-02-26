@@ -1,0 +1,18 @@
+{
+  "collectionName": "components_shared_api_endpoints",
+  "info": { "displayName": "API Endpoint", "icon": "server" },
+  "options": {},
+  "attributes": {
+    "method": {
+      "type": "enumeration",
+      "enum": ["GET", "POST", "PUT", "DELETE"],
+      "required": true,
+      "default": "GET"
+    },
+    "path": { "type": "string", "required": true },
+    "description": { "type": "string", "required": true },
+    "authRequired": { "type": "boolean", "default": false },
+    "rateLimit": { "type": "string" },
+    "queryParams": { "type": "component", "repeatable": true, "component": "shared.key-value" }
+  }
+}

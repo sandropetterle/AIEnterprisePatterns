@@ -14,11 +14,23 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { roleLabel } from '@/lib/types/auth'
 
+type UserMenuProps = {
+  signInLabel?: string
+  signOutLabel?: string
+  userMenuLabel?: string
+  newPatternButtonLabel?: string
+}
+
 /**
  * Header user menu — shows sign-in button when unauthenticated,
  * or a dropdown with user info and sign-out when authenticated.
+ * Labels are optional (CMS-driven) with hardcoded fallbacks.
  */
-export function UserMenu() {
+export function UserMenu({
+  signInLabel = 'Sign In',
+  signOutLabel = 'Sign Out',
+  userMenuLabel = 'User menu',
+}: UserMenuProps) {
   const { data: session, status } = useSession()
 
   if (status === 'loading') {
@@ -36,7 +48,7 @@ export function UserMenu() {
         className="gap-2"
       >
         <LogIn className="h-4 w-4" aria-hidden="true" />
-        Sign In
+        {signInLabel}
       </Button>
     )
   }
@@ -47,7 +59,7 @@ export function UserMenu() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="sm" className="gap-2" aria-label="User menu">
+        <Button variant="ghost" size="sm" className="gap-2" aria-label={userMenuLabel}>
           <User className="h-4 w-4" aria-hidden="true" />
           <span className="hidden sm:inline max-w-[120px] truncate">{name}</span>
           <ChevronDown className="h-3 w-3 text-muted-foreground" aria-hidden="true" />
@@ -71,7 +83,7 @@ export function UserMenu() {
           className="text-destructive focus:text-destructive gap-2 cursor-pointer"
         >
           <LogOut className="h-4 w-4" aria-hidden="true" />
-          Sign Out
+          {signOutLabel}
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

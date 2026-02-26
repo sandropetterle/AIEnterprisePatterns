@@ -1,0 +1,15 @@
+{
+  "kind": "singleType",
+  "collectionName": "about_page",
+  "info": { "singularName": "about-page", "pluralName": "about-pages", "displayName": "About Page" },
+  "options": { "draftAndPublish": true },
+  "pluginOptions": {},
+  "attributes": {
+    "seo": { "type": "component", "repeatable": false, "component": "seo.metadata" },
+    "header": { "type": "component", "repeatable": false, "component": "sections.page-header" },
+    "content": {
+      "type": "dynamiczone",
+      "components": ["sections.mission-block","sections.feature-grid","sections.tech-stack","sections.open-source-info","sections.cta-banner","sections.rich-text"]
+    }
+  }
+}

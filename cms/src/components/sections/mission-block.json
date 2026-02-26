@@ -1,0 +1,9 @@
+{
+  "collectionName": "components_sections_mission_blocks",
+  "info": { "displayName": "Mission Block", "icon": "rocket" },
+  "options": {},
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "content": { "type": "richtext", "required": true }
+  }
+}

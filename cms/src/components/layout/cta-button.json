@@ -1,0 +1,15 @@
+{
+  "collectionName": "components_layout_cta_buttons",
+  "info": { "displayName": "CTA Button", "icon": "cursor" },
+  "options": {},
+  "attributes": {
+    "label": { "type": "string", "required": true },
+    "href": { "type": "string", "required": true },
+    "variant": {
+      "type": "enumeration",
+      "enum": ["primary", "secondary", "outline", "ghost"],
+      "default": "primary"
+    },
+    "icon": { "type": "string" }
+  }
+}

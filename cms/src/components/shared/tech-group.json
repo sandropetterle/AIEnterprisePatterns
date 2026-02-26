@@ -1,0 +1,9 @@
+{
+  "collectionName": "components_shared_tech_groups",
+  "info": { "displayName": "Tech Group", "icon": "code" },
+  "options": {},
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "items": { "type": "component", "repeatable": true, "component": "shared.text-item" }
+  }
+}

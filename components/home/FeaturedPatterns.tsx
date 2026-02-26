@@ -5,26 +5,32 @@ import { PatternCard } from './PatternCard'
 
 type FeaturedPatternsProps = {
   patterns: Pattern[]
+  heading?: string
+  subheading?: string
+  viewAllLabel?: string
+  mobileViewAllLabel?: string
 }
 
-export function FeaturedPatterns({ patterns }: FeaturedPatternsProps) {
+export function FeaturedPatterns({
+  patterns,
+  heading = 'Featured Patterns',
+  subheading = 'Top-rated patterns curated by the community',
+  viewAllLabel = 'View All',
+  mobileViewAllLabel = 'View All Patterns',
+}: FeaturedPatternsProps) {
   return (
     <section id="featured" className="py-16 sm:py-20 lg:py-24 bg-muted/50">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between mb-8">
           <div>
-            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">
-              Featured Patterns
-            </h2>
-            <p className="mt-2 text-muted-foreground">
-              Top-rated patterns curated by the community
-            </p>
+            <h2 className="text-3xl font-bold tracking-tight sm:text-4xl">{heading}</h2>
+            <p className="mt-2 text-muted-foreground">{subheading}</p>
           </div>
           <Link
             href="/patterns"
             className="hidden sm:flex items-center gap-2 text-sm font-medium text-primary hover:underline"
           >
-            View All
+            {viewAllLabel}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -38,7 +44,7 @@ export function FeaturedPatterns({ patterns }: FeaturedPatternsProps) {
             href="/patterns"
             className="inline-flex items-center gap-2 text-sm font-medium text-primary hover:underline"
           >
-            View All Patterns
+            {mobileViewAllLabel}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>

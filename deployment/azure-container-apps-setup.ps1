@@ -54,7 +54,7 @@ $SQL_FAMILY = "Gen5"
 $SQL_COMPUTE_MODEL = "Serverless"
 $SQL_MIN_VCORES = 0.5  # Minimum cores (0.5 = half core)
 $SQL_MAX_VCORES = 2    # Maximum cores
-$SQL_AUTOPAUSE_DELAY = 60  # Auto-pause after 60 minutes of inactivity
+$SQL_AUTOPAUSE_DELAY = 15  # Auto-pause after 15 minutes of inactivity
 
 # ============================================================================
 # HELPER FUNCTIONS

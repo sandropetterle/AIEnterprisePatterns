@@ -5,6 +5,7 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { Toaster } from 'sonner'
+import { getGlobal } from '@/lib/cms/queries'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -26,14 +27,7 @@ export const metadata: Metadata = {
     siteName: 'AI Enterprise Patterns Library',
     title: 'AI Enterprise Patterns Library',
     description: 'Curated AI-driven recipes, prompts, and blueprints for enterprise software architecture',
-    images: [
-      {
-        url: '/og-image.png',
-        width: 1200,
-        height: 630,
-        alt: 'AI Enterprise Patterns Library',
-      },
-    ],
+    images: [{ url: '/og-image.png', width: 1200, height: 630, alt: 'AI Enterprise Patterns Library' }],
   },
   twitter: {
     card: 'summary_large_image',
@@ -54,11 +48,13 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  const global = await getGlobal()
+
   return (
     <html lang="en">
       <body className={inter.className}>
@@ -67,12 +63,19 @@ export default function RootLayout({
             href="#main-content"
             className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:ring-2 focus:ring-ring"
           >
-            Skip to main content
+            {global.skipToContentLabel ?? 'Skip to main content'}
           </a>
           <div className="flex min-h-screen flex-col">
-            <Header />
+            <Header
+              navLinks={global.navigation}
+              mobileMenuTitle={global.mobileMenuTitle}
+              signInLabel={global.signInLabel}
+              signOutLabel={global.signOutLabel}
+              userMenuLabel={global.userMenuLabel}
+              newPatternButtonLabel={global.newPatternButtonLabel}
+            />
             <main id="main-content" className="flex-1">{children}</main>
-            <Footer />
+            <Footer footerConfig={global.footer} />
             <Toaster position="bottom-right" />
           </div>
         </SessionProvider>

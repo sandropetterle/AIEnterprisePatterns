@@ -13,7 +13,7 @@ import {
 } from '@/components/ui/card'
 import { Logo } from '@/components/shared/Logo'
 
-const AUTH_ERROR_MESSAGES: Record<string, string> = {
+const DEFAULT_ERROR_MESSAGES: Record<string, string> = {
   OAuthSignin: 'Could not start the sign-in flow. Please try again.',
   OAuthCallback: 'Sign-in failed during callback. Please try again.',
   OAuthCreateAccount: 'Could not create your account. Please try again.',
@@ -25,23 +25,37 @@ const AUTH_ERROR_MESSAGES: Record<string, string> = {
 
 type Props = {
   error?: string
+  cardTitle?: string
+  cardDescription?: string
+  signInButtonLabel?: string
+  signInLoadingLabel?: string
+  footerNotice?: string
+  errorMessages?: Record<string, string>
 }
 
 /**
  * Branded login page that redirects to Entra External ID's hosted sign-in flow.
- * The Entra-hosted page is configured with our branding (logo, colours, CSS).
+ * Labels are CMS-driven with hardcoded fallbacks.
  */
-export function LoginForm({ error }: Props) {
+export function LoginForm({
+  error,
+  cardTitle = 'Sign in',
+  cardDescription = 'Access the AI Enterprise Patterns Library',
+  signInButtonLabel = 'Continue with Microsoft',
+  signInLoadingLabel = 'Redirecting...',
+  footerNotice = 'Sign-in is managed securely by Microsoft Entra.\nOnly authorized users may access this application.',
+  errorMessages = DEFAULT_ERROR_MESSAGES,
+}: Props) {
   const [isLoading, setIsLoading] = useState(false)
 
+  const mergedErrorMessages = { ...DEFAULT_ERROR_MESSAGES, ...errorMessages }
   const errorMessage = error
-    ? (AUTH_ERROR_MESSAGES[error] ?? AUTH_ERROR_MESSAGES.Default)
+    ? (mergedErrorMessages[error] ?? mergedErrorMessages.Default)
     : null
 
   async function handleSignIn() {
     setIsLoading(true)
     await signIn('entra-external-id')
-    // Redirect is handled by Auth.js; if we reach here the user cancelled
     setIsLoading(false)
   }
 
@@ -52,10 +66,8 @@ export function LoginForm({ error }: Props) {
           <Logo />
         </div>
         <div className="space-y-1 text-center">
-          <h1 className="text-xl font-semibold leading-none tracking-tight">Sign in</h1>
-          <CardDescription>
-            Access the AI Enterprise Patterns Library
-          </CardDescription>
+          <h1 className="text-xl font-semibold leading-none tracking-tight">{cardTitle}</h1>
+          <CardDescription>{cardDescription}</CardDescription>
         </div>
       </CardHeader>
 
@@ -81,16 +93,12 @@ export function LoginForm({ error }: Props) {
           ) : (
             <LogIn className="h-4 w-4" aria-hidden="true" />
           )}
-          {isLoading ? 'Redirecting…' : 'Continue with Microsoft'}
+          {isLoading ? signInLoadingLabel : signInButtonLabel}
         </Button>
       </CardContent>
 
       <CardFooter className="flex-col gap-2 text-center text-xs text-muted-foreground">
-        <p>
-          Sign-in is managed securely by Microsoft Entra.
-          <br />
-          Only authorized users may access this application.
-        </p>
+        <p style={{ whiteSpace: 'pre-line' }}>{footerNotice}</p>
       </CardFooter>
     </Card>
   )

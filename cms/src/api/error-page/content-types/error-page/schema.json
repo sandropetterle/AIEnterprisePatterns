@@ -1,0 +1,13 @@
+{
+  "kind": "singleType",
+  "collectionName": "error_page",
+  "info": { "singularName": "error-page", "pluralName": "error-pages", "displayName": "Error Page" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": {},
+  "attributes": {
+    "title": { "type": "string", "default": "Something went wrong" },
+    "description": { "type": "text", "default": "We encountered an unexpected error. Please try again." },
+    "retryButtonLabel": { "type": "string", "default": "Try again" },
+    "homeButtonLabel": { "type": "string", "default": "Go home" }
+  }
+}

@@ -1,0 +1,28 @@
+{
+  "collectionName": "components_shared_feature_card",
+  "info": {
+    "displayName": "Feature Card",
+    "icon": "star",
+    "description": "A feature card with icon, title, description, and list of items"
+  },
+  "options": {},
+  "attributes": {
+    "icon": {
+      "type": "string",
+      "required": true
+    },
+    "title": {
+      "type": "string",
+      "required": true
+    },
+    "description": {
+      "type": "string",
+      "required": true
+    },
+    "items": {
+      "type": "component",
+      "repeatable": true,
+      "component": "shared.text-item"
+    }
+  }
+}
