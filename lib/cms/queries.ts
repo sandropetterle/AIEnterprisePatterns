@@ -43,13 +43,25 @@ const POPULATE = {
   /** Pages with Dynamic Zone `content` field — 2-level populate */
   DYNAMIC_ZONE: {
     'populate[content][populate]': '*',
-    'populate[seo]': '*',
+    // Populate seo with explicit scalar fields only — wildcard (*) fails because
+    // ogImage is a Media relation that requires separate populate syntax.
+    'populate[seo][fields][0]': 'title',
+    'populate[seo][fields][1]': 'description',
+    'populate[seo][fields][2]': 'keywords',
+    'populate[seo][fields][3]': 'ogTitle',
+    'populate[seo][fields][4]': 'ogDescription',
   } as Record<string, string>,
   /** Pages with DZ `content` field + `header` component */
   DYNAMIC_ZONE_WITH_HEADER: {
     'populate[content][populate]': '*',
     'populate[header]': '*',
-    'populate[seo]': '*',
+    // Populate seo with explicit scalar fields only — wildcard (*) fails because
+    // ogImage is a Media relation that requires separate populate syntax.
+    'populate[seo][fields][0]': 'title',
+    'populate[seo][fields][1]': 'description',
+    'populate[seo][fields][2]': 'keywords',
+    'populate[seo][fields][3]': 'ogTitle',
+    'populate[seo][fields][4]': 'ogDescription',
   } as Record<string, string>,
 } as const;
 

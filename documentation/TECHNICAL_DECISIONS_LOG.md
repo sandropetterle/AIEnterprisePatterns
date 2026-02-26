@@ -4,6 +4,42 @@ This document captures significant technical design decisions made during the de
 
 ---
 
+## Decision 30: Strapi On-Demand Revalidation Webhook
+
+**Date:** 2026-02-26
+**Title:** Strapi → Next.js On-Demand ISR Revalidation via Webhook
+**Category:** CMS / Performance
+
+### Decision Details
+Added a Next.js POST route handler at `app/api/revalidate/route.ts` that Strapi calls whenever CMS content is published, updated, unpublished, or deleted. The handler calls `revalidatePath()` to immediately purge the ISR cache for the affected pages rather than waiting for the TTL to expire.
+
+**Content-type → path mapping:**
+- `global` → `revalidatePath('/', 'layout')` — purges all pages (nav/footer affect every route)
+- `home-page` → `/`
+- `about-page` → `/about`
+- `docs-page` → `/docs`
+- `login-page` → `/login`
+- `not-found-page`, `error-page` → `/`
+- `pattern-*-labels` → `revalidatePath('/patterns', 'layout')` — purges listing, detail, and form pages
+
+**Security:** A `REVALIDATE_SECRET` environment variable is required as a query param (`?secret=...`) to prevent unauthorized cache busting. Returns 401 if missing or wrong.
+
+### Rationale
+- ISR TTLs (5–60 min) are acceptable for low-traffic sites but introduce unnecessary staleness after a content editor publishes a change
+- On-demand revalidation brings content live immediately without a full redeploy
+- Webhook approach keeps CMS and frontend decoupled — Strapi only needs the URL + secret
+
+### Strapi Webhook Setup
+Settings → Webhooks → Create webhook:
+- URL: `https://<domain>/api/revalidate?secret=<REVALIDATE_SECRET>`
+- Events: Entry (Create, Update, Publish, Unpublish, Delete)
+
+### Alternatives Evaluated
+- **Time-based ISR only** — simple but up to 60 min delay after publish
+- **Full redeploy on content change** — instant but overkill; breaks scale-to-zero cost model
+
+---
+
 ## Decision 29: Azure SQL — Storage Reduced to 1 GB & Auto-Pause Shortened to 15 Minutes
 
 **Date:** 2026-02-23
