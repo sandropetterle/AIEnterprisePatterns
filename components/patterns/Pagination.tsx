@@ -9,6 +9,8 @@ type PaginationProps = {
   totalPages: number
   hasNextPage: boolean
   hasPreviousPage: boolean
+  previousLabel?: string
+  nextLabel?: string
 }
 
 export function Pagination({
@@ -16,6 +18,8 @@ export function Pagination({
   totalPages,
   hasNextPage,
   hasPreviousPage,
+  previousLabel = 'Previous',
+  nextLabel = 'Next',
 }: PaginationProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -84,7 +88,7 @@ export function Pagination({
         className="gap-1"
       >
         <ChevronLeft className="h-4 w-4" />
-        Previous
+        {previousLabel}
       </Button>
 
       <div className="flex items-center gap-1">
@@ -123,7 +127,7 @@ export function Pagination({
         disabled={!hasNextPage}
         className="gap-1"
       >
-        Next
+        {nextLabel}
         <ChevronRight className="h-4 w-4" />
       </Button>
     </nav>

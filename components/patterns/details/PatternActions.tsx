@@ -24,9 +24,26 @@ import { hasRole } from '@/lib/types/auth'
 type PatternActionsProps = {
   slug: string
   patternId: string
+  editLabel?: string
+  deleteLabel?: string
+  deleteDialogTitle?: string
+  deleteDialogDescription?: string
+  cancelLabel?: string
+  deleteConfirmLabel?: string
+  deletingLabel?: string
 }
 
-export function PatternActions({ slug, patternId }: PatternActionsProps) {
+export function PatternActions({
+  slug,
+  patternId,
+  editLabel = 'Edit',
+  deleteLabel = 'Delete',
+  deleteDialogTitle = 'Delete Pattern?',
+  deleteDialogDescription = 'This action cannot be undone. This will permanently delete the pattern.',
+  cancelLabel = 'Cancel',
+  deleteConfirmLabel = 'Delete',
+  deletingLabel = 'Deleting...',
+}: PatternActionsProps) {
   const [isDeleting, setIsDeleting] = useState(false)
   const router = useRouter()
   const { data: session, status } = useSession()
@@ -53,7 +70,7 @@ export function PatternActions({ slug, patternId }: PatternActionsProps) {
       <Button variant="outline" size="sm" asChild>
         <Link href={`/patterns/${slug}/edit`}>
           <Pencil className="h-4 w-4 mr-2" />
-          Edit
+          {editLabel}
         </Link>
       </Button>
 
@@ -65,25 +82,24 @@ export function PatternActions({ slug, patternId }: PatternActionsProps) {
             className="text-destructive hover:text-destructive"
           >
             <Trash2 className="h-4 w-4 mr-2" />
-            Delete
+            {deleteLabel}
           </Button>
         </AlertDialogTrigger>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Delete Pattern?</AlertDialogTitle>
+            <AlertDialogTitle>{deleteDialogTitle}</AlertDialogTitle>
             <AlertDialogDescription>
-              This action cannot be undone. This will permanently delete the
-              pattern.
+              {deleteDialogDescription}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Cancel</AlertDialogCancel>
+            <AlertDialogCancel disabled={isDeleting}>{cancelLabel}</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDelete}
               disabled={isDeleting}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {isDeleting ? 'Deleting...' : 'Delete'}
+              {isDeleting ? deletingLabel : deleteConfirmLabel}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

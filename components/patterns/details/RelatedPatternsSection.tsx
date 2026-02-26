@@ -6,20 +6,24 @@ import { Heart } from 'lucide-react'
 
 type RelatedPatternsSectionProps = {
   patterns: Pattern[]
+  title?: string
+  noRelatedMessage?: string
 }
 
 export function RelatedPatternsSection({
   patterns,
+  title = 'Related Patterns',
+  noRelatedMessage = 'No related patterns found',
 }: RelatedPatternsSectionProps) {
   if (patterns.length === 0) {
     return (
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Related Patterns</CardTitle>
+          <CardTitle className="text-lg">{title}</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm text-muted-foreground">
-            No related patterns found
+            {noRelatedMessage}
           </p>
         </CardContent>
       </Card>
@@ -29,7 +33,7 @@ export function RelatedPatternsSection({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-lg">Related Patterns</CardTitle>
+        <CardTitle className="text-lg">{title}</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {patterns.map((pattern) => (

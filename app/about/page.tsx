@@ -3,8 +3,10 @@ import Link from 'next/link'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Github, Lightbulb, Users, Code2, Sparkles, Target, BookOpen, Zap } from 'lucide-react'
+import { getAboutPage } from '@/lib/cms/queries'
+import { DynamicZone } from '@/lib/cms/components'
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: 'About | AI Enterprise Patterns',
   description:
     'Learn about AI Enterprise Patterns Library - a curated collection of AI-driven implementation patterns, prompts, and architectural blueprints for modern software development.',
@@ -24,7 +26,54 @@ export const metadata: Metadata = {
   },
 }
 
-export default function AboutPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getAboutPage()
+  if (!page.seo) return DEFAULT_METADATA
+  return {
+    title: page.seo.title ?? DEFAULT_METADATA.title,
+    description: page.seo.description ?? (DEFAULT_METADATA.description as string),
+    keywords: page.seo.keywords?.split(',').map((k) => k.trim()) ?? DEFAULT_METADATA.keywords,
+    openGraph: {
+      title: page.seo.ogTitle ?? page.seo.title ?? 'About | AI Enterprise Patterns',
+      description:
+        page.seo.ogDescription ??
+        page.seo.description ??
+        (DEFAULT_METADATA.description as string),
+    },
+  }
+}
+
+// Revalidate every 10 minutes
+export const revalidate = 600
+
+export default async function AboutPage() {
+  const page = await getAboutPage()
+  const hasCmsContent = !!(page.content?.length || page.header)
+
+  if (hasCmsContent) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {page.header && (
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            {page.header.badge && (
+              <Badge className="mb-4">{page.header.badge}</Badge>
+            )}
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
+              {page.header.title}
+            </h1>
+            {page.header.subtitle && (
+              <p className="text-xl text-muted-foreground leading-relaxed">
+                {page.header.subtitle}
+              </p>
+            )}
+          </div>
+        )}
+        {page.content?.length ? <DynamicZone content={page.content} /> : null}
+      </div>
+    )
+  }
+
+  // Fallback: hardcoded content when CMS has no data
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Header Section */}
@@ -60,8 +109,8 @@ export default function AboutPage() {
               prompt engineering and best practices.
             </p>
             <p>
-              Whether you're building microservices, implementing clean architecture, or exploring
-              AI-assisted code generation, you'll find practical, production-ready patterns here.
+              Whether you&apos;re building microservices, implementing clean architecture, or exploring
+              AI-assisted code generation, you&apos;ll find practical, production-ready patterns here.
             </p>
           </CardContent>
         </Card>
@@ -71,7 +120,6 @@ export default function AboutPage() {
       <div className="max-w-6xl mx-auto mb-16">
         <h2 className="text-3xl font-bold text-center mb-10">What We Offer</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {/* Feature 1 */}
           <Card>
             <CardHeader>
               <Code2 className="h-8 w-8 text-primary mb-2" />
@@ -91,7 +139,6 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          {/* Feature 2 */}
           <Card>
             <CardHeader>
               <Sparkles className="h-8 w-8 text-primary mb-2" />
@@ -110,7 +157,6 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          {/* Feature 3 */}
           <Card>
             <CardHeader>
               <BookOpen className="h-8 w-8 text-primary mb-2" />
@@ -129,7 +175,6 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          {/* Feature 4 */}
           <Card>
             <CardHeader>
               <Lightbulb className="h-8 w-8 text-primary mb-2" />
@@ -148,7 +193,6 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          {/* Feature 5 */}
           <Card>
             <CardHeader>
               <Users className="h-8 w-8 text-primary mb-2" />
@@ -167,7 +211,6 @@ export default function AboutPage() {
             </CardContent>
           </Card>
 
-          {/* Feature 6 */}
           <Card>
             <CardHeader>
               <Zap className="h-8 w-8 text-primary mb-2" />

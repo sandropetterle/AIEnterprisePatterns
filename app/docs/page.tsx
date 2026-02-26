@@ -16,8 +16,10 @@ import {
   Tag,
   ArrowRight,
 } from 'lucide-react'
+import { getDocsPage } from '@/lib/cms/queries'
+import { DynamicZone } from '@/lib/cms/components'
 
-export const metadata: Metadata = {
+const DEFAULT_METADATA: Metadata = {
   title: 'Documentation | AI Enterprise Patterns',
   description:
     'Complete documentation for the AI Enterprise Patterns Library. Learn how to use the platform, search patterns, integrate the API, and contribute to the community.',
@@ -37,7 +39,54 @@ export const metadata: Metadata = {
   },
 }
 
-export default function DocsPage() {
+export async function generateMetadata(): Promise<Metadata> {
+  const page = await getDocsPage()
+  if (!page.seo) return DEFAULT_METADATA
+  return {
+    title: page.seo.title ?? DEFAULT_METADATA.title,
+    description: page.seo.description ?? (DEFAULT_METADATA.description as string),
+    keywords: page.seo.keywords?.split(',').map((k) => k.trim()) ?? DEFAULT_METADATA.keywords,
+    openGraph: {
+      title: page.seo.ogTitle ?? page.seo.title ?? 'Documentation | AI Enterprise Patterns',
+      description:
+        page.seo.ogDescription ??
+        page.seo.description ??
+        (DEFAULT_METADATA.description as string),
+    },
+  }
+}
+
+// Revalidate every 10 minutes
+export const revalidate = 600
+
+export default async function DocsPage() {
+  const page = await getDocsPage()
+  const hasCmsContent = !!(page.content?.length || page.header)
+
+  if (hasCmsContent) {
+    return (
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        {page.header && (
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            {page.header.badge && (
+              <Badge className="mb-4">{page.header.badge}</Badge>
+            )}
+            <h1 className="text-4xl sm:text-5xl font-bold tracking-tight mb-6">
+              {page.header.title}
+            </h1>
+            {page.header.subtitle && (
+              <p className="text-xl text-muted-foreground">
+                {page.header.subtitle}
+              </p>
+            )}
+          </div>
+        )}
+        {page.content?.length ? <DynamicZone content={page.content} /> : null}
+      </div>
+    )
+  }
+
+  // Fallback: hardcoded content when CMS has no data
   return (
     <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-12">
       {/* Header */}
@@ -197,7 +246,7 @@ export default function DocsPage() {
               </p>
               <div className="bg-muted p-4 rounded-lg">
                 <p className="text-sm font-mono">
-                  Example: Search for "repository" to find repository pattern implementations
+                  Example: Search for &quot;repository&quot; to find repository pattern implementations
                 </p>
               </div>
             </div>
@@ -212,7 +261,7 @@ export default function DocsPage() {
               </p>
               <ul className="space-y-2 text-muted-foreground ml-6">
                 <li>• Click a category badge to filter by that category</li>
-                <li>• Use the "All" button to show all patterns</li>
+                <li>• Use the &quot;All&quot; button to show all patterns</li>
                 <li>• Combine filters with search for precise results</li>
               </ul>
             </div>
@@ -269,7 +318,6 @@ export default function DocsPage() {
             <div>
               <h3 className="text-lg font-semibold mb-3">Endpoints</h3>
               <div className="space-y-4">
-                {/* GET /patterns */}
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <Badge variant="outline">GET</Badge>
@@ -295,7 +343,6 @@ export default function DocsPage() {
                   </details>
                 </div>
 
-                {/* GET /patterns/featured */}
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <Badge variant="outline">GET</Badge>
@@ -304,7 +351,6 @@ export default function DocsPage() {
                   <p className="text-sm text-muted-foreground">Get all featured patterns</p>
                 </div>
 
-                {/* GET /patterns/trending */}
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <Badge variant="outline">GET</Badge>
@@ -313,7 +359,6 @@ export default function DocsPage() {
                   <p className="text-sm text-muted-foreground">Get all trending patterns</p>
                 </div>
 
-                {/* GET /patterns/:slug */}
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <Badge variant="outline">GET</Badge>
@@ -324,7 +369,6 @@ export default function DocsPage() {
                   </p>
                 </div>
 
-                {/* POST /patterns/:id/vote */}
                 <div className="border rounded-lg p-4">
                   <div className="flex items-center gap-3 mb-2">
                     <Badge variant="outline" className="bg-blue-500/10 text-blue-600">
@@ -388,7 +432,7 @@ export default function DocsPage() {
             <div>
               <h3 className="text-lg font-semibold mb-3">How to Contribute</h3>
               <p className="text-muted-foreground mb-4">
-                We welcome contributions from the community! Here's how you can help:
+                We welcome contributions from the community! Here&apos;s how you can help:
               </p>
               <ul className="space-y-3 text-muted-foreground">
                 <li className="flex items-start gap-2">
@@ -455,7 +499,7 @@ export default function DocsPage() {
           <CardHeader>
             <CardTitle className="text-xl">Need Help?</CardTitle>
             <CardDescription>
-              Can't find what you're looking for? Here are some helpful resources:
+              Can&apos;t find what you&apos;re looking for? Here are some helpful resources:
             </CardDescription>
           </CardHeader>
           <CardContent>

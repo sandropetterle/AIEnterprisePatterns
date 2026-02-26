@@ -5,6 +5,7 @@ import { hasRole } from '@/lib/types/auth'
 import { getPatternBySlug } from '@/lib/api/patterns'
 import { PatternForm } from '@/components/patterns/PatternForm'
 import { Breadcrumb } from '@/components/patterns/details/Breadcrumb'
+import { getPatternFormLabels } from '@/lib/cms/queries'
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -29,7 +30,10 @@ export default async function EditPatternPage({ params }: PageProps) {
     redirect('/patterns')
   }
 
-  const pattern = await getPatternBySlug(slug)
+  const [pattern, labels] = await Promise.all([
+    getPatternBySlug(slug),
+    getPatternFormLabels(),
+  ])
 
   if (!pattern) {
     notFound()
@@ -46,7 +50,7 @@ export default async function EditPatternPage({ params }: PageProps) {
     <>
       <Breadcrumb items={breadcrumbs} />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8 max-w-3xl">
-        <PatternForm mode="edit" initialData={pattern} />
+        <PatternForm mode="edit" initialData={pattern} labels={labels} />
       </div>
     </>
   )

@@ -22,6 +22,7 @@ import { toast } from 'sonner'
 import { hasRole } from '@/lib/types/auth'
 import { createPattern, updatePattern } from '@/lib/api/patterns'
 import type { Pattern, PatternCategory } from '@/lib/types/pattern'
+import type { CmsPatternFormLabels } from '@/lib/cms/types'
 
 const CATEGORIES: PatternCategory[] = [
   'Architecture',
@@ -57,9 +58,10 @@ type FormErrors = {
 type PatternFormProps = {
   mode: 'create' | 'edit'
   initialData?: Pattern
+  labels?: CmsPatternFormLabels
 }
 
-export function PatternForm({ mode, initialData }: PatternFormProps) {
+export function PatternForm({ mode, initialData, labels: l }: PatternFormProps) {
   const router = useRouter()
   const { data: session } = useSession()
   const isAdmin = hasRole(session?.user?.roles, 'Admin')
@@ -184,13 +186,13 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>
-            {mode === 'create' ? 'New Pattern' : 'Edit Pattern'}
+            {mode === 'create' ? (l?.createTitle ?? 'New Pattern') : (l?.editTitle ?? 'Edit Pattern')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Title */}
           <div className="space-y-2">
-            <Label htmlFor="title">Title *</Label>
+            <Label htmlFor="title">{l?.titleLabel ?? 'Title *'}</Label>
             <Input
               id="title"
               value={title}
@@ -205,7 +207,7 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
                     return e
                   })
               }}
-              placeholder="e.g. CQRS Pattern for Event-Driven Systems"
+              placeholder={l?.titlePlaceholder ?? 'e.g. CQRS Pattern for Event-Driven Systems'}
               maxLength={255}
               aria-required="true"
               aria-invalid={!!errors.title}
@@ -225,7 +227,7 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
 
           {/* Short Description */}
           <div className="space-y-2">
-            <Label htmlFor="shortDescription">Short Description *</Label>
+            <Label htmlFor="shortDescription">{l?.shortDescLabel ?? 'Short Description *'}</Label>
             <Textarea
               id="shortDescription"
               value={shortDescription}
@@ -243,7 +245,7 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
                     return e
                   })
               }}
-              placeholder="A brief summary of the pattern (shown in listings)"
+              placeholder={l?.shortDescPlaceholder ?? 'A brief summary of the pattern (shown in listings)'}
               rows={3}
               maxLength={500}
               aria-required="true"
@@ -268,13 +270,13 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
 
           {/* Category */}
           <div className="space-y-2">
-            <Label htmlFor="category">Category *</Label>
+            <Label htmlFor="category">{l?.categoryLabel ?? 'Category *'}</Label>
             <Select
               value={category}
               onValueChange={(v) => setCategory(v as PatternCategory)}
             >
               <SelectTrigger id="category">
-                <SelectValue placeholder="Select a category" />
+                <SelectValue placeholder={l?.categoryPlaceholder ?? 'Select a category'} />
               </SelectTrigger>
               <SelectContent>
                 {CATEGORIES.map((cat) => (
@@ -288,7 +290,7 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
 
           {/* Tags */}
           <div className="space-y-2">
-            <Label htmlFor="tag-input">Tags</Label>
+            <Label htmlFor="tag-input">{l?.tagsLabel ?? 'Tags'}</Label>
             <div className="flex gap-2">
               <Input
                 id="tag-input"
@@ -300,11 +302,11 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
                     addTag()
                   }
                 }}
-                placeholder="Add a tag and press Enter"
+                placeholder={l?.tagPlaceholder ?? 'Add a tag and press Enter'}
                 maxLength={50}
               />
               <Button type="button" variant="outline" onClick={addTag}>
-                Add
+                {l?.addTagLabel ?? 'Add'}
               </Button>
             </div>
             {tags.length > 0 && (
@@ -338,12 +340,12 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
 
           {/* Full Content */}
           <div className="space-y-2">
-            <Label htmlFor="fullContent">Full Content (Markdown)</Label>
+            <Label htmlFor="fullContent">{l?.contentLabel ?? 'Full Content (Markdown)'}</Label>
             <Textarea
               id="fullContent"
               value={fullContent}
               onChange={(e) => setFullContent(e.target.value)}
-              placeholder="Write the full pattern content in Markdown..."
+              placeholder={l?.contentPlaceholder ?? 'Write the full pattern content in Markdown...'}
               rows={20}
               className="font-mono text-sm"
               aria-invalid={!!errors.fullContent}
@@ -358,12 +360,12 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
 
           {/* Author */}
           <div className="space-y-2">
-            <Label htmlFor="author">Author</Label>
+            <Label htmlFor="author">{l?.authorLabel ?? 'Author'}</Label>
             <Input
               id="author"
               value={author}
               onChange={(e) => setAuthor(e.target.value)}
-              placeholder="Your name (optional)"
+              placeholder={l?.authorPlaceholder ?? 'Your name (optional)'}
               maxLength={100}
             />
             {errors.author && (
@@ -375,7 +377,7 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
           {mode === 'edit' && isAdmin && (
             <div className="space-y-3 pt-2 border-t">
               <p className="text-sm font-medium text-muted-foreground pt-2">
-                Admin Settings
+                {l?.adminSettingsLabel ?? 'Admin Settings'}
               </p>
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -383,7 +385,7 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
                   checked={isFeatured}
                   onCheckedChange={(checked) => setIsFeatured(!!checked)}
                 />
-                <Label htmlFor="isFeatured">Featured pattern</Label>
+                <Label htmlFor="isFeatured">{l?.featuredLabel ?? 'Featured pattern'}</Label>
               </div>
               <div className="flex items-center space-x-2">
                 <Checkbox
@@ -391,7 +393,7 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
                   checked={isTrending}
                   onCheckedChange={(checked) => setIsTrending(!!checked)}
                 />
-                <Label htmlFor="isTrending">Trending pattern</Label>
+                <Label htmlFor="isTrending">{l?.trendingLabel ?? 'Trending pattern'}</Label>
               </div>
             </div>
           )}
@@ -404,16 +406,16 @@ export function PatternForm({ mode, initialData }: PatternFormProps) {
               onClick={() => router.back()}
               disabled={isSubmitting}
             >
-              Cancel
+              {l?.cancelLabel ?? 'Cancel'}
             </Button>
             <Button type="submit" disabled={isSubmitting}>
               {isSubmitting
                 ? mode === 'create'
-                  ? 'Creating...'
-                  : 'Saving...'
+                  ? (l?.creatingLabel ?? 'Creating...')
+                  : (l?.savingLabel ?? 'Saving...')
                 : mode === 'create'
-                ? 'Create Pattern'
-                : 'Save Changes'}
+                ? (l?.createLabel ?? 'Create Pattern')
+                : (l?.saveLabel ?? 'Save Changes')}
             </Button>
           </div>
         </CardContent>

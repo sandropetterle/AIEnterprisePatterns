@@ -16,6 +16,7 @@ import { PatternsGrid } from '@/components/patterns/PatternsGrid'
 import { EmptyState } from '@/components/patterns/EmptyState'
 import { Pagination } from '@/components/patterns/Pagination'
 import { NewPatternButton } from '@/components/patterns/NewPatternButton'
+import { getPatternListingLabels } from '@/lib/cms/queries'
 
 type SearchParams = Promise<{
   q?: string
@@ -76,6 +77,9 @@ export default async function PatternsPage(props: {
 
   // Fetch patterns from API with server-side filtering, sorting, and pagination
   // Handle API unavailable during build (e.g., Docker build)
+  // Fetch CMS labels + API data in parallel
+  const labelsPromise = getPatternListingLabels()
+
   let result: Awaited<ReturnType<typeof getPatterns>> = {
     patterns: [],
     totalCount: 0,
@@ -109,6 +113,7 @@ export default async function PatternsPage(props: {
     // Will show empty state, page will be generated on-demand
   }
 
+  const labels = await labelsPromise
   const hasActiveFilters = !!(searchQuery || category || tags?.length || dateFrom || dateTo)
 
   // JSON-LD for SEO
@@ -129,7 +134,7 @@ export default async function PatternsPage(props: {
         <div className="mb-8 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div>
             <h1 className="text-3xl sm:text-4xl font-bold tracking-tight mb-2">
-              Browse Patterns
+              {labels.pageTitle ?? 'Browse Patterns'}
             </h1>
             <p className="text-muted-foreground">
               Discover {result.totalCount}{' '}
@@ -199,11 +204,20 @@ export default async function PatternsPage(props: {
                     totalPages={result.totalPages}
                     hasNextPage={result.hasNextPage}
                     hasPreviousPage={result.hasPreviousPage}
+                    previousLabel={labels.previousLabel}
+                    nextLabel={labels.nextLabel}
                   />
                 </Suspense>
               </>
             ) : (
-              <EmptyState hasFilters={hasActiveFilters} />
+              <EmptyState
+                hasFilters={hasActiveFilters}
+                filteredHeading={labels.emptyFilteredHeading}
+                unfilteredHeading={labels.emptyUnfilteredHeading}
+                filteredDescription={labels.emptyFilteredDescription}
+                unfilteredDescription={labels.emptyUnfilteredDescription}
+                clearFiltersLabel={labels.clearFiltersLabel}
+              />
             )}
           </div>
         </div>
