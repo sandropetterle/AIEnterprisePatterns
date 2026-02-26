@@ -18,6 +18,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { JsonLd } from '@/components/shared/JsonLd'
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary'
 import { RecentlyViewedTracker } from '@/components/patterns/RecentlyViewedTracker'
+import { getPatternDetailLabels } from '@/lib/cms/queries'
 
 type PageProps = {
   params: Promise<{ slug: string }>
@@ -73,7 +74,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PatternDetailPage({ params }: PageProps) {
   const { slug } = await params
-  const pattern = await getPatternBySlug(slug)
+  const [pattern, labels] = await Promise.all([
+    getPatternBySlug(slug),
+    getPatternDetailLabels(),
+  ])
 
   if (!pattern) {
     notFound()
@@ -143,7 +147,17 @@ export default async function PatternDetailPage({ params }: PageProps) {
                   patternId={pattern.id}
                 />
               </ErrorBoundary>
-              <PatternActions slug={pattern.slug} patternId={pattern.id} />
+              <PatternActions
+                slug={pattern.slug}
+                patternId={pattern.id}
+                editLabel={labels.editLabel}
+                deleteLabel={labels.deleteLabel}
+                deleteDialogTitle={labels.deleteDialogTitle}
+                deleteDialogDescription={labels.deleteDialogDescription}
+                cancelLabel={labels.cancelLabel}
+                deleteConfirmLabel={labels.deleteConfirmLabel}
+                deletingLabel={labels.deletingLabel}
+              />
             </div>
 
             {/* Full Content (Markdown) */}
@@ -154,7 +168,7 @@ export default async function PatternDetailPage({ params }: PageProps) {
                     <PatternContent content={pattern.fullContent} />
                   ) : (
                     <p className="text-muted-foreground">
-                      No content available for this pattern.
+                      {labels.noContentMessage ?? 'No content available for this pattern.'}
                     </p>
                   )}
                 </ErrorBoundary>
@@ -176,7 +190,11 @@ export default async function PatternDetailPage({ params }: PageProps) {
           {/* Sidebar - 1/3 width */}
           <aside className="lg:col-span-1">
             <div className="lg:sticky lg:top-8">
-              <RelatedPatternsSection patterns={relatedPatterns} />
+              <RelatedPatternsSection
+                patterns={relatedPatterns}
+                title={labels.relatedPatternsTitle}
+                noRelatedMessage={labels.noRelatedMessage}
+              />
             </div>
           </aside>
         </div>
