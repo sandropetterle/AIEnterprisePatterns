@@ -1,0 +1,31 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Build output
+dist/
+build/
+
+# Strapi internal
+.strapi/
+.strapi-updater.json
+.tmp/
+.cache/
+
+# Database (local dev)
+*.db
+*.db-journal
+
+# Environment
+.env
+
+# Logs
+*.log
+
+# Uploads (local)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# OS
+.DS_Store
+Thumbs.db

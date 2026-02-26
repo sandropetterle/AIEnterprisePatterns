@@ -1,0 +1,14 @@
+{
+  "collectionName": "components_sections_contributings",
+  "info": { "displayName": "Contributing", "icon": "user" },
+  "options": {},
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "description": { "type": "text" },
+    "howToTitle": { "type": "string" },
+    "steps": { "type": "richtext" },
+    "guidelinesTitle": { "type": "string" },
+    "guidelines": { "type": "component", "repeatable": true, "component": "shared.text-item" },
+    "ctaButton": { "type": "component", "repeatable": false, "component": "layout.cta-button" }
+  }
+}

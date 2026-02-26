@@ -1,0 +1,19 @@
+{
+  "collectionName": "components_shared_key_value",
+  "info": {
+    "displayName": "Key Value",
+    "icon": "code",
+    "description": "A key-value pair for metadata and configuration"
+  },
+  "options": {},
+  "attributes": {
+    "key": {
+      "type": "string",
+      "required": true
+    },
+    "value": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

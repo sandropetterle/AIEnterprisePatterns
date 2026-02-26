@@ -1,0 +1,14 @@
+{
+  "collectionName": "components_seo_metadata",
+  "info": { "displayName": "SEO Metadata", "icon": "search" },
+  "options": {},
+  "attributes": {
+    "title": { "type": "string" },
+    "description": { "type": "text" },
+    "keywords": { "type": "text" },
+    "ogImage": { "type": "media", "multiple": false, "allowedTypes": ["images"] },
+    "ogTitle": { "type": "string" },
+    "ogDescription": { "type": "text" },
+    "noIndex": { "type": "boolean", "default": false }
+  }
+}

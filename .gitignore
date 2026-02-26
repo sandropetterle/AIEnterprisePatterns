@@ -63,3 +63,6 @@ deployment/github-secrets-values.txt
 
 # Playwright auth state (contains session cookies — never commit)
 /e2e/.auth/
+
+# Playwright MCP logs
+/.playwright-mcp/

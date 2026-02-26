@@ -1,0 +1,8 @@
+{
+  "collectionName": "components_sections_rich_texts",
+  "info": { "displayName": "Rich Text", "icon": "file" },
+  "options": {},
+  "attributes": {
+    "body": { "type": "richtext", "required": true }
+  }
+}

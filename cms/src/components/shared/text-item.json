@@ -1,0 +1,15 @@
+{
+  "collectionName": "components_shared_text_item",
+  "info": {
+    "displayName": "Text Item",
+    "icon": "feather",
+    "description": "A simple text item for use in repeatable lists"
+  },
+  "options": {},
+  "attributes": {
+    "text": {
+      "type": "string",
+      "required": true
+    }
+  }
+}

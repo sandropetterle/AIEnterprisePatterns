@@ -1,0 +1,11 @@
+{
+  "collectionName": "components_shared_quick_nav_items",
+  "info": { "displayName": "Quick Nav Item", "icon": "arrowRight" },
+  "options": {},
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "description": { "type": "string", "required": true },
+    "href": { "type": "string", "required": true },
+    "icon": { "type": "string" }
+  }
+}

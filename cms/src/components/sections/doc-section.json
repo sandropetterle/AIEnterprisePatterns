@@ -1,0 +1,10 @@
+{
+  "collectionName": "components_sections_doc_sections",
+  "info": { "displayName": "Doc Section", "icon": "file" },
+  "options": {},
+  "attributes": {
+    "anchorId": { "type": "string", "required": true },
+    "title": { "type": "string", "required": true },
+    "content": { "type": "richtext", "required": true }
+  }
+}

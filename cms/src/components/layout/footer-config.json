@@ -1,0 +1,13 @@
+{
+  "collectionName": "components_layout_footer_configs",
+  "info": { "displayName": "Footer Config", "icon": "layout" },
+  "options": {},
+  "attributes": {
+    "copyrightTemplate": {
+      "type": "string",
+      "required": true,
+      "default": "© {year} AI Enterprise Patterns. All rights reserved."
+    },
+    "links": { "type": "component", "repeatable": true, "component": "layout.nav-link" }
+  }
+}

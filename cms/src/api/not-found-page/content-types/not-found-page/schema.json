@@ -1,0 +1,13 @@
+{
+  "kind": "singleType",
+  "collectionName": "not_found_page",
+  "info": { "singularName": "not-found-page", "pluralName": "not-found-pages", "displayName": "404 Not Found Page" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": {},
+  "attributes": {
+    "errorCode": { "type": "string", "default": "404" },
+    "heading": { "type": "string", "default": "Page Not Found" },
+    "message": { "type": "text", "default": "The page you are looking for doesn't exist or has been moved." },
+    "backButton": { "type": "component", "repeatable": false, "component": "layout.cta-button" }
+  }
+}

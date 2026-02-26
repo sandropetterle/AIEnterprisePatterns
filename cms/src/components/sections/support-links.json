@@ -1,0 +1,10 @@
+{
+  "collectionName": "components_sections_support_links",
+  "info": { "displayName": "Support Links", "icon": "question" },
+  "options": {},
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "description": { "type": "text" },
+    "items": { "type": "component", "repeatable": true, "component": "shared.support-item" }
+  }
+}

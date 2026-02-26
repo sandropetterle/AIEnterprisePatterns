@@ -1,0 +1,21 @@
+{
+  "kind": "singleType",
+  "collectionName": "global",
+  "info": { "singularName": "global", "pluralName": "globals", "displayName": "Global Settings" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": {},
+  "attributes": {
+    "siteName": { "type": "string", "required": true, "default": "AI Enterprise Patterns Library" },
+    "siteDescription": { "type": "text" },
+    "logo": { "type": "media", "multiple": false, "allowedTypes": ["images"] },
+    "navigation": { "type": "component", "repeatable": true, "component": "layout.nav-link" },
+    "mobileMenuTitle": { "type": "string", "default": "Menu" },
+    "skipToContentLabel": { "type": "string", "default": "Skip to main content" },
+    "signInLabel": { "type": "string", "default": "Sign In" },
+    "signOutLabel": { "type": "string", "default": "Sign Out" },
+    "userMenuLabel": { "type": "string", "default": "User menu" },
+    "newPatternButtonLabel": { "type": "string", "default": "+ New Pattern" },
+    "footer": { "type": "component", "repeatable": false, "component": "layout.footer-config" },
+    "defaultSeo": { "type": "component", "repeatable": false, "component": "seo.metadata" }
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "collectionName": "components_shared_stat_item",
+  "info": {
+    "displayName": "Stat Item",
+    "icon": "chartPie",
+    "description": "A statistic with value, label, and optional icon"
+  },
+  "options": {},
+  "attributes": {
+    "value": {
+      "type": "string",
+      "required": true
+    },
+    "label": {
+      "type": "string",
+      "required": true
+    },
+    "icon": {
+      "type": "string"
+    }
+  }
+}

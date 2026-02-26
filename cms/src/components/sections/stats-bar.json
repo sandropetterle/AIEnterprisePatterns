@@ -1,0 +1,8 @@
+{
+  "collectionName": "components_sections_stats_bars",
+  "info": { "displayName": "Stats Bar", "icon": "chartBubble" },
+  "options": {},
+  "attributes": {
+    "stats": { "type": "component", "repeatable": true, "component": "shared.stat-item" }
+  }
+}

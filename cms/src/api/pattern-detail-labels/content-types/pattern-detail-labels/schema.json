@@ -1,0 +1,23 @@
+{
+  "kind": "singleType",
+  "collectionName": "pattern_detail_labels",
+  "info": { "singularName": "pattern-detail-labels", "pluralName": "pattern-detail-labels-list", "displayName": "Pattern Detail Labels" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": {},
+  "attributes": {
+    "breadcrumbAriaLabel": { "type": "string", "default": "Breadcrumb" },
+    "voteAriaTemplate": { "type": "string", "default": "Vote for this pattern. {count} votes" },
+    "votesLabel": { "type": "string", "default": "votes" },
+    "voteAnnouncementTemplate": { "type": "string", "default": "Voted! {count} total votes" },
+    "noContentMessage": { "type": "string", "default": "No content available for this pattern." },
+    "relatedPatternsTitle": { "type": "string", "default": "Related Patterns" },
+    "noRelatedMessage": { "type": "string", "default": "No related patterns found" },
+    "editLabel": { "type": "string", "default": "Edit" },
+    "deleteLabel": { "type": "string", "default": "Delete" },
+    "deleteDialogTitle": { "type": "string", "default": "Delete Pattern?" },
+    "deleteDialogDescription": { "type": "text", "default": "This action cannot be undone. The pattern will be permanently removed." },
+    "cancelLabel": { "type": "string", "default": "Cancel" },
+    "deleteConfirmLabel": { "type": "string", "default": "Delete" },
+    "deletingLabel": { "type": "string", "default": "Deleting..." }
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "kind": "singleType",
+  "collectionName": "docs_page",
+  "info": { "singularName": "docs-page", "pluralName": "docs-pages", "displayName": "Documentation Page" },
+  "options": { "draftAndPublish": true },
+  "pluginOptions": {},
+  "attributes": {
+    "seo": { "type": "component", "repeatable": false, "component": "seo.metadata" },
+    "header": { "type": "component", "repeatable": false, "component": "sections.page-header" },
+    "content": {
+      "type": "dynamiczone",
+      "components": ["sections.quick-nav","sections.doc-section","sections.api-reference","sections.contributing","sections.support-links","sections.rich-text"]
+    }
+  }
+}

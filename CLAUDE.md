@@ -12,7 +12,8 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Database:** SQLite (development), Azure SQL (production)
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend)
-- **Current Phase:** 5.4 - Accessibility Improvements (complete)
+- **CMS:** Strapi 5 (headless, `cms/` directory), MySQL (production), Azure Blob Storage (media)
+- **Current Phase:** 5.4 - Accessibility Improvements (complete); Phase CMS planned (parallel to Phase 6)
 
 ## Development Commands
 
@@ -62,6 +63,7 @@ components/layout/UserMenu.tsx # User menu / sign-in button in header
 components/patterns/           # Pattern-specific components
 components/providers/          # SessionProvider wrapper
 lib/api/                       # client.ts, patterns.ts, mappers.ts, types.ts
+lib/cms/                       # Strapi CMS client (client.ts, queries.ts, types.ts, components.tsx)
 lib/types/                     # Frontend types (auth.ts: hasRole, roleLabel, Session extension)
 auth.ts                        # Auth.js configuration (OIDC provider, JWT callbacks)
 ```
@@ -113,6 +115,9 @@ AUTH_API_SCOPE_READ=api://aipatterns-api/patterns.read
 AUTH_API_SCOPE_WRITE=api://aipatterns-api/patterns.write
 # Backend: ConnectionString:DefaultConnection (empty=SQLite dev), FrontendUrl (CORS)
 # Backend auth: Authentication:Authority, Authentication:Audience, Authentication:RequireHttpsMetadata
+# CMS (server-only, no NEXT_PUBLIC_ prefix)
+STRAPI_URL=http://localhost:1337
+STRAPI_API_TOKEN=<read-only-api-token>
 ```
 
 ## API Endpoints
@@ -184,6 +189,8 @@ This is not optional — it preserves architectural knowledge across sessions.
 
 ## Important Notes
 
+- **CMS project:** `cms/` (Strapi 5) — content model, Dockerfile, seed script. Plan: `documentation/transient/PHASE_CMS_IMPLEMENTATION_PLAN.md`
+- **CMS provisioning:** `deployment/scripts/provision-cms.ps1` (Azure MySQL + Container App + Blob Storage)
 - **Infrastructure project** is empty (placeholder for future services)
 - **DELETE endpoint** exists in controller but frontend doesn't wire it up yet
 - **Vote endpoint** has race condition risk (uses `SaveAsync()` instead of `ExecuteUpdateAsync`)

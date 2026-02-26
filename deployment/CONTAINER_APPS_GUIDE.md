@@ -46,7 +46,7 @@ This guide covers deploying the AI Enterprise Patterns application using **Azure
        ▼              ▼
 ┌──────────────────────────┐
 │  Azure SQL (Serverless)  │
-│  Auto-pause after 60 min │
+│  Auto-pause after 15 min │
 │  0.5-2 vCores            │
 └──────────────────────────┘
 ```
@@ -133,7 +133,7 @@ Both apps start with placeholder images. GitHub Actions will replace them with y
 - Scale to zero: After 5 minutes idle
 
 ### Azure SQL Serverless
-- **Auto-pause:** Pauses after 60 minutes of inactivity
+- **Auto-pause:** Pauses after 15 minutes of inactivity
 - **Capacity:** 0.5-2 vCores (scales automatically)
 - **Cost when paused:** $0/hour
 - **Cost when active:** ~$0.50/hour

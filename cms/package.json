@@ -1,0 +1,36 @@
+{
+  "name": "aipatterns-cms",
+  "private": true,
+  "version": "1.0.0",
+  "description": "AI Enterprise Patterns CMS — Strapi 5",
+  "scripts": {
+    "develop": "strapi develop",
+    "start": "strapi start",
+    "build": "strapi build",
+    "strapi": "strapi",
+    "seed": "ts-node data/seed.ts"
+  },
+  "dependencies": {
+    "@strapi/plugin-cloud": "^5.36.1",
+    "@strapi/plugin-users-permissions": "^5.36.1",
+    "@strapi/strapi": "^5.36.1",
+    "better-sqlite3": "^11.0.0",
+    "esbuild": "^0.24.0",
+    "mysql2": "^3.11.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.30.3",
+    "styled-components": "^6.3.11"
+  },
+  "devDependencies": {
+    "ts-node": "^10.9.2",
+    "typescript": "^5.7.0"
+  },
+  "engines": {
+    "node": ">=18.0.0 <=22.x.x",
+    "npm": ">=6.0.0"
+  },
+  "strapi": {
+    "uuid": "aipatterns-cms-001"
+  }
+}

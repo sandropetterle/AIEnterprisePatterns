@@ -4,6 +4,121 @@ This document captures significant technical design decisions made during the de
 
 ---
 
+## Decision 29: Azure SQL — Storage Reduced to 1 GB & Auto-Pause Shortened to 15 Minutes
+
+**Date:** 2026-02-23
+**Title:** Further Reduce Azure SQL Storage (2 GB → 1 GB) and Auto-Pause Delay (60 min → 15 min)
+**Category:** Infrastructure / Cost Optimisation
+
+### Decision Details
+Two configuration changes applied to the production Azure SQL Serverless database (`sqldb-aipatterns-prod`) via the Azure Portal:
+
+1. **Storage: 2 GB → 1 GB** — the previous reduction (Decision 13) went from 32 GB to 2 GB. With actual data still well under 100 MB, 1 GB is more than sufficient and uses the Azure General Purpose minimum.
+2. **Auto-pause delay: 60 min → 15 min** — the database now pauses after just 15 minutes of inactivity instead of 60, significantly reducing billed compute time for a low-traffic application.
+
+### Rationale
+- The application has 6 patterns, 18 tags, and minimal text content — nowhere near 1 GB
+- Most traffic is sporadic; a 60-minute auto-pause window kept the database running (and billing) long after the last request
+- 15 minutes is the minimum auto-pause delay Azure allows, maximising cost savings for bursty/low-traffic workloads
+
+### Savings
+| | Before | After |
+|---|---|---|
+| Provisioned storage | 2 GB | 1 GB |
+| Monthly storage cost | ~$0.23 | ~$0.12 |
+| Auto-pause delay | 60 min | 15 min |
+| Estimated active hours/day | ~4-6h | ~1-2h |
+
+The auto-pause change has the larger impact — reducing billed compute hours by up to 75% for idle periods.
+
+### Pros
+- Further cost reduction with zero functional impact
+- 15-minute pause means the database sleeps sooner during low-traffic periods
+- Storage and auto-pause can be increased again at any time if needed
+
+### Cons
+- More frequent cold starts (~1-2s resume time) when the database has been paused
+- If traffic patterns change to sustained load, the frequent pause/resume cycle could cause intermittent latency
+
+### Alternatives Evaluated
+1. **Keep 2 GB / 60 min** (rejected) — unnecessarily over-provisioned for current workload
+2. **Disable auto-pause entirely** (rejected) — would increase cost significantly for a low-traffic app
+
+---
+
+## Decision 28: Strapi 5 Headless CMS for Static Content Management
+
+**Date:** 2026-02-20
+**Title:** Adopt Strapi 5 as Headless CMS for All Static Frontend Content
+**Category:** Architecture / Content Management
+
+### Decision Details
+
+Adopt Strapi 5 as a headless CMS to manage all static frontend content (300+ items across 28 components and 10 pages). The content model uses Dynamic Zones for flexible page composition, 10 Single Types for pages and UI labels, and 4 component categories (seo, layout, sections, shared) with 15+ reusable Dynamic Zone blocks.
+
+### Content Model Summary
+
+**Single Types (10):**
+- `global` — site-wide settings (navigation, footer, sign-in/out labels, SEO defaults)
+- `home-page`, `about-page`, `docs-page` — page content with Dynamic Zones for flexible layouts
+- `login-page`, `not-found-page`, `error-page` — fixed-structure page content
+- `pattern-listing-labels`, `pattern-detail-labels`, `pattern-form-labels` — UI string labels
+
+**Component Categories (4):**
+- `seo/` — metadata component reused on every page
+- `layout/` — nav-link, cta-button, footer-config
+- `sections/` — 15 Dynamic Zone blocks (hero, cta-banner, stats-bar, feature-grid, tech-stack, doc-section, api-reference, etc.)
+- `shared/` — atomic components (text-item, stat-item, feature-card, key-value, etc.)
+
+### Infrastructure
+
+- **Database:** Azure Database for MySQL Flexible Server (free tier: B1ms, 32 GiB storage, 12 months free)
+- **Hosting:** Azure Container App for Strapi (scale-to-zero, ~$5-10/month)
+- **Media:** Azure Blob Storage (~$0.02/month) via `@strapi/provider-upload-azure-storage`
+- **Total cost:** ~$10-15/month (MySQL free tier) → ~$23-28/month after free tier expires
+
+### Frontend Integration Pattern
+
+- Server-side fetch in Server Components → pass CMS data as props to client components
+- ISR caching: 5-60 min per content type (global 10min, pages 5min, labels 1hr)
+- Fallback to hardcoded defaults when Strapi is unreachable
+- Dynamic Zone renderer maps Strapi `__component` field → React components
+
+### Rationale
+
+- SRS already specifies Strapi CMS integration (Phase 3.2, Section 4.4)
+- Enables non-developer content editing without code deployments
+- Content versioning and draft/publish workflows built into Strapi
+- Future i18n readiness (Phase 8.1) — Strapi has native i18n plugin
+- Dynamic Zones allow content editors to compose pages from reusable blocks
+
+### Pros
+- **Non-developer friendly**: Visual admin panel for content editing
+- **Flexible layouts**: Dynamic Zones allow page composition without code changes
+- **Cost effective**: MySQL free tier + scale-to-zero Container App = ~$10-15/month
+- **TypeScript support**: Strapi 5 has native TypeScript and auto-generated types
+- **i18n ready**: Strapi i18n plugin provides multi-language content management
+- **Incremental migration**: Fallback pattern ensures zero downtime during rollout
+
+### Cons / Trade-offs
+- **Added complexity**: New service to maintain (Strapi + MySQL + Blob Storage)
+- **Build dependency**: Next.js ISR depends on Strapi being available at build time (mitigated by fallbacks)
+- **Content model maintenance**: Schema changes require Strapi admin + frontend code updates
+- **Additional infrastructure cost**: ~$10-15/month ongoing
+
+### Alternatives Evaluated
+1. **Contentful** — More expensive at scale ($489/month for Team tier), vendor lock-in
+2. **Sanity** — Complex pricing model (pay per API call beyond free tier), less familiar to team
+3. **Hardcoded with i18n JSON files** — No visual editing for non-developers, no draft/publish workflow
+4. **WordPress headless** — Heavier infrastructure, PHP runtime, more attack surface
+5. **Keep hardcoded** — No content governance, requires developer for every text change
+
+### Reference
+- Full implementation plan: `documentation/transient/PHASE_CMS_IMPLEMENTATION_PLAN.md`
+- Phase definition: `documentation/instructions.md` → Phase CMS section
+
+---
+
 ## Decision 27: E2E Authentication — Direct Session Injection Replaces Entra Browser Login
 
 **Date:** 2026-02-20
@@ -1100,7 +1215,7 @@ This is significant relative to total infrastructure cost ($5–12/month) and re
 
 ### Alternatives Evaluated
 1. **Leave at 32 GB default** (rejected) — unnecessary cost, no benefit for this workload
-2. **1 GB minimum** (not chosen) — Azure General Purpose minimum is 1 GB, but 2 GB gives comfortable headroom
+2. **1 GB minimum** (not chosen at the time) — later adopted in Decision 29 after confirming data footprint remained tiny
 
 ---
 
@@ -1352,3 +1467,134 @@ This correctly:
 2. **Use `data-testid`** (rejected) — breaks `getByLabelText` accessibility-first testing pattern
 3. **Mock entire component file** with simpler structure (rejected) — loses label association
 
+
+---
+
+## Decision 32: Strapi 5 Populate Syntax — Per-Query Bracket Notation
+
+**Date:** 2026-02-25
+**Title:** Replace `populate=deep` with Strapi 5 Bracket Notation Per Query
+**Category:** Architecture / CMS Integration
+
+### Decision Details
+
+Strapi 5 does NOT support `populate=deep` without the community `strapi-plugin-populate-deep` plugin. The original `safeFetch()` in `lib/cms/queries.ts` sent `{ populate: 'deep' }` for all queries, which returned HTTP 400. Because `fetchStrapi()` wraps non-OK responses as `CmsUnavailableError`, the 400 was silently caught and all queries fell back to hardcoded data — meaning CMS integration appeared to work but never actually served CMS content.
+
+### Fix
+
+Replaced the single `populate=deep` with per-query populate presets using Strapi 5's bracket notation:
+
+| Preset | Syntax | Used By |
+|--------|--------|---------|
+| `FLAT` | `populate=*` | login, not-found, error, all label types |
+| `GLOBAL` | `populate[navigation]=*&populate[footer][populate][links]=*` | global config |
+| `DYNAMIC_ZONE` | `populate[content][populate]=*&populate[seo]=*` | home page |
+| `DYNAMIC_ZONE_WITH_HEADER` | `populate[content][populate]=*&populate[header]=*&populate[seo]=*` | about, docs pages |
+
+### Why Not Install `strapi-plugin-populate-deep`
+
+- Adds a dependency for something achievable with built-in syntax
+- Plugin must be version-compatible with each Strapi upgrade
+- Explicit populate is more predictable (no unexpected deep fetches that return excessive data)
+
+---
+
+## Decision 31: Strapi 5 Local Docker Development — Multiple Build Fixes
+
+**Date:** 2026-02-25
+**Title:** Strapi 5 Docker Setup Fixes (tsconfig JSON, MySQL Dialect, Multi-Stage Build, esbuild)
+**Category:** Infrastructure / CMS
+
+### Decision Details
+
+Getting Strapi 5 running locally in Docker required four separate fixes:
+
+1. **tsconfig.json — Include JSON schemas**: Strapi loads content-type schemas from `dist/`, not `src/`. TypeScript compiler only emits `.ts→.js` files. Schema `.json` files were NOT being copied to `dist/`, causing `TypeError: Cannot read properties of undefined (reading 'kind')` at startup with empty content-type registry. **Fix:** Added `"./src/**/*.json"` to `cms/tsconfig.json` `include` array.
+
+2. **MySQL dialect name**: Strapi 5 uses `mysql` as the dialect key, not `mysql2`. Using `mysql2` caused `Unknown dialect mysql2` at startup. **Fix:** Changed `DATABASE_CLIENT` env var and `database.ts` connection key from `mysql2` to `mysql`.
+
+3. **Multi-stage Dockerfile**: `strapi build` requires `APP_KEYS` and other secrets as env vars at build time. For local dev, building is unnecessary (Strapi auto-builds in dev mode). **Fix:** Restructured Dockerfile with 4 stages (deps → dev → build → production); docker-compose targets `dev` stage which skips the build step.
+
+4. **esbuild dependency**: Strapi's startup auto-installs `react@^18`, `react-dom@^18`, `react-router-dom@^6`, and `styled-components@^6`. This `npm install` side-effect removes `esbuild` from `node_modules`, causing `Cannot find module 'esbuild'`. **Fix:** Added `esbuild`, `react`, `react-dom`, `react-router-dom`, and `styled-components` as explicit dependencies in `cms/package.json` to prevent Strapi's auto-install from disrupting the dependency tree.
+
+### Files Modified
+- `cms/tsconfig.json` — added `"./src/**/*.json"` to include
+- `cms/config/database.ts` — changed `mysql2` key to `mysql`
+- `cms/Dockerfile` — 4-stage build (deps/dev/build/production)
+- `cms/package.json` — added esbuild + React deps explicitly
+- `docker-compose.yml` — target `dev`, DATABASE_CLIENT `mysql`
+
+---
+
+## Decision 30: Strapi 5 Headless CMS Integration (Phase CMS)
+
+**Date:** 2026-02-25
+**Title:** Strapi 5 as Headless CMS for Static Frontend Content
+**Category:** Architecture / Content Management
+
+### Decision Details
+
+Integrated Strapi 5 as a headless CMS to manage the 300+ hardcoded static content items across the frontend (headings, descriptions, CTAs, form labels, nav links, SEO metadata, etc.).
+
+### What Was Built
+
+**CMS Project (`cms/`):**
+- Strapi 5 TypeScript project with SQLite (dev) / MySQL (production) database support
+- 10 Single Types: `global`, `home-page`, `about-page`, `docs-page`, `login-page`, `not-found-page`, `error-page`, `pattern-listing-labels`, `pattern-detail-labels`, `pattern-form-labels`
+- 15 Section components (Dynamic Zone blocks): hero, cta-banner, stats-bar, featured-patterns, rich-text, feature-grid, tech-stack, mission-block, open-source-info, page-header, doc-section, api-reference, quick-nav, contributing, support-links
+- 12 Shared/Layout components: nav-link, cta-button, footer-config, text-item, stat-item, key-value, feature-card, tech-group, api-endpoint, quick-nav-item, support-item, metadata (SEO)
+- Azure Blob Storage upload provider (production media uploads)
+- Comprehensive seed script (`data/seed.ts`) with all current hardcoded content
+
+**Infrastructure (`deployment/scripts/provision-cms.ps1`, `.github/workflows/cms-container-deploy.yml`):**
+- Azure MySQL Flexible Server (Burstable B1ms, free tier for 12 months)
+- Azure Blob Storage (`strapi-media` container)
+- Azure Container App for Strapi (0.25 vCPU, 0.5 GiB RAM, scale-to-zero)
+- Updated `docker-compose.yml` for local dev (MySQL + Strapi services)
+- Estimated cost: ~$10-15/month (free MySQL for 12 months, then ~$23-28/month)
+
+**Frontend CMS Layer (`lib/cms/`):**
+- `client.ts`: `fetchStrapi()` with ISR revalidation + `CmsUnavailableError` for graceful fallback
+- `types.ts`: Full TypeScript types for all Strapi response shapes
+- `queries.ts`: One function per Single Type, with hardcoded fallbacks when CMS unavailable
+- `components.tsx`: `DynamicZone` renderer mapping `__component` to React components
+
+**Frontend Integration (Phase 1 — fallback-safe):**
+- `app/layout.tsx` → fetches `global` → passes nav/footer/labels to Header and Footer
+- `app/page.tsx` → fetches `home-page` → passes CMS block data to Hero, FeaturedPatterns, StatsSection, CTASection
+- `components/layout/Header.tsx`, `Footer.tsx`, `Navigation.tsx`, `UserMenu.tsx` → accept optional CMS props with hardcoded fallbacks
+- `components/home/Hero.tsx`, `CTASection.tsx`, `FeaturedPatterns.tsx`, `StatsSection.tsx` → accept optional CMS props with hardcoded fallbacks
+- `app/login/page.tsx` + `LoginForm.tsx` → fetches `login-page` → CMS-driven labels
+- `app/not-found.tsx` → fetches `not-found-page` → CMS-driven 404 content
+
+### Rationale
+- Non-developer content editing without code deployments (marketing, labels, CTAs)
+- A/B testing of copy and page layouts in future
+- Content versioning and draft/publish workflows
+- Future i18n readiness (Phase 8)
+- SRS already specified CMS integration (Phase 3.2, Section 4.4)
+
+### Incremental Integration Strategy
+- **Phase 1 (current):** Server-side fetch with hardcoded fallbacks → zero downtime
+- **Phase 2:** Replace remaining hardcoded content (about/docs pages, pattern label props) one component at a time
+- **Phase 3:** Remove fallbacks once CMS is stable and seeded
+
+### Alternatives Considered
+- **Contentful** — paid above free tier, vendor lock-in for content model
+- **Sanity.io** — excellent DX but more complex and higher cost
+- **Directus** — great but less mature ecosystem
+- **Custom DB tables** — rejected (adds schema complexity without editorial UX)
+
+### Key Technical Notes
+- `cms/` directory excluded from root `tsconfig.json` (Strapi has its own tsconfig)
+- Strapi single types use `PUT /api/{singular-name}` for upserts
+- ISR revalidation: 600s (global), 300s (pages), 3600s (labels), 3600s (static error pages)
+- CMS data fetched only in Server Components (no `NEXT_PUBLIC_` prefix for `STRAPI_URL` / `STRAPI_API_TOKEN`)
+- `error.tsx` stays client-side (Next.js requirement) — no CMS integration possible
+
+### Status
+- ✅ CMS.1: Content model design (all schemas defined)
+- ✅ CMS.2: Infrastructure (docker-compose, Dockerfile, provisioning script, CI/CD)
+- ✅ CMS.3: Strapi project setup (schemas, seed script)
+- ✅ CMS.4: Frontend integration — Phase 1 (lib/cms/, layout, home, login, 404)
+- 🔲 CMS.4 Phase 2: about/docs pages, pattern label props propagation

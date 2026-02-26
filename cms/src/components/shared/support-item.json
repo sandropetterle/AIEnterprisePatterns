@@ -1,0 +1,11 @@
+{
+  "collectionName": "components_shared_support_items",
+  "info": { "displayName": "Support Item", "icon": "question" },
+  "options": {},
+  "attributes": {
+    "title": { "type": "string", "required": true },
+    "description": { "type": "string", "required": true },
+    "href": { "type": "string", "required": true },
+    "icon": { "type": "string" }
+  }
+}

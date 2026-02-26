@@ -1,0 +1,9 @@
+{
+  "collectionName": "components_sections_quick_navs",
+  "info": { "displayName": "Quick Nav", "icon": "arrowRight" },
+  "options": {},
+  "attributes": {
+    "heading": { "type": "string", "required": true },
+    "items": { "type": "component", "repeatable": true, "component": "shared.quick-nav-item" }
+  }
+}

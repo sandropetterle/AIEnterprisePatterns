@@ -1,7 +1,33 @@
 {
   "permissions": {
     "allow": [
-      "Bash(dir:*)"
+      "Bash(dir:*)",
+      "WebFetch(domain:github.com)",
+      "Bash(npx create-strapi@latest:*)",
+      "Bash(/c/Users/sandr/Documents/Projects/AIEnterprisePatterns/cms/src/components/seo/metadata.json:*)",
+      "Bash(/c/Users/sandr/Documents/Projects/AIEnterprisePatterns/cms/src/components/layout/nav-link.json:*)",
+      "Bash(__NEW_LINE_208bac99d7610f7a__ cat)",
+      "Bash(/c/Users/sandr/Documents/Projects/AIEnterprisePatterns/cms/src/components/layout/cta-button.json:*)",
+      "Bash(/c/Users/sandr/Documents/Projects/AIEnterprisePatterns/cms/src/components/layout/footer-config.json:*)",
+      "Bash(/c/Users/sandr/Documents/Projects/AIEnterprisePatterns/app/layout.tsx:*)",
+      "Bash(/c/Users/sandr/Documents/Projects/AIEnterprisePatterns/components/layout/Header.tsx:*)",
+      "Bash(/c/Users/sandr/Documents/Projects/AIEnterprisePatterns/components/layout/Navigation.tsx:*)",
+      "Bash(/c/Users/sandr/Documents/Projects/AIEnterprisePatterns/app/page.tsx:*)",
+      "Bash(/c/Users/sandr/Documents/Projects/AIEnterprisePatterns/components/home/StatsSection.tsx:*)",
+      "Bash(docker info:*)",
+      "Bash(docker compose up:*)",
+      "Bash(docker compose:*)",
+      "Bash(docker volume prune:*)",
+      "Bash(docker run:*)",
+      "Bash(STRAPI_API_TOKEN=\"6156a5a42e9882418f300c53b561431dc85921ba779f8fad15d4c7bbff83241dced37b146dcc885644a0b7b1b2bc7d93f6aa06aebe5ffc68c5553a01283203a554e11f9fd230433f7c3dd01d0da26d6d2cf0ce027991c5d07ade0f205fe36237db97d4d82f5bbdd73e08a4e5e62aa56123c1c6fd98b86387c8cb53756d88c458\" npx tsx:*)",
+      "Bash(ADMIN_JWT=\"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiIxIiwic2Vzc2lvbklkIjoiNDY4MDg1MjgwODk2NTk0NTU2MDViMDY4OTEzZWQwZGQiLCJ0eXBlIjoiYWNjZXNzIiwiaWF0IjoxNzcyMDU0Mzk5LCJleHAiOjE3NzIwNTYxOTl9.kMYydukfEoftz3U-sM2qA14EYwyB9U0JIAsowKbYdmU\")",
+      "Bash(__NEW_LINE_2d24a12c9bc97da0__ curl -s -X POST http://localhost:1337/admin/api-tokens -H \"Content-Type: application/json\" -H \"Authorization: Bearer $ADMIN_JWT\" --data-raw \"{\"\"name\"\":\"\"Seed Full Access\"\",\"\"description\"\":\"\"Full access token for seeding\"\",\"\"type\"\":\"\"full-access\"\",\"\"lifespan\"\":null}\")",
+      "Bash(STRAPI_API_TOKEN=\"7f79c5daa6cd649c76c9db5d62d40388ae09f8e122166b5abc2ab75082886cebd952fe763d5242be0054dcba744cbc06671ebb9b1e58f02adced3453bc7636c7f0d561a60b95339104ab33dfc4d41907c73f750fedcb590efb9e4b46afc6c75eaeecc7f1b9e659c987af990320452ebb30e766d5f15d58d56823d3226d29fd12\" npx tsx cms/data/seed.ts)",
+      "Bash(source:*)",
+      "Bash(git status:*)"
+    ],
+    "additionalDirectories": [
+      "C:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\cms\\src\\components\\shared"
     ]
   }
 }

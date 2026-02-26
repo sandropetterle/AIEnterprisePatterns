@@ -1,0 +1,16 @@
+{
+  "kind": "singleType",
+  "collectionName": "login_page",
+  "info": { "singularName": "login-page", "pluralName": "login-pages", "displayName": "Login Page" },
+  "options": { "draftAndPublish": false },
+  "pluginOptions": {},
+  "attributes": {
+    "seo": { "type": "component", "repeatable": false, "component": "seo.metadata" },
+    "cardTitle": { "type": "string", "default": "Sign in" },
+    "cardDescription": { "type": "string", "default": "Access the AI Enterprise Patterns Library" },
+    "signInButtonLabel": { "type": "string", "default": "Continue with Microsoft" },
+    "signInLoadingLabel": { "type": "string", "default": "Redirecting..." },
+    "footerNotice": { "type": "richtext" },
+    "errorMessages": { "type": "json" }
+  }
+}

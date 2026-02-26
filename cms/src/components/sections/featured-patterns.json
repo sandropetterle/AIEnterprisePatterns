@@ -1,0 +1,11 @@
+{
+  "collectionName": "components_sections_featured_patterns",
+  "info": { "displayName": "Featured Patterns", "icon": "star" },
+  "options": {},
+  "attributes": {
+    "heading": { "type": "string", "required": true },
+    "subheading": { "type": "string" },
+    "viewAllLabel": { "type": "string", "default": "View all patterns" },
+    "mobileViewAllLabel": { "type": "string", "default": "View all" }
+  }
+}
