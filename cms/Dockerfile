@@ -47,9 +47,13 @@ COPY --from=build --chown=strapi:strapi /app/dist ./dist
 COPY --from=build --chown=strapi:strapi /app/node_modules ./node_modules
 COPY --from=build --chown=strapi:strapi /app/package*.json ./
 COPY --from=build --chown=strapi:strapi /app/public ./public
+# Strapi 5 requires tsconfig.json + config/ source at runtime to resolve compiled config paths
+COPY --from=build --chown=strapi:strapi /app/tsconfig.json ./tsconfig.json
+COPY --from=build --chown=strapi:strapi /app/config ./config
 
-# Create uploads directory with correct ownership
-RUN mkdir -p /app/public/uploads && chown -R strapi:strapi /app/public
+# Create writable directories required at runtime
+RUN mkdir -p /app/public/uploads /app/database/migrations && \
+    chown -R strapi:strapi /app/public /app/database
 
 USER strapi
 
