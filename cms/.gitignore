@@ -19,6 +19,9 @@ build/
 # Environment
 .env
 
+# Strapi generated search index (auto-created, not source code)
+src/index/
+
 # Logs
 *.log
 
