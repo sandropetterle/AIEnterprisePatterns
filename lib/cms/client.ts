@@ -35,10 +35,18 @@ export async function fetchStrapi<T>(
     headers['Authorization'] = `Bearer ${STRAPI_TOKEN}`;
   }
 
-  const res = await fetch(url.toString(), {
-    headers,
-    next: revalidate === 0 ? { revalidate: 0 } : { revalidate },
-  });
+  let res: Response;
+  try {
+    res = await fetch(url.toString(), {
+      headers,
+      next: revalidate === 0 ? { revalidate: 0 } : { revalidate },
+    });
+  } catch {
+    // Network error (ECONNREFUSED, DNS failure, etc.) — treat as CMS unavailable.
+    // This allows safeFetch callers to use fallback content during Docker build
+    // when STRAPI_URL is not reachable.
+    throw new CmsUnavailableError(path);
+  }
 
   if (!res.ok) {
     throw new CmsUnavailableError(path, res.status);
