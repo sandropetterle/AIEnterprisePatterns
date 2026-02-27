@@ -17,6 +17,7 @@ import {
   getTrendingPatterns,
   getPatternBySlug,
   voteForPattern,
+  getRelatedPatterns,
 } from '../patterns'
 
 // Typed spies set up in beforeEach
@@ -212,6 +213,42 @@ describe('Async Pattern API Functions', () => {
 
       expect(postSpy).toHaveBeenCalledWith('/patterns/abc/vote')
       expect(result.voteCount).toBe(11)
+    })
+  })
+
+  describe('getRelatedPatterns', () => {
+    it('calls GET /patterns/{slug}/related', async () => {
+      getSpy.mockResolvedValueOnce([makeDetailDto()])
+
+      const result = await getRelatedPatterns('test-slug')
+
+      expect(getSpy).toHaveBeenCalledWith('/patterns/test-slug/related')
+      expect(result).toHaveLength(1)
+    })
+
+    it('returns mapped Pattern objects', async () => {
+      getSpy.mockResolvedValueOnce([makeDetailDto({ title: 'Related Pattern', voteCount: 7 })])
+
+      const result = await getRelatedPatterns('test-slug')
+
+      expect(result[0].title).toBe('Related Pattern')
+      expect(result[0].voteCount).toBe(7)
+    })
+
+    it('returns empty array on error', async () => {
+      getSpy.mockRejectedValueOnce(new Error('Network error'))
+
+      const result = await getRelatedPatterns('test-slug')
+
+      expect(result).toEqual([])
+    })
+
+    it('returns empty array when API returns no related patterns', async () => {
+      getSpy.mockResolvedValueOnce([])
+
+      const result = await getRelatedPatterns('test-slug')
+
+      expect(result).toHaveLength(0)
     })
   })
 })
