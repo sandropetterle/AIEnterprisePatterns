@@ -13,7 +13,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend)
 - **CMS:** Strapi 5 (headless, `cms/` directory), MySQL (production), Azure Blob Storage (media)
-- **Current Phase:** 5.4 - Accessibility Improvements (complete); Phase CMS planned (parallel to Phase 6)
+- **Current Phase:** 6.2 (complete); Phase 6.3 next
 
 ## Development Commands
 
@@ -162,12 +162,27 @@ Base: `http://localhost:5255/api`
 
 ## Testing
 
-- **Frontend:** `npm test` (Jest + React Testing Library); 380/380 tests, 70%+ coverage
-- **Backend:** `dotnet test` (xUnit + Moq); 93/93 tests passing (~85% testable coverage)
+- **Frontend:** `npm test` (Jest + React Testing Library); 350/350 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
+- **Backend:** `dotnet test` (xUnit + Moq); 105/105 tests passing (~85% testable coverage)
 - **Auth test strategy:** next-auth/react mocked globally in jest.setup.ts (unauthenticated default); per-test overrides via `(useSession as jest.Mock).mockReturnValue(...)`
 - **Radix UI in tests:** Mock `@/components/ui/dropdown-menu` inline in test files (portals don't render in jsdom)
 - **Backend auth tests:** TestAuthHandler (header-driven: `X-Test-Roles`) replaces JwtBearer in WebApplicationFactory
 - **CI/CD:** Tests must pass before deployment
+
+### Coverage Verification Rule (MANDATORY)
+
+Whenever you add or modify code in `app/`, `components/`, or `lib/` that introduces new exported functions, component renderers, or utility logic, **run `npm run test:ci` before committing** and confirm all four metrics are ≥ 70%:
+
+```bash
+npm run test:ci   # stmt/branch/fn/line must all be ≥ 70%
+```
+
+**Common pitfalls:**
+- Mocking a library (e.g. `react-markdown`) in a way that bypasses inline renderers — update the mock to invoke those renderers so they are exercised
+- Adding new functions to an existing file without corresponding tests
+- Deleting test files without checking whether the removed coverage drops below threshold
+
+Fix any breach **before** committing — do not rely on CI to catch it.
 
 ## Documentation Rules
 
