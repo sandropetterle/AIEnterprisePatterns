@@ -178,6 +178,44 @@ documentation/
 - Follow AAA pattern (Arrange, Act, Assert) for clarity
 - Isolate tests (no shared state between tests)
 
+### 5.1 Coverage Verification (MANDATORY)
+
+The CI gate enforces **≥ 70% for all four metrics** (statements, branches, functions, lines) via `jest.config.mjs` `coverageThreshold`. A breach blocks deployment.
+
+**Run before every commit that touches `app/`, `components/`, or `lib/`:**
+
+```bash
+npm run test:ci   # Runs jest --ci --coverage; must pass all four 70% thresholds
+```
+
+**Triggers that commonly cause a breach:**
+| Change | Risk | Mitigation |
+|---|---|---|
+| New exported function with no test | Function coverage drops | Add at least one test covering the happy path |
+| Library mock that swallows `components` prop | Inline renderers never called | Make the mock invoke the renderers (see `PatternContent.test.tsx` pattern) |
+| Deleting a test file | Covered functions removed from numerator | Check coverage after deletion |
+| Adding a new file that is complex but untested | All metrics drop | Add tests alongside the new file |
+
+**The `PatternContent` mock pattern** (reference for mocking libraries that accept render-function props):
+
+```tsx
+// Instead of ignoring the `components` prop entirely, invoke the renderers
+jest.mock('react-markdown', () => {
+  return function ReactMarkdown({ children, components }: any) {
+    const Img = components?.img
+    const Code = components?.code
+    return (
+      <div data-testid="markdown-content">
+        <span>{children}</span>
+        {Img && <Img src="https://optimizable-host.com/img.png" alt="test" />}
+        {Code && <Code className="language-js">{'block code'}</Code>}
+        {Code && <Code>{'inline code'}</Code>}
+      </div>
+    )
+  }
+})
+```
+
 ---
 
 ## 6. Running Tests
@@ -274,10 +312,10 @@ Tests run automatically in GitHub Actions on:
 - Api/Integration: PatternsController (47+ tests incl. related endpoint + auth scenarios)
 
 **Frontend (Jest + React Testing Library):**
-- ✅ 391/391 tests passing
-- Coverage: 70%+ stmt/branch/fn/line (CI gate enforced)
+- ✅ 350/350 tests passing
+- Coverage: 71.42% functions / 75.83% statements / 76.4% branches / 75.95% lines (CI gate: 70% all metrics)
 - New in Phase 6.1: ThemeProvider (5 tests), ThemeToggle (6 tests)
-- New in Phase 6.2: related endpoint integration via `getRelatedPatterns`
+- New in Phase 6.2: `getRelatedPatterns` (4 tests); PatternContent img/code renderers + `isOptimizable` (5 new tests)
 - Deleted in Phase 6.2: 50 obsolete client-side filterAndSort + relatedPatterns tests
 
 **E2E (Playwright — Chromium):**
