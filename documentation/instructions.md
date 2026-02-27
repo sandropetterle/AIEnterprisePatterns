@@ -844,12 +844,12 @@ The project will be:
 
 ---
 
-### Phase 6 – User Engagement & Enhanced UX
+### Phase 6 – CMS Integration, UI/UX Polish & Quality Infrastructure
 
-**Priority:** HIGH (sub-phases 6.1–6.3) / MEDIUM (sub-phases 6.4–6.5)
-**Dependencies:** Phase 5 complete
+**Priority:** HIGH
+**Dependencies:** Phase 5 complete; CMS.1–CMS.3 complete (✅ as of 2026-02-27)
 
-**Objectives:** Deliver UI/UX polish, performance infrastructure, and quality tooling first; then add community and integration features.
+**Objectives:** Complete CMS frontend content migration (Phase 2), deliver UI/UX polish, server-side related patterns endpoint, and testing infrastructure. CMS infrastructure (Strapi 5, Azure MySQL, Container App, CI/CD, `lib/cms/`, home-page DZ, global layout, on-demand revalidation webhook) is already deployed.
 
 **Requirements:**
 
@@ -894,7 +894,46 @@ The project will be:
   - Test on real mobile devices (iOS Safari, Chrome Mobile)
   - Document results in `documentation/test_results/phase6_test_results.md`
 
-6.4. **User Engagement Features**
+6.4. **CMS Phase 2 — Page Content Migration** ⭐ HIGH PRIORITY
+* About page — full Dynamic Zone rewrite (mission-block, feature-grid, tech-stack, open-source-info, cta-banner)
+* Docs page — full Dynamic Zone rewrite (quick-nav, doc-section, api-reference, contributing, support-links)
+* Login page — fetch `login-page` labels server-side, pass as props to LoginForm
+* Error page — fetch `error-page` with try/catch fallback (cannot fail on the error page itself)
+* Not-found page — fetch `not-found-page` content
+
+6.5. **CMS Phase 2 — Pattern UI Labels** ⭐ HIGH PRIORITY
+* Fetch `pattern-listing-labels` in `app/patterns/page.tsx`, thread as props through:
+  - SearchBar, FilterPanel, SortSelector, EmptyState, Pagination
+* Fetch `pattern-detail-labels` in `app/patterns/[slug]/page.tsx`, pass to all detail sub-components
+* Fetch `pattern-form-labels` server-side, pass to PatternForm as props
+
+6.6. **CMS Phase 2 — Tests & Documentation**
+* Unit tests for new CMS query functions (mock `fetchStrapi`)
+* Fallback behavior tests (Strapi unavailable → hardcoded defaults render correctly)
+* Verify all 380+ frontend tests still pass after label prop threading
+* Update `documentation/TECHNICAL_DECISIONS_LOG.md` with any new architectural decisions
+* Update Phase Status Summary in this document
+
+**Deliverables:**
+* Polished UI with dark mode, skeleton loaders, animations, and responsive images
+* Server-side related patterns endpoint
+* Lighthouse CI and visual regression testing in CI/CD
+* Cross-browser test coverage
+* All static content across 28 components and 10 pages served from CMS
+* CMS-specific tests passing, all existing tests green
+
+---
+
+### Phase 7 – Community Features, Integrations & Advanced Content
+
+**Priority:** MEDIUM (sub-phases 7.1–7.3) / LOW (sub-phases 7.4–7.6)
+**Dependencies:** Phase 6 complete
+
+**Objectives:** Add community engagement and export capabilities, further performance optimisation, then advanced content organisation, notifications, and collaboration.
+
+**Requirements:**
+
+7.1. **User Engagement Features**
 * Implement commenting system on patterns
 * Add pattern rating system (1-5 stars)
 * Create favorites/bookmarks functionality
@@ -902,7 +941,7 @@ The project will be:
 * Add pattern usage tracking and analytics
 * Create user activity feed
 
-6.5. **Export & Integration Features**
+7.2. **Export & Integration Features**
 * Add export to PDF functionality
 * Implement export to Markdown
 * Create RSS feed for new patterns
@@ -910,7 +949,7 @@ The project will be:
 * Implement webhook support for integrations
 * Create public API documentation portal
 
-6.6. **Further Performance Optimization**
+7.3. **Further Performance Optimization**
 * Implement CDN integration for static assets
 * Add lazy loading for images and components
 * Optimize bundle size with code splitting
@@ -918,27 +957,7 @@ The project will be:
 * Add query result caching
 * Create load testing suite (k6 or Apache JMeter)
 
-**Deliverables:**
-* Polished UI with dark mode, skeleton loaders, animations, and responsive images
-* Server-side related patterns endpoint
-* Lighthouse CI and visual regression testing in CI/CD
-* Cross-browser test coverage
-* Rich community engagement features
-* Export capabilities
-* Performance benchmarks and monitoring
-
----
-
-### Phase 7 – Advanced Content Management
-
-**Priority:** LOW
-**Dependencies:** Phase 6 complete
-
-**Objectives:** Implement advanced content organization, notifications, and collaboration features.
-
-**Requirements:**
-
-7.1. **Content Organization**
+7.4. **Content Organization**
 * Implement pattern collections/playlists
 * Add pattern versioning with change history
 * Create pattern dependency tracking
@@ -946,7 +965,7 @@ The project will be:
 * Add pattern templates for common types
 * Create pattern cloning/forking functionality
 
-7.2. **Notification System**
+7.5. **Notification System**
 * Implement email notification service
 * Add new pattern alerts (configurable by category)
 * Create comment reply notifications
@@ -954,7 +973,7 @@ The project will be:
 * Add browser push notifications
 * Create notification preferences dashboard
 
-7.3. **Collaboration Features**
+7.6. **Collaboration Features**
 * Implement multi-author patterns
 * Add pattern review and approval workflow
 * Create pattern suggestion system
@@ -962,8 +981,10 @@ The project will be:
 * Add collaborative editing (optional)
 * Create contributor leaderboard
 
-7.4. **Testing Requirements**
+7.7. **Testing Requirements**
 * **Unit & Integration Tests:**
+  - Write tests for engagement features (comments, ratings, bookmarks)
+  - Write tests for export functionality (PDF, Markdown, RSS)
   - Write tests for notification service and email delivery
   - Test collection/playlist logic and data access
   - Test versioning and change tracking functionality
@@ -971,6 +992,8 @@ The project will be:
   - Maintain 80%+ coverage for all new features
 
 * **E2E Tests:**
+  - Test commenting and rating flows end-to-end
+  - Test export functionality (PDF, Markdown, RSS)
   - Test notification delivery end-to-end
   - Test collection creation and management flows
   - Test pattern versioning UI
@@ -983,6 +1006,9 @@ The project will be:
   - Document results in `documentation/test_results/phase7_test_results.md`
 
 **Deliverables:**
+* Community engagement features (comments, ratings, bookmarks, sharing)
+* Export and integration capabilities
+* Performance benchmarks and CDN integration
 * Advanced content organization tools
 * Comprehensive notification system
 * Collaboration and contribution workflows
@@ -1076,61 +1102,6 @@ The project will be:
 
 ---
 
-### Phase CMS – Strapi 5 Headless CMS Integration (Parallel)
-
-**Priority:** HIGH (parallel to Phase 6)
-**Dependencies:** Phase 5.4 complete
-**Status:** 📋 Planned
-
-**Objectives:** Migrate all static frontend content (300+ items across 28 components and 10 pages) to Strapi 5 headless CMS, enabling non-developer content editing, A/B testing, and i18n readiness.
-
-**Requirements:**
-
-CMS.1. **Content Model Design**
-* 10 Single Types: global, home-page, about-page, docs-page, login-page, not-found-page, error-page, pattern-listing-labels, pattern-detail-labels, pattern-form-labels
-* 4 component categories: seo/, layout/, sections/, shared/
-* 15+ Dynamic Zone blocks for flexible page composition
-* Nested components: cta-button, nav-link, feature-card, stat-item, etc.
-* Full content model documented in `documentation/transient/PHASE_CMS_IMPLEMENTATION_PLAN.md`
-
-CMS.2. **Azure Infrastructure**
-* Azure Database for MySQL Flexible Server (free tier: B1ms, 32 GB storage)
-* Azure Container App for Strapi (scale-to-zero, ~$5-10/month)
-* Azure Blob Storage for media uploads (~$0.02/month)
-* Azure Container Registry (Basic tier, ~$5/month)
-* Provisioning script: `deployment/scripts/provision-cms.ps1`
-* CI/CD workflow: `.github/workflows/cms-container-deploy.yml`
-
-CMS.3. **Strapi 5 Project Setup**
-* Create TypeScript Strapi 5 project under `cms/` directory
-* Define all Single Type and Component schemas
-* Configure MySQL (production) + SQLite (development) database
-* Configure Azure Blob Storage upload provider
-* Write seed script with all current hardcoded content
-* Create production Dockerfile
-* Update docker-compose.yml for local development
-
-CMS.4. **Frontend Integration**
-* Create `lib/cms/` client layer (client.ts, types.ts, queries.ts, components.tsx)
-* Build Dynamic Zone renderer mapping `__component` → React components
-* Incremental migration: fetch CMS data server-side, pass as props to client components
-* Fallback pattern: hardcoded defaults when Strapi unavailable
-* ISR caching: 5-60 min per content type
-* Update all 28 components to accept CMS props
-* Update tests to cover CMS data flow
-
-**Deliverables:**
-* Strapi 5 CMS project (`cms/` directory) with all content types
-* Azure infrastructure provisioned (MySQL + Container App + Blob Storage)
-* CI/CD pipeline for Strapi deployment
-* Frontend consuming all static content from CMS
-* Seed data matching current hardcoded content (zero content loss)
-* Updated tests passing
-
-**Estimated Cost:** ~$10-15/month (MySQL free tier) → ~$23-28/month after 12 months
-
----
-
 ## 9. Phase Status Summary
 
 | Phase | Status | Completion Date | Key Deliverables |
@@ -1144,11 +1115,14 @@ CMS.4. **Frontend Integration**
 | **Phase 5.2** | **✅ Complete** | **2026-02-19** | **Pattern Management UI (create/edit/delete)** |
 | **Phase 5.3** | **✅ Complete** | **2026-02-20** | **Advanced Search & Discovery** |
 | **Phase 5.4** | **✅ Complete** | **2026-02-20** | **Accessibility Improvements (WCAG 2.1 AA)** |
-| Phase 6.1–6.3 | 🔜 Next | TBD | UI/UX polish, related endpoint, Lighthouse CI, visual regression |
-| Phase 6.4–6.6 | 📋 Planned | TBD | User engagement, export/integration, further perf |
-| Phase 7 | 📋 Planned | TBD | Advanced content management |
+| **Phase 6.1** | **✅ Complete** | **2026-02-27** | **UI/UX polish (dark mode, skeleton loaders, animations, next/image)** |
+| **Phase 6.2** | **✅ Complete** | **2026-02-27** | **Related patterns endpoint (backend + frontend)** |
+| **Phase 6.3** | **🔜 Next** | **TBD** | **Testing infrastructure (Lighthouse CI, visual regression, cross-browser)** |
+| **Phase 6.4** | **🔜 Next** | **TBD** | **CMS Phase 2 — about, docs, login, error, 404 pages** |
+| **Phase 6.5** | **🔜 Next** | **TBD** | **CMS Phase 2 — pattern listing/detail/form labels** |
+| **Phase 6.6** | **🔜 Next** | **TBD** | **CMS Phase 2 — tests & documentation** |
+| Phase 7 | 📋 Planned | TBD | Community features, exports, further perf, advanced content management |
 | Phase 8 | 📋 Future | TBD | Enterprise features |
-| **Phase CMS** | **📋 Planned** | **TBD** | **Strapi 5 CMS integration (parallel to Phase 6)** |
 
 **Phase 4 Achievements (2026-02-11):**
 * 38 remediation items from codebase review completed

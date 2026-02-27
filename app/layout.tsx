@@ -4,6 +4,7 @@ import './globals.css'
 import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { SessionProvider } from '@/components/providers/SessionProvider'
+import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { Toaster } from 'sonner'
 import { getGlobal } from '@/lib/cms/queries'
 
@@ -56,29 +57,39 @@ export default async function RootLayout({
   const global = await getGlobal()
 
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        {/* Anti-flash: apply dark class before first paint based on stored preference or system setting */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=localStorage.getItem('theme');if(t==='dark'||(t!=='light'&&window.matchMedia('(prefers-color-scheme:dark)').matches)){document.documentElement.classList.add('dark')}}catch(e){}})()`,
+          }}
+        />
+      </head>
       <body className={inter.className}>
-        <SessionProvider>
-          <a
-            href="#main-content"
-            className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:ring-2 focus:ring-ring"
-          >
-            {global.skipToContentLabel ?? 'Skip to main content'}
-          </a>
-          <div className="flex min-h-screen flex-col">
-            <Header
-              navLinks={global.navigation}
-              mobileMenuTitle={global.mobileMenuTitle}
-              signInLabel={global.signInLabel}
-              signOutLabel={global.signOutLabel}
-              userMenuLabel={global.userMenuLabel}
-              newPatternButtonLabel={global.newPatternButtonLabel}
-            />
-            <main id="main-content" className="flex-1">{children}</main>
-            <Footer footerConfig={global.footer} />
-            <Toaster position="bottom-right" />
-          </div>
-        </SessionProvider>
+        <ThemeProvider>
+          <SessionProvider>
+            <a
+              href="#main-content"
+              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:ring-2 focus:ring-ring"
+            >
+              {global.skipToContentLabel ?? 'Skip to main content'}
+            </a>
+            <div className="flex min-h-screen flex-col">
+              <Header
+                navLinks={global.navigation}
+                mobileMenuTitle={global.mobileMenuTitle}
+                signInLabel={global.signInLabel}
+                signOutLabel={global.signOutLabel}
+                userMenuLabel={global.userMenuLabel}
+                newPatternButtonLabel={global.newPatternButtonLabel}
+              />
+              <main id="main-content" className="flex-1">{children}</main>
+              <Footer footerConfig={global.footer} />
+              <Toaster position="bottom-right" />
+            </div>
+          </SessionProvider>
+        </ThemeProvider>
       </body>
     </html>
   )

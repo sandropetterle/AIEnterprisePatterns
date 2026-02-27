@@ -66,6 +66,13 @@ public class PatternsController : ControllerBase
         return Ok(PatternMapper.ToDetailDto(pattern));
     }
 
+    [HttpGet("{slug}/related")]
+    public async Task<ActionResult<IEnumerable<PatternListDto>>> GetRelatedPatterns(string slug, CancellationToken ct = default)
+    {
+        var patterns = await _patternService.GetRelatedPatternsAsync(slug, ct: ct);
+        return Ok(patterns.Select(PatternMapper.ToListDto));
+    }
+
     [HttpPost("{id:guid}/vote")]
     [EnableRateLimiting("vote")]
     public async Task<ActionResult<VoteResponse>> VoteForPattern(Guid id, CancellationToken ct = default)

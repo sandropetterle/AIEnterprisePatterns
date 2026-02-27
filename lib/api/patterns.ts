@@ -129,6 +129,18 @@ export async function getPatternBySlug(slug: string): Promise<Pattern | null> {
 }
 
 /**
+ * GET /api/patterns/{slug}/related - Get related patterns (same category + tag overlap, cached)
+ */
+export async function getRelatedPatterns(slug: string): Promise<Pattern[]> {
+  try {
+    const patterns = await apiClient.get<PatternDetailDto[]>(`/patterns/${slug}/related`)
+    return patterns.map(mapPatternDetailDto)
+  } catch {
+    return []
+  }
+}
+
+/**
  * POST /api/patterns/{id}/vote - Increment vote count for a pattern
  */
 export async function voteForPattern(id: string): Promise<VoteResponse> {

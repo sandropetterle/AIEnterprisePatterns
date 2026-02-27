@@ -171,6 +171,28 @@ public class PatternEndpointsTests : IClassFixture<WebApplicationFactory<Program
     }
 
     [Fact]
+    public async Task GetRelatedPatterns_ShouldReturn200WithRelatedPatterns()
+    {
+        // arch-pattern-test is Architecture — high-votes (Performance) shares archTag
+        var response = await _client.GetAsync("/api/patterns/arch-pattern-test/related");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<PatternListDto>>();
+        result.Should().NotBeNull();
+        result.Should().NotContain(p => p.Slug == "arch-pattern-test");
+    }
+
+    [Fact]
+    public async Task GetRelatedPatterns_ShouldReturn200WithEmptyListForUnknownSlug()
+    {
+        var response = await _client.GetAsync("/api/patterns/nonexistent-slug/related");
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
+        var result = await response.Content.ReadFromJsonAsync<List<PatternListDto>>();
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
     public async Task CreatePattern_ShouldCreateNewPattern()
     {
         var dto = new CreatePatternDto

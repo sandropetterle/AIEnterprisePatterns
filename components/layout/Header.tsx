@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { Logo } from '@/components/shared/Logo'
 import { Navigation } from '@/components/layout/Navigation'
 import { UserMenu } from '@/components/layout/UserMenu'
+import { ThemeToggle } from '@/components/layout/ThemeToggle'
 import type { CmsNavLink } from '@/lib/cms/types'
 
 type HeaderProps = {
@@ -34,25 +35,28 @@ export function Header({
           <Navigation navLinks={navLinks} mobileMenuTitle={mobileMenuTitle} />
           <Logo />
         </div>
-        <nav className="hidden md:flex items-center gap-6">
-          {navLinks.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors first:text-foreground"
-              target={link.isExternal ? '_blank' : undefined}
-              rel={link.isExternal ? 'noopener noreferrer' : undefined}
-            >
-              {link.label}
-            </Link>
-          ))}
+        <div className="flex items-center gap-2">
+          <nav className="hidden md:flex items-center gap-6 mr-2">
+            {navLinks.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors first:text-foreground"
+                target={link.isExternal ? '_blank' : undefined}
+                rel={link.isExternal ? 'noopener noreferrer' : undefined}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+          <ThemeToggle />
           <UserMenu
             signInLabel={signInLabel}
             signOutLabel={signOutLabel}
             userMenuLabel={userMenuLabel}
             newPatternButtonLabel={newPatternButtonLabel}
           />
-        </nav>
+        </div>
       </div>
     </header>
   )

@@ -40,7 +40,7 @@ export function StatsSection({ totalPatterns, totalCategories, totalContributors
   ]
 
   return (
-    <section className="py-16 sm:py-20 lg:py-24">
+    <section className="py-16 sm:py-20 lg:py-24 animate-fade-in">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {statsData.map((stat, i) => {

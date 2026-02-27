@@ -2,6 +2,21 @@
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
+  images: {
+    remotePatterns: [
+      // Strapi CMS media (Azure Blob Storage)
+      {
+        protocol: 'https',
+        hostname: 'staipatternsmedia.blob.core.windows.net',
+      },
+      // Strapi local development
+      {
+        protocol: 'http',
+        hostname: 'localhost',
+        port: '1337',
+      },
+    ],
+  },
   async headers() {
     return [
       {

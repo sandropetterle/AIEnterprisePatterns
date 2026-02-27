@@ -405,6 +405,96 @@ public class PatternRepositoryTests : IDisposable
 
     #endregion
 
+    #region GetRelatedPatternsAsync Tests
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldReturnSameCategoryPatterns()
+    {
+        // arch-1 (Architecture) should get arch-2 (Architecture) as related
+        var result = await _sut.GetRelatedPatternsAsync("arch-1");
+
+        result.Should().NotBeEmpty();
+        result.Should().NotContain(p => p.Slug == "arch-1");
+        result.Should().Contain(p => p.Slug == "arch-2");
+    }
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldExcludeCurrentPattern()
+    {
+        var result = await _sut.GetRelatedPatternsAsync("arch-1");
+
+        result.Should().NotContain(p => p.Slug == "arch-1");
+    }
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldReturnEmptyForUnknownSlug()
+    {
+        var result = await _sut.GetRelatedPatternsAsync("nonexistent-slug");
+
+        result.Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldRespectLimit()
+    {
+        var result = await _sut.GetRelatedPatternsAsync("arch-1", limit: 1);
+
+        result.Should().HaveCount(1);
+    }
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldIncludeTagMatchesForCrossCategory()
+    {
+        // Arrange: add pattern with unique category but shares "Architecture" tag
+        var archTag = _context.Tags.First(t => t.Name == "Architecture");
+        var uniquePattern = CreatePattern("Unique Category Pattern", "unique-cat-pattern",
+            PatternCategory.AIPrompts, tags: new[] { archTag });
+        _context.Patterns.Add(uniquePattern);
+        await _context.SaveChangesAsync();
+
+        // unique-cat-pattern has no same-category peers, but shares "Architecture" tag
+        var result = await _sut.GetRelatedPatternsAsync("unique-cat-pattern");
+
+        result.Should().NotBeEmpty();
+        result.Should().NotContain(p => p.Slug == "unique-cat-pattern");
+    }
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldNotReturnDraftPatterns()
+    {
+        // Arrange: add a draft in same category as arch-1
+        var draftPattern = CreatePattern("Draft Architecture", "draft-arch", PatternCategory.Architecture);
+        draftPattern.Status = PatternStatus.Draft;
+        _context.Patterns.Add(draftPattern);
+        await _context.SaveChangesAsync();
+
+        var result = await _sut.GetRelatedPatternsAsync("arch-1");
+
+        result.Should().NotContain(p => p.Slug == "draft-arch");
+        result.Should().OnlyContain(p => p.Status == PatternStatus.Published);
+    }
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldOrderSameCategoryFirst()
+    {
+        // arch-1 is Architecture; arch-2 is also Architecture (same category)
+        // performance-1 is Performance+Performance-tag (no tag overlap with arch-1)
+        var result = await _sut.GetRelatedPatternsAsync("arch-1", limit: 5);
+
+        // All same-category patterns should appear before cross-category ones
+        var sameCategoryPatterns = result.Where(p => p.Category == PatternCategory.Architecture).ToList();
+        var crossCategoryPatterns = result.Where(p => p.Category != PatternCategory.Architecture).ToList();
+
+        if (sameCategoryPatterns.Count > 0 && crossCategoryPatterns.Count > 0)
+        {
+            var lastSameCategoryIndex = result.FindLastIndex(p => p.Category == PatternCategory.Architecture);
+            var firstCrossCategoryIndex = result.FindIndex(p => p.Category != PatternCategory.Architecture);
+            lastSameCategoryIndex.Should().BeLessThan(firstCrossCategoryIndex);
+        }
+    }
+
+    #endregion
+
     #region AddAsync Tests
 
     [Fact]

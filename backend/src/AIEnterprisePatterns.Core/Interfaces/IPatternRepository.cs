@@ -23,6 +23,7 @@ public interface IPatternRepository
     Task<Pattern?> GetByIdAsync(Guid id, CancellationToken ct = default);
     Task<List<Pattern>> GetFeaturedPatternsAsync(CancellationToken ct = default);
     Task<List<Pattern>> GetTrendingPatternsAsync(CancellationToken ct = default);
+    Task<List<Pattern>> GetRelatedPatternsAsync(string slug, int limit = 3, CancellationToken ct = default);
 
     Task<Pattern> AddAsync(Pattern pattern, CancellationToken ct = default);
     Task UpdateAsync(Pattern pattern, CancellationToken ct = default);

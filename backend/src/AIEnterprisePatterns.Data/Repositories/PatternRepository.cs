@@ -141,6 +141,45 @@ public class PatternRepository : IPatternRepository
             .ToListAsync(ct);
     }
 
+    public async Task<List<Pattern>> GetRelatedPatternsAsync(string slug, int limit = 3, CancellationToken ct = default)
+    {
+        var current = await _context.Patterns
+            .Include(p => p.Tags)
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Slug == slug && p.Status == PatternStatus.Published, ct);
+
+        if (current == null) return [];
+
+        var tagNames = current.Tags.Select(t => t.Name).ToList();
+        var currentCategory = current.Category;
+
+        return await _context.Patterns
+            .Include(p => p.Tags)
+            .AsNoTracking()
+            .Where(p => p.Slug != slug && p.Status == PatternStatus.Published)
+            .Where(p => p.Category == currentCategory || p.Tags.Any(t => tagNames.Contains(t.Name)))
+            .OrderBy(p => p.Category == currentCategory ? 0 : 1)
+            .ThenByDescending(p => p.VoteCount)
+            .Take(limit)
+            .Select(p => new Pattern
+            {
+                Id = p.Id,
+                Title = p.Title,
+                Slug = p.Slug,
+                ShortDescription = p.ShortDescription,
+                Category = p.Category,
+                Tags = p.Tags,
+                Author = p.Author,
+                CreatedDate = p.CreatedDate,
+                UpdatedDate = p.UpdatedDate,
+                VoteCount = p.VoteCount,
+                Status = p.Status,
+                IsFeatured = p.IsFeatured,
+                IsTrending = p.IsTrending
+            })
+            .ToListAsync(ct);
+    }
+
     public Task<Pattern> AddAsync(Pattern pattern, CancellationToken ct = default)
     {
         _context.Patterns.Add(pattern);
