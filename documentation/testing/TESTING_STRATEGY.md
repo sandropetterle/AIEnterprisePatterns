@@ -1,12 +1,16 @@
 # Testing Strategy
 
+**Last Updated:** 2026-02-27
+**Audience:** QA Engineers, Developers
+**Purpose:** Define the testing approach, tools, coverage targets, and quality standards for the AI Enterprise Patterns Library.
+
 ## Overview
 This document outlines the testing strategy for the AI Enterprise Patterns Library project. It covers both frontend and backend testing approaches, tools, and best practices to ensure code quality, reliability, and maintainability.
 
 **Related Documents:**
-- `documentation/COMPREHENSIVE_TEST_PLAN.md` - Detailed manual test cases organized by feature area (for pre-release validation)
-- `documentation/CI_CD_STRATEGY.md` - CI/CD pipeline configuration and quality gates
-- `documentation/instructions.md` - Phase-specific testing requirements and deliverables
+- [MANUAL_TEST_PLAN.md](MANUAL_TEST_PLAN.md) - Detailed manual test cases organized by feature area (for pre-release validation)
+- [../project/ROADMAP.md](../project/ROADMAP.md) - Phase-specific testing requirements and deliverables
+- [../../deployment/github-secrets-setup.md](../../deployment/github-secrets-setup.md) - CI/CD credentials and secrets configuration
 
 **Purpose of This Document:**
 - Define test types, tools, and frameworks

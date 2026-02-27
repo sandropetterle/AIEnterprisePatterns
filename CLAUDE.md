@@ -186,25 +186,33 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 ## Documentation Rules
 
-Place files in the correct folder:
-- `documentation/` — permanent reference (SRS, strategies, decisions)
-- `documentation/test_results/` — test execution reports
-- `documentation/reviews/` — code/security reviews
-- `documentation/transient/` — phase-specific and temporary files
+Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 
-**Key docs:** `documentation/TECHNICAL_DECISIONS_LOG.md`, `documentation/TESTING_STRATEGY.md`, `documentation/instructions.md`
+| Content Type | Folder |
+|-------------|--------|
+| How the system is built | `documentation/architecture/` |
+| What the system should do | `documentation/requirements/` |
+| Why we made a decision | `documentation/decisions/` |
+| How we test | `documentation/testing/` |
+| How to run in production | `documentation/operations/` |
+| Project roadmap and phase plans | `documentation/project/` |
+| Audit/review snapshots | `documentation/reviews/` |
+| Phase-specific test reports | `documentation/test_results/` |
+| Azure deployment guides | `deployment/` |
+
+**Key docs:** `documentation/decisions/TECHNICAL_DECISIONS_LOG.md`, `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 ## Technical Decision Log (MANDATORY)
 
-**Update `documentation/TECHNICAL_DECISIONS_LOG.md` whenever you make an architectural, security, infrastructure, performance, or technology decision.**
+**Update `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` whenever you make an architectural, security, infrastructure, performance, or technology decision.**
 
-Include: date, title, category, what was decided and why, pros/cons, alternatives evaluated.
+Use the format in `documentation/decisions/DECISION_TEMPLATE.md`. Include: date, title, category, what was decided and why, alternatives evaluated.
 
 This is not optional — it preserves architectural knowledge across sessions.
 
 ## Important Notes
 
-- **CMS project:** `cms/` (Strapi 5) — content model, Dockerfile, seed script. Plan: `documentation/transient/PHASE_CMS_IMPLEMENTATION_PLAN.md`
+- **CMS project:** `cms/` (Strapi 5) — content model, Dockerfile, seed script. Plan: `documentation/project/PHASE_CMS_IMPLEMENTATION_PLAN.md`
 - **CMS provisioning:** `deployment/scripts/provision-cms.ps1` (Azure MySQL + Container App + Blob Storage)
 - **Infrastructure project** is empty (placeholder for future services)
 - **DELETE endpoint** exists in controller but frontend doesn't wire it up yet

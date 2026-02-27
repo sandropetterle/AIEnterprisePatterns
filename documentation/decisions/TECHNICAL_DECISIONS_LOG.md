@@ -1,5 +1,17 @@
 # Technical Decisions Log
 
+**Last Updated:** 2026-02-27
+**Audience:** Solutions Architects, Senior Developers
+**Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
+
+**41 active decisions | 0 archived**
+
+For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
+For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
+For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
+
+---
+
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
 
 ---
@@ -250,8 +262,8 @@ Adopt Strapi 5 as a headless CMS to manage all static frontend content (300+ ite
 5. **Keep hardcoded** — No content governance, requires developer for every text change
 
 ### Reference
-- Full implementation plan: `documentation/transient/PHASE_CMS_IMPLEMENTATION_PLAN.md`
-- Phase definition: `documentation/instructions.md` → Phase CMS section
+- Full implementation plan: `documentation/project/PHASE_CMS_IMPLEMENTATION_PLAN.md`
+- Phase definition: `documentation/project/ROADMAP.md`
 
 ---
 

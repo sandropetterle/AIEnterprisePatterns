@@ -119,52 +119,65 @@ AIEnterprisePatterns/
 │   │   └── types.ts        # Backend DTO types
 │   ├── types/              # TypeScript types
 │   ├── utils/              # Helper functions
-│   └── data/               # Mock data (deprecated)
 ├── backend/                 # ASP.NET Core backend
 │   └── src/
-│       ├── AIEnterprisePatterns.Api/        # API layer
-│       ├── AIEnterprisePatterns.Core/       # Domain models
-│       ├── AIEnterprisePatterns.Data/       # Data access
-│       └── AIEnterprisePatterns.Infrastructure/  # Services
+│       ├── AIEnterprisePatterns.Api/        # API layer (Controllers, DTOs, Middleware)
+│       ├── AIEnterprisePatterns.Core/       # Domain layer (Entities, Services, Interfaces)
+│       ├── AIEnterprisePatterns.Data/       # Data layer (Repositories, DbContext, Migrations)
+│       └── AIEnterprisePatterns.Infrastructure/  # Placeholder (future services)
+├── cms/                     # Strapi 5 headless CMS
+├── deployment/              # Azure deployment guides and scripts
 └── documentation/           # Project documentation
-    ├── instructions.md      # Full SRS
-    ├── TESTING_STRATEGY.md
-    └── CI_CD_STRATEGY.md
+    ├── architecture/        # How the system is built
+    ├── requirements/        # What the system should do
+    ├── decisions/           # Why we made technical choices
+    ├── testing/             # Test strategy and guides
+    ├── project/             # Roadmap and phase plans
+    ├── operations/          # Production runbooks and guides
+    └── test_results/        # Phase-specific test reports
 ```
 
 ## 🎯 Features
 
-### Current (Phase 1-3) ✅
-- ✅ Home page with featured patterns and statistics
-- ✅ Pattern listing with search, filtering, and sorting
-- ✅ Pattern details page with full content
-- ✅ Voting system with optimistic updates
-- ✅ RESTful API with 8 endpoints
-- ✅ Responsive design (mobile-first)
+### Implemented ✅
+- ✅ Home page with featured patterns, statistics, animations, dark mode
+- ✅ Pattern listing with full-text search, filtering (category, tags, date), sorting, pagination
+- ✅ Pattern details page with full markdown content and related patterns
+- ✅ Voting system with optimistic UI updates and rate limiting
+- ✅ RESTful API with 10+ endpoints (patterns, voting, auth, health)
+- ✅ Authentication & authorization (Azure Entra External ID, Admin/Editor/Viewer roles)
+- ✅ Pattern management UI — create, edit, delete forms (role-gated)
+- ✅ Strapi 5 CMS integration (home page, global layout, on-demand ISR revalidation)
+- ✅ Azure Container Apps deployment with CI/CD pipelines
+- ✅ WCAG 2.1 AA accessibility compliance
+- ✅ Dark mode with system preference detection
+- ✅ Responsive design (mobile-first, Tailwind CSS)
 - ✅ SEO optimization with JSON-LD
-- ✅ Error handling and loading states
+- ✅ 350+ frontend tests, 105 backend tests
 
-### Upcoming (Phase 4+) 🔜
-- 🔜 Authentication and authorization
-- 🔜 Strapi CMS integration
-- 🔜 Azure deployment
-- 🔜 CI/CD pipeline
-- 🔜 Advanced analytics
+### Upcoming 🔜
+- 🔜 CMS Phase 2 — all page content and UI labels from Strapi (Phase 6.4-6.6)
+- 🔜 Lighthouse CI and visual regression testing (Phase 6.3)
+- 🔜 Community features — comments, ratings, bookmarks (Phase 7)
+- 🔜 Internationalization and enterprise features (Phase 8)
 
 ## 🔌 API Endpoints
 
 **Base URL:** `http://localhost:5255/api`
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/patterns` | Get paginated patterns (with filters) |
-| GET | `/patterns/featured` | Get featured patterns |
-| GET | `/patterns/trending` | Get trending patterns |
-| GET | `/patterns/{slug}` | Get pattern by slug |
-| POST | `/patterns/{id}/vote` | Vote for a pattern |
-| POST | `/patterns` | Create new pattern |
-| PUT | `/patterns/{id}` | Update pattern |
-| DELETE | `/patterns/{id}` | Delete pattern |
+| Method | Endpoint | Auth | Description |
+|--------|----------|------|-------------|
+| GET | `/patterns` | None | Get paginated patterns (with filters/search/sort) |
+| GET | `/patterns/featured` | None | Get featured patterns (cached) |
+| GET | `/patterns/trending` | None | Get trending patterns (cached) |
+| GET | `/patterns/{slug}` | None | Get pattern by slug |
+| GET | `/patterns/{slug}/related` | None | Get related patterns (cached) |
+| POST | `/patterns/{id}/vote` | None | Vote for a pattern (rate limited: 10/min) |
+| POST | `/patterns` | Editor+ | Create new pattern |
+| PUT | `/patterns/{id}` | Editor+ | Update pattern |
+| DELETE | `/patterns/{id}` | Admin | Delete pattern |
+| GET | `/auth/me` | Authenticated | Get current user info |
+| GET | `/health` | None | Health check |
 
 **API Documentation:** http://localhost:5255/swagger
 
@@ -246,9 +259,15 @@ dotnet ef database update --project src/AIEnterprisePatterns.Data --startup-proj
 
 ## 📚 Documentation
 
-- **Full SRS:** [documentation/instructions.md](documentation/instructions.md)
-- **Testing Strategy:** [documentation/TESTING_STRATEGY.md](documentation/TESTING_STRATEGY.md)
-- **CI/CD Strategy:** [documentation/CI_CD_STRATEGY.md](documentation/CI_CD_STRATEGY.md)
+- **Documentation Index:** [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — map of all docs with purpose and audience
+- **System Overview:** [documentation/architecture/SYSTEM_OVERVIEW.md](documentation/architecture/SYSTEM_OVERVIEW.md)
+- **Backend Architecture:** [documentation/architecture/BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md)
+- **Frontend Architecture:** [documentation/architecture/FRONTEND_ARCHITECTURE.md](documentation/architecture/FRONTEND_ARCHITECTURE.md)
+- **Security Overview:** [documentation/architecture/SECURITY_OVERVIEW.md](documentation/architecture/SECURITY_OVERVIEW.md)
+- **Project Roadmap:** [documentation/project/ROADMAP.md](documentation/project/ROADMAP.md)
+- **Testing Strategy:** [documentation/testing/TESTING_STRATEGY.md](documentation/testing/TESTING_STRATEGY.md)
+- **Deployment Guide:** [deployment/README.md](deployment/README.md)
+- **Operations Runbook:** [documentation/operations/RUNBOOK.md](documentation/operations/RUNBOOK.md)
 - **API Documentation:** http://localhost:5255/swagger (when backend is running)
 
 ## 🤝 Contributing
