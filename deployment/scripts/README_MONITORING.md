@@ -1,5 +1,13 @@
 # Monitoring Configuration Scripts
 
+**Last Updated:** 2026-02-27
+**Audience:** Infrastructure Engineers, DevOps
+**Purpose:** Document the PowerShell scripts for configuring Azure Application Insights alerts and dashboards.
+
+> ⚠️ **Alert threshold values** are defined in the authoritative reference:
+> [../../documentation/operations/MONITORING_GUIDE.md](../../documentation/operations/MONITORING_GUIDE.md)
+> The thresholds below reflect those values. If thresholds change, update MONITORING_GUIDE.md first, then update these scripts.
+
 This folder contains PowerShell scripts to configure Application Insights monitoring for the AI Enterprise Patterns Library.
 
 ## Prerequisites

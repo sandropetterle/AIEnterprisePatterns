@@ -1,4 +1,8 @@
-# Cost Comparison: App Services vs Container Apps
+# Cost Analysis: Container Apps vs App Services
+
+**Last Updated:** 2026-02-27
+**Audience:** Infrastructure Engineers, Architects, Budget Owners
+**Purpose:** Single source of truth for Azure hosting cost data. Compare Container Apps (current approach) with App Services (legacy).
 
 This document provides a detailed cost analysis between traditional App Services and consumption-based Container Apps deployment models.
 
