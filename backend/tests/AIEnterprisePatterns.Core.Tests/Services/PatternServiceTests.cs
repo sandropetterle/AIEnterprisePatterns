@@ -202,6 +202,73 @@ public class PatternServiceTests
 
     #endregion
 
+    #region GetRelatedPatternsAsync Tests
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldCacheResult()
+    {
+        // Arrange
+        var slug = "test-pattern";
+        var patterns = new List<Pattern> { CreateTestPattern() };
+        _patternRepositoryMock
+            .Setup(r => r.GetRelatedPatternsAsync(slug, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(patterns);
+
+        // Act
+        var result1 = await _sut.GetRelatedPatternsAsync(slug);
+        var result2 = await _sut.GetRelatedPatternsAsync(slug);
+
+        // Assert
+        result1.Should().BeEquivalentTo(patterns);
+        result2.Should().BeEquivalentTo(patterns);
+        _patternRepositoryMock.Verify(r => r.GetRelatedPatternsAsync(slug, It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldUseDifferentCacheKeysPerSlug()
+    {
+        // Arrange
+        var slug1 = "pattern-one";
+        var slug2 = "pattern-two";
+        var patterns1 = new List<Pattern> { CreateTestPattern(Guid.NewGuid()) };
+        var patterns2 = new List<Pattern> { CreateTestPattern(Guid.NewGuid()) };
+
+        _patternRepositoryMock
+            .Setup(r => r.GetRelatedPatternsAsync(slug1, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(patterns1);
+        _patternRepositoryMock
+            .Setup(r => r.GetRelatedPatternsAsync(slug2, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(patterns2);
+
+        // Act
+        var result1 = await _sut.GetRelatedPatternsAsync(slug1);
+        var result2 = await _sut.GetRelatedPatternsAsync(slug2);
+
+        // Assert
+        result1.Should().BeEquivalentTo(patterns1);
+        result2.Should().BeEquivalentTo(patterns2);
+        _patternRepositoryMock.Verify(r => r.GetRelatedPatternsAsync(slug1, It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+        _patternRepositoryMock.Verify(r => r.GetRelatedPatternsAsync(slug2, It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task GetRelatedPatternsAsync_ShouldReturnEmptyListWhenCacheReturnsNull()
+    {
+        // Arrange
+        var slug = "test-pattern";
+        _patternRepositoryMock
+            .Setup(r => r.GetRelatedPatternsAsync(slug, It.IsAny<int>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync((List<Pattern>)null!);
+
+        // Act
+        var result = await _sut.GetRelatedPatternsAsync(slug);
+
+        // Assert
+        result.Should().BeEmpty();
+    }
+
+    #endregion
+
     #region CreatePatternAsync Tests
 
     [Fact]

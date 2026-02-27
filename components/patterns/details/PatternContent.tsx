@@ -1,6 +1,19 @@
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
 import rehypeSanitize from 'rehype-sanitize'
+import Image from 'next/image'
+
+const OPTIMIZED_HOSTS = ['staipatternsmedia.blob.core.windows.net', 'localhost']
+
+function isOptimizable(src: string) {
+  try {
+    if (src.startsWith('/')) return true
+    const url = new URL(src)
+    return OPTIMIZED_HOSTS.includes(url.hostname)
+  } catch {
+    return false
+  }
+}
 
 type PatternContentProps = {
   content: string
@@ -81,6 +94,32 @@ export function PatternContent({ content }: PatternContentProps) {
           td: ({ ...props }) => (
             <td className="px-4 py-2 border-t border-border" {...props} />
           ),
+          img: ({ src, alt }) => {
+            if (!src || typeof src !== 'string') return null
+            if (isOptimizable(src)) {
+              return (
+                <span className="relative block my-6 overflow-hidden rounded-lg" style={{ paddingBottom: '56.25%' }}>
+                  <Image
+                    src={src}
+                    alt={alt ?? ''}
+                    fill
+                    className="object-contain"
+                    sizes="(max-width: 768px) 100vw, 800px"
+                  />
+                </span>
+              )
+            }
+            // External images: styled native img with lazy loading
+            return (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={src}
+                alt={alt ?? ''}
+                className="my-6 max-w-full rounded-lg"
+                loading="lazy"
+              />
+            )
+          },
         }}
       >
         {content}

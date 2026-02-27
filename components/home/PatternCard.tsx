@@ -24,7 +24,7 @@ function PatternCardComponent({ pattern }: PatternCardProps) {
       className="block h-full"
       aria-label={`View pattern: ${pattern.title}`}
     >
-      <Card className="h-full transition-all hover:shadow-lg hover:border-primary/50">
+      <Card className="h-full transition-all duration-200 hover:shadow-lg hover:border-primary/50 hover:-translate-y-0.5">
         <CardHeader>
           <div className="flex items-start justify-between gap-2 mb-2">
             <Badge variant="default" aria-label={`Category: ${pattern.category}`}>

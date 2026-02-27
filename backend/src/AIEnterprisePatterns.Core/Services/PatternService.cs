@@ -62,6 +62,16 @@ public class PatternService : IPatternService
         }) ?? [];
     }
 
+    public async Task<List<Pattern>> GetRelatedPatternsAsync(string slug, int limit = 3, CancellationToken ct = default)
+    {
+        var cacheKey = $"related_patterns_{slug}";
+        return await _cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = CacheDuration;
+            return await _patternRepository.GetRelatedPatternsAsync(slug, limit, ct);
+        }) ?? [];
+    }
+
     public async Task<Pattern> CreatePatternAsync(Pattern pattern, List<string> tagNames, CancellationToken ct = default)
     {
         var now = _timeProvider.GetUtcNow().UtcDateTime;

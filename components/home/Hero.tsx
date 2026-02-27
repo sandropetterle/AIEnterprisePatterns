@@ -20,7 +20,7 @@ export function Hero({
     <section className="relative py-20 sm:py-24 lg:py-32">
       <div className="absolute inset-0 -z-10 bg-gradient-to-br from-primary/10 via-background to-secondary/10" />
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="mx-auto max-w-4xl text-center">
+        <div className="mx-auto max-w-4xl text-center animate-slide-up">
           <h1 className="text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
             {heading}
           </h1>

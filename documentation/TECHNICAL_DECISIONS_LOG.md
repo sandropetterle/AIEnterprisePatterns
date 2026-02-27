@@ -4,6 +4,106 @@ This document captures significant technical design decisions made during the de
 
 ---
 
+## Decision 41: Phase 6.2 — Related Patterns Backend Endpoint
+
+**Date:** 2026-02-27
+**Title:** Move Related Patterns Logic from Client-Side to Backend API Endpoint
+**Category:** Architecture / Performance
+
+### Decision Details
+
+Replaced the MVP client-side "fetch 100 patterns + compute related" approach with a dedicated backend endpoint `GET /api/patterns/{slug}/related`.
+
+**Algorithm (category-first, tag-fallback, vote-sorted):**
+1. Look up the current pattern by slug (published only)
+2. Query published patterns excluding the current slug
+3. Filter: same category OR any overlapping tag
+4. Order: same-category patterns first (CASE WHEN), then by VoteCount DESC
+5. Take limit (default 3)
+
+**Caching:** `IMemoryCache` with key `related_patterns_{slug}`, 5-minute TTL (same as featured/trending). No explicit invalidation on vote — 5-min staleness is acceptable for a "you might also like" sidebar.
+
+**Changes:**
+- `IPatternRepository` + `PatternRepository`: `GetRelatedPatternsAsync(slug, limit=3, ct)` — two EF Core queries (lookup current, then query related); `AsNoTracking()` for read-only
+- `IPatternService` + `PatternService`: `GetRelatedPatternsAsync(slug, limit=3, ct)` with cache
+- `PatternsController`: `GET /patterns/{slug}/related` → `IEnumerable<PatternListDto>`
+- `lib/api/patterns.ts`: `getRelatedPatterns(slug)` with graceful `[]` fallback on error
+- `app/patterns/[slug]/page.tsx`: replaced `getPatterns({ pageSize: 100 }) + client-side compute` with parallel `Promise.all` including `getRelatedPatterns(slug)`
+- Deleted: `lib/data/relatedPatterns.ts`, `lib/data/filterAndSort.ts`, their test files
+
+**Why not keep client-side?**
+- Fetching 100 patterns on every detail page view is O(n) and doesn't scale
+- Backend can index/cache the query; frontend gets 3 items in one focused request
+- Ranking logic belongs with the data layer
+
+**Tests added:** 6 repository tests, 3 service tests, 2 integration tests (+11 backend total → 105)
+**Frontend tests:** 341 (deleted 50 obsolete client-side tests for relatedPatterns + filterAndSort)
+
+---
+
+## Decision 40: Phase 6.1 — Dark Mode, Animations, Skeleton Loaders, next/image
+
+**Date:** 2026-02-27
+**Title:** UI/UX Improvements — Dark Mode Toggle, CSS Animations, Enhanced Skeleton Loaders, next/image Setup
+**Category:** Frontend / UX
+
+### Decision Details
+
+Four UI/UX improvements implemented as Phase 6.1:
+
+**1. Dark Mode (system preference detection)**
+- `ThemeProvider` client component manages a three-way toggle: `system | light | dark`
+- On mount: reads `localStorage('theme')`; falls back to `window.matchMedia('prefers-color-scheme: dark')`
+- Applies `dark` class to `<html>` via `document.documentElement.classList.toggle('dark', ...)`
+- In `system` mode, registers a `change` listener on the media query so the theme tracks the OS in real time
+- Inline `<script>` in `<head>` applies the class synchronously before first paint → no flash of wrong theme
+- `suppressHydrationWarning` on `<html>` suppresses the React hydration mismatch warning (class differs server/client)
+- `ThemeToggle` button in `Header.tsx` is visible on both mobile and desktop; cycles system → light → dark → system
+- Tailwind `darkMode: ["class"]` was already configured; all CSS variables for `.dark` were already defined
+
+**2. CSS Animations / Micro-interactions**
+- Added `fade-in` (opacity 0→1, 0.4s ease-out) and `slide-up` (opacity+translateY, 0.5s ease-out) keyframes to `tailwind.config.ts`
+- Applied `animate-slide-up` to the Hero content block on the home page
+- Applied `animate-fade-in` to FeaturedPatterns and StatsSection sections
+- Added `hover:-translate-y-0.5` + `duration-200` to PatternCard for a subtle lift on hover
+- Added `scroll-behavior: smooth` to `html` in `globals.css`
+
+**3. Skeleton Loaders (enhanced)**
+- Created `components/ui/SkeletonCard.tsx`: a card-shaped skeleton matching PatternCard dimensions (category badge, title lines, description lines, tags, footer)
+- Updated `app/loading.tsx` and `app/patterns/loading.tsx` to use `SkeletonCard` instead of plain filled rectangles
+- Hero skeleton in `app/loading.tsx` now matches the actual Hero layout (centered text + two CTA buttons)
+
+**4. next/image Setup**
+- Added `images.remotePatterns` to `next.config.mjs`: Strapi Azure Blob Storage (`staipatternsmedia.blob.core.windows.net`) + localhost:1337 for local dev
+- Added `img` renderer to `PatternContent.tsx`: uses `next/image` with `fill` layout for Strapi/local images; falls back to lazy-loaded native `<img>` for external URLs
+
+### Rationale
+- Dark mode is a standard user expectation; the CSS variable infrastructure was already in place
+- Anti-flash inline script is the industry standard pattern (used by next-themes, Radix Themes, etc.) to prevent FOUC
+- Skeleton loaders matching component structure reduce layout shift during hydration
+- next/image remotePatterns establishes the infrastructure for CMS media in later phases
+
+### Alternatives Evaluated
+- **next-themes package** — not used; ThemeProvider from scratch is simpler for three-state cycle, avoids extra dependency, and gives full control
+- **Framer Motion for animations** — not used; Tailwind keyframes are sufficient for simple fade/slide, zero runtime cost
+- **next/image with `unoptimized` for all markdown images** — rejected; opted for domain-specific optimization + native img fallback to avoid incorrect behaviour for external URLs
+
+### Files Changed
+- `tailwind.config.ts` — fade-in/slide-up keyframes + animations
+- `app/globals.css` — scroll-behavior: smooth
+- `components/providers/ThemeProvider.tsx` — new
+- `components/layout/ThemeToggle.tsx` — new
+- `components/ui/SkeletonCard.tsx` — new
+- `app/layout.tsx` — ThemeProvider, suppressHydrationWarning, anti-flash script
+- `components/layout/Header.tsx` — ThemeToggle
+- `app/loading.tsx`, `app/patterns/loading.tsx` — SkeletonCard
+- `components/home/PatternCard.tsx` — hover lift
+- `components/home/Hero.tsx`, `FeaturedPatterns.tsx`, `StatsSection.tsx` — animations
+- `next.config.mjs` — images.remotePatterns
+- `components/patterns/details/PatternContent.tsx` — img renderer with next/image
+
+---
+
 ## Decision 30: Strapi On-Demand Revalidation Webhook
 
 **Date:** 2026-02-26

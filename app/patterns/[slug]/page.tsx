@@ -1,7 +1,6 @@
 import { Metadata } from 'next'
 import { notFound } from 'next/navigation'
-import { getPatternBySlug, getPatterns } from '@/lib/api/patterns'
-import { getRelatedPatterns } from '@/lib/data/relatedPatterns'
+import { getPatternBySlug, getPatterns, getRelatedPatterns } from '@/lib/api/patterns'
 import { formatDate } from '@/lib/utils/dateFormat'
 import dynamic from 'next/dynamic'
 import { Breadcrumb } from '@/components/patterns/details/Breadcrumb'
@@ -74,18 +73,15 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
 export default async function PatternDetailPage({ params }: PageProps) {
   const { slug } = await params
-  const [pattern, labels] = await Promise.all([
+  const [pattern, labels, relatedPatterns] = await Promise.all([
     getPatternBySlug(slug),
     getPatternDetailLabels(),
+    getRelatedPatterns(slug),
   ])
 
   if (!pattern) {
     notFound()
   }
-
-  // Get all patterns for related patterns computation (MVP approach)
-  const allPatterns = await getPatterns({ pageSize: 100 })
-  const relatedPatterns = getRelatedPatterns(pattern, allPatterns.patterns)
 
   const breadcrumbs = [
     { label: 'Home', href: '/' },

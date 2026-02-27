@@ -247,9 +247,9 @@ Tests run automatically in GitHub Actions on:
 ## 8. Future Enhancements
 
 ### Phase 5+
-- ✅ Accessibility testing (axe-core) - **Implemented in Phase 5**
-- ✅ Performance testing (Lighthouse CI) - **Implemented in Phase 6**
-- ✅ Visual regression testing (Percy/Chromatic) - **Implemented in Phase 6**
+- ✅ Accessibility testing (axe-core) - **Implemented in Phase 5.4**
+- 🔜 Performance testing (Lighthouse CI) - **Planned for Phase 6.3**
+- 🔜 Visual regression testing (Percy/Chromatic) - **Planned for Phase 6.3**
 
 ### Phase 7+
 - Mutation testing for critical modules (Stryker for frontend, Stryker.NET for backend)
@@ -265,33 +265,34 @@ Tests run automatically in GitHub Actions on:
 
 ## 9. Summary & Current State
 
-### Phase 4.5 Complete (Testing Foundation & Operational Readiness)
+### Phase 6.2 Complete — as of 2026-02-27
 
 **Backend (xUnit + Moq):**
-- ✅ 83/83 tests passing (~85% testable coverage)
-- PatternService, PatternRepository, PatternsController, CORS middleware, validators, slug value object
+- ✅ 105/105 tests passing (~85% testable coverage)
+- Core: PatternService (20+ tests incl. related patterns caching)
+- Data: PatternRepository (38+ tests incl. GetRelatedPatternsAsync)
+- Api/Integration: PatternsController (47+ tests incl. related endpoint + auth scenarios)
 
 **Frontend (Jest + React Testing Library):**
-- ✅ 262/262 tests passing
-- Coverage: 70.56% stmt / 80.82% branch / 71.81% fn / 71.01% line
-- Components: PatternCard, FilterPanel, SearchBar, VotingButton, PatternContent, Breadcrumb, Header, Footer
-- Pages: home, patterns listing, pattern detail
-- Lib: API client, mappers, patterns functions, date formatter
+- ✅ 391/391 tests passing
+- Coverage: 70%+ stmt/branch/fn/line (CI gate enforced)
+- New in Phase 6.1: ThemeProvider (5 tests), ThemeToggle (6 tests)
+- New in Phase 6.2: related endpoint integration via `getRelatedPatterns`
+- Deleted in Phase 6.2: 50 obsolete client-side filterAndSort + relatedPatterns tests
 
 **E2E (Playwright — Chromium):**
 - ✅ 20/20 tests passing (`e2e/critical-flows.spec.ts`)
 - Covers: Home Page (3), Browse Patterns (6), Pattern Detail (6), Error Handling (2), Page Titles (3)
+- Auth: Direct session injection via `@auth/core/jwt` encode (replaces Entra browser login in CI)
 - Network mocking: `page.addInitScript` to override `window.fetch` for vote endpoint (see Decision 12)
-- CI integration: built frontend with API URL baked in, starts `next start`, polls health, then runs Playwright
 
 **CI/CD Gates (`.github/workflows/test.yml`):**
 - ✅ Backend tests → Frontend tests → E2E tests must all pass before deployment
 
-### Next Phase: Phase 5
-- Authentication (JWT / session)
-- CRUD UI (create/edit/delete patterns)
-- Advanced search
-- Accessibility (axe-core integration in E2E)
+### Next Phase: Phase 6.3
+- Lighthouse CI (LCP < 2.5s, TTI < 5s)
+- Visual regression testing (Percy or Chromatic)
+- Playwright cross-browser (Chromium / Firefox / WebKit)
 
 ### Maintenance
 - Update tests as features are added/modified
