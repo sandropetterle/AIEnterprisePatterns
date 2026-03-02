@@ -85,6 +85,79 @@ lib/
 auth.ts                           ← Auth.js configuration (OIDC provider, JWT callbacks)
 ```
 
+```mermaid
+flowchart TD
+    %% ── Root Layout ──────────────────────────────────────────────────────────
+    Layout["📄 layout.tsx<br/>Root Layout"]
+
+    %% ── Providers ────────────────────────────────────────────────────────────
+    subgraph Providers["🔌 Providers"]
+        direction LR
+        ThemeProv["🌗 ThemeProvider<br/>system · light · dark"]
+        SessionProv["🔐 SessionProvider<br/>Auth.js"]
+    end
+
+    %% ── Layout Shell ─────────────────────────────────────────────────────────
+    subgraph Shell["🧱 Layout Components"]
+        direction LR
+        Header["🧭 Header"]
+        ThemeToggle["🌓 ThemeToggle"]
+        UserMenu["👤 UserMenu"]
+        Footer["📝 Footer"]
+    end
+
+    %% ── Pages (all Server Components) ───────────────────────────────────────
+    subgraph Pages["📑 App Router Pages"]
+        direction LR
+        Home["🏠 /"]
+        Listing["📋 /patterns"]
+        Detail["🔍 /patterns/[slug]"]
+        New["➕ /patterns/new<br/>auth gate"]
+        Edit["✏️ /patterns/[slug]/edit<br/>auth gate"]
+    end
+
+    %% ── Pattern Components ───────────────────────────────────────────────────
+    subgraph PatComp["🧩 Pattern Components"]
+        direction LR
+        PatternCard["PatternCard"]
+        FilterPanel["FilterPanel"]
+        SearchBar["SearchBar"]
+        PatternContent["PatternContent<br/>(lazy)"]
+        VotingButton["VotingButton<br/>(optimistic UI)"]
+        PatternActions["PatternActions"]
+        PatternForm["PatternForm"]
+    end
+
+    %% ── Data Layer ───────────────────────────────────────────────────────────
+    subgraph DataLayer["📡 Data Layer"]
+        direction LR
+        APILib["lib/api/<br/>client · patterns · mappers"]
+        CMSLib["lib/cms/<br/>client · queries · components"]
+    end
+
+    %% ── Connections ──────────────────────────────────────────────────────────
+    Layout --> Providers & Shell & Pages
+    Header --> ThemeToggle & UserMenu
+    Listing --> PatternCard & FilterPanel & SearchBar
+    Detail --> PatternContent & VotingButton & PatternActions
+    New & Edit --> PatternForm
+    Pages --> DataLayer
+
+    %% ── Styles ───────────────────────────────────────────────────────────────
+    classDef server   fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E3A8A,font-weight:bold
+    classDef client   fill:#FCE7F3,stroke:#DB2777,stroke-width:2px,color:#831843,font-weight:bold
+    classDef layout   fill:#CCFBF1,stroke:#0D9488,stroke-width:2px,color:#134E4A,font-weight:bold
+    classDef provider fill:#EDE9FE,stroke:#7C3AED,stroke-width:2px,color:#3B0764,font-weight:bold
+    classDef data     fill:#F3F4F6,stroke:#374151,stroke-width:2px,color:#111827,font-weight:bold
+
+    class Layout,Home,Listing,Detail,New,Edit,PatternCard server
+    class ThemeProv,SessionProv,ThemeToggle,UserMenu,FilterPanel,SearchBar,VotingButton,PatternContent,PatternActions,PatternForm client
+    class Header,Footer layout
+    class APILib,CMSLib data
+```
+
+> **Legend:** 🔵 Blue = Server Component · 🩷 Pink = Client Component (browser hooks/events) · 🟣 Purple = Auth/Theme Provider · 🟢 Teal = Layout wrapper · ⬛ Gray = Data/utilities
+
 ---
 
 ## 3. Server vs Client Components

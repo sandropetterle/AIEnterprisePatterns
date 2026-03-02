@@ -19,8 +19,53 @@ AIEnterprisePatterns.Data         ← Persistence layer: Repositories, DbContext
 
 **Dependency rule:** Outer layers depend on inner layers. `Api` → `Core` → `Data`. No reverse dependencies.
 
-<!-- DIAGRAM: Clean Architecture Layers -->
-> 📐 *Diagram planned — see [DIAGRAM_PLAN.md](../diagrams/DIAGRAM_PLAN.md)*
+```mermaid
+flowchart LR
+    %% ── Api Layer ────────────────────────────────────────────────────────────
+    subgraph API["🌐  .Api — HTTP Layer"]
+        direction TB
+        A1["🎮 Controllers<br/>PatternsController · AuthController"]
+        A2["📋 DTOs<br/>Request · Response models"]
+        A3["✅ Validators<br/>FluentValidation"]
+        A4["🔒 Middleware<br/>Error handling · Rate Limiting"]
+    end
+
+    %% ── Core Layer ───────────────────────────────────────────────────────────
+    subgraph Core["⚙️  .Core — Domain Layer"]
+        direction TB
+        C1["🏗️ Entities<br/>Pattern · Tag"]
+        C2["🔌 Interfaces<br/>IPatternRepository · IPatternService"]
+        C3["🔧 Services<br/>PatternService"]
+        C4["🗺️ Mappers · Value Objects<br/>PatternMapper · Slug"]
+    end
+
+    %% ── Data Layer ───────────────────────────────────────────────────────────
+    subgraph Data["🗄️  .Data — Persistence Layer"]
+        direction TB
+        D1["📂 Repositories<br/>PatternRepository · UnitOfWork"]
+        D2["🔗 DbContext<br/>ApplicationDbContext"]
+        D3["🔄 Migrations<br/>EF Core code-first"]
+    end
+
+    %% ── Infrastructure (placeholder) ─────────────────────────────────────────
+    Infra(["🔧 .Infrastructure<br/>(empty — future services)"])
+
+    %% ── Dependency Direction — outer layers depend on inner, never reversed ──
+    API -->|"depends on"| Core
+    Core -->|"depends on"| Data
+    Data -.->|"future"| Infra
+
+    %% ── Styles ───────────────────────────────────────────────────────────────
+    classDef api   fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E3A8A,font-weight:bold
+    classDef core  fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#064E3B,font-weight:bold
+    classDef data  fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F,font-weight:bold
+    classDef infra fill:#F3F4F6,stroke:#9CA3AF,stroke-width:2px,color:#6B7280,stroke-dasharray:5 5
+
+    class A1,A2,A3,A4 api
+    class C1,C2,C3,C4 core
+    class D1,D2,D3 data
+    class Infra infra
+```
 
 ---
 

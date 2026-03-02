@@ -116,6 +116,34 @@ On-demand revalidation ensures Next.js ISR cache is cleared when content changes
 | Pattern listings | 120s | — |
 | Pattern details | 600s | — |
 
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDE9FE', 'primaryBorderColor': '#7C3AED', 'primaryTextColor': '#3B0764', 'noteBkgColor': '#FEF3C7', 'noteTextColor': '#78350F'}}}%%
+sequenceDiagram
+    actor Editor as ✏️ Content Editor
+    participant Strapi as 📝 Strapi CMS
+    participant Route as ⚡ /api/revalidate
+    participant Cache as 🔄 ISR Cache
+    actor User as 👤 End User
+
+    Editor->>Strapi: Publish / update content
+    Strapi->>Route: POST /api/revalidate?secret=***
+
+    alt Secret invalid
+        Route-->>Strapi: 401 Unauthorized
+    else Secret valid
+        Route->>Cache: revalidatePath(affected paths)
+        Cache-->>Route: Paths invalidated
+        Route-->>Strapi: 200 {revalidated: true, paths: [...]}
+    end
+
+    Note over Cache: Stale pages rebuild<br/>on the next request
+
+    User->>Cache: GET / (any CMS-driven route)
+    Cache->>Strapi: Fetch fresh content
+    Strapi-->>Cache: Updated content
+    Cache-->>User: Fresh rebuilt page
+```
+
 ---
 
 ## 7. Populate API Quirks
