@@ -116,24 +116,24 @@ flowchart TD
 
     %% ── Azure Container Apps ────────────────────────────────────────────────
     subgraph ACA["☁️  Azure Container Apps Environment"]
-        FE["⚡ Next.js 16\nApp Router · ISR · Auth.js v5"]
-        API["🔧 ASP.NET Core 8\nREST API · JWT · Rate Limiting"]
-        CMS["📝 Strapi 5\nHeadless CMS · Webhook"]
+        FE["⚡ Next.js 16<br/>App Router · ISR · Auth.js v5"]
+        API["🔧 ASP.NET Core 8<br/>REST API · JWT · Rate Limiting"]
+        CMS["📝 Strapi 5<br/>Headless CMS · Webhook"]
     end
 
     %% ── Databases ───────────────────────────────────────────────────────────
     subgraph DB["💾  Databases"]
         direction LR
-        SQLDB[("Azure SQL\nPatterns & Tags")]
-        MySQL[("Azure MySQL\nCMS Content")]
+        SQLDB[("Azure SQL<br/>Patterns & Tags")]
+        MySQL[("Azure MySQL<br/>CMS Content")]
     end
 
     %% ── Azure Platform Services ─────────────────────────────────────────────
     subgraph Platform["🔷  Azure Platform Services"]
         direction LR
-        Entra["🔐 Entra External ID\nOIDC Provider"]
-        Blob["📦 Blob Storage\nMedia Files"]
-        AI["📊 Application Insights\nMonitoring"]
+        Entra["🔐 Entra External ID<br/>OIDC Provider"]
+        Blob["📦 Blob Storage<br/>Media Files"]
+        AI["📊 Application Insights<br/>Monitoring"]
     end
 
     %% ── CI/CD Pipeline ──────────────────────────────────────────────────────
