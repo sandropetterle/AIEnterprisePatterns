@@ -148,6 +148,49 @@ Base URL (production): `https://ca-aipatterns-api-prod.mangotree-f65a3b02.centra
 
 ---
 
+## 3a. Pattern Vote Flow
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#D1FAE5', 'primaryBorderColor': '#059669', 'primaryTextColor': '#064E3B', 'noteBkgColor': '#FEF3C7', 'noteTextColor': '#78350F'}}}%%
+sequenceDiagram
+    actor Client as 👤 Client
+    participant RL as 🚦 Rate Limiter<br/>(vote: 10/min per IP)
+    participant Ctrl as 🎮 PatternsController
+    participant Svc as 🔧 PatternService
+    participant DB as 🗄️ Database
+
+    Client->>RL: POST /api/patterns/{id}/vote
+
+    alt Rate limit exceeded
+        RL-->>Client: 429 Too Many Requests
+    else Within limit
+        RL->>Ctrl: Forward request
+        Ctrl->>Ctrl: Validate pattern ID (GUID)
+
+        alt Invalid GUID
+            Ctrl-->>Client: 400 Bad Request
+        else Valid GUID
+            Ctrl->>Svc: VoteAsync(patternId)
+            Svc->>DB: ExecuteUpdateAsync()<br/>SET VoteCount = VoteCount + 1<br/>WHERE Id = @id
+
+            alt Pattern not found (0 rows updated)
+                DB-->>Svc: 0 rows affected
+                Svc-->>Ctrl: null
+                Ctrl-->>Client: 404 Not Found
+            else Vote recorded
+                DB-->>Svc: 1 row affected
+                Svc->>DB: SELECT updated pattern
+                DB-->>Svc: PatternDetailDto
+                Svc-->>Ctrl: PatternDetailDto
+                Ctrl-->>Client: 200 OK {voteCount: N}
+                Note over Client: Optimistic UI update confirmed
+            end
+        end
+    end
+```
+
+---
+
 ## 4. Data Validation
 
 - `FluentValidation` applied to all DTOs: `CreatePatternDto`, `UpdatePatternDto`
@@ -173,6 +216,32 @@ Base URL (production): `https://ca-aipatterns-api-prod.mangotree-f65a3b02.centra
 - **Efficient indexing:** Database indexed on slug, category, and tags
 - **Pagination:** All list endpoints paginate to limit data transfer
 - **`AsNoTracking()`** on all read-only queries
+
+---
+
+## 6a. Pattern Lifecycle
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#D1FAE5', 'primaryBorderColor': '#059669', 'primaryTextColor': '#064E3B', 'noteBkgColor': '#FEF3C7', 'noteTextColor': '#78350F'}}}%%
+stateDiagram-v2
+    [*] --> Draft : Editor creates pattern
+
+    Draft --> Published : Set status = Published
+    Published --> Draft : Set status = Draft
+    Draft --> Draft : Editor saves edits
+    Published --> Published : Editor saves edits
+    Published --> Deleted : Admin deletes
+    Draft --> Deleted : Admin deletes
+    Deleted --> [*]
+
+    note right of Draft
+        Not returned by GET /patterns<br/>Visible to Editor+ via direct URL
+    end note
+
+    note right of Published
+        Returned by all list + search<br/>endpoints. Visible to all users.
+    end note
+```
 
 ---
 
@@ -205,6 +274,97 @@ backend/
     ├── AIEnterprisePatterns.Core.Tests/
     ├── AIEnterprisePatterns.Data.Tests/
     └── AIEnterprisePatterns.Api.Tests/   ← includes integration tests
+```
+
+---
+
+## 7a. Backend Domain Model
+
+```mermaid
+classDiagram
+    class Pattern {
+        +Guid Id
+        +string Title
+        +Slug Slug
+        +string ShortDescription
+        +string FullContent
+        +PatternCategory Category
+        +string Author
+        +DateTime CreatedDate
+        +DateTime UpdatedDate
+        +int VoteCount
+        +PatternStatus Status
+        +bool IsFeatured
+        +bool IsTrending
+        +ICollection~Tag~ Tags
+    }
+
+    class Tag {
+        +Guid Id
+        +string Name
+        +ICollection~Pattern~ Patterns
+    }
+
+    class IPatternRepository {
+        <<interface>>
+        +GetAllAsync(query) Task~PagedResult~
+        +GetBySlugAsync(slug) Task~Pattern~
+        +GetFeaturedAsync() Task~IEnumerable~
+        +GetTrendingAsync() Task~IEnumerable~
+        +GetRelatedPatternsAsync(slug, limit) Task~IEnumerable~
+        +CreateAsync(pattern) Task
+        +UpdateAsync(pattern) Task
+        +DeleteAsync(id) Task~bool~
+        +VoteAsync(id) Task~Pattern~
+        +SaveAsync() Task
+    }
+
+    class IPatternService {
+        <<interface>>
+        +GetAllAsync(query) Task~PagedResult~
+        +GetBySlugAsync(slug) Task~PatternDetailDto~
+        +GetFeaturedAsync() Task~IEnumerable~
+        +GetTrendingAsync() Task~IEnumerable~
+        +GetRelatedPatternsAsync(slug) Task~IEnumerable~
+        +CreateAsync(dto) Task~PatternDetailDto~
+        +UpdateAsync(id, dto) Task~PatternDetailDto~
+        +DeleteAsync(id) Task~bool~
+        +VoteAsync(id) Task~PatternDetailDto~
+    }
+
+    class PatternService {
+        -IPatternRepository _repository
+        -IMemoryCache _cache
+    }
+
+    class PatternRepository {
+        -ApplicationDbContext _context
+    }
+
+    class IUnitOfWork {
+        <<interface>>
+        +IPatternRepository Patterns
+        +SaveAsync() Task
+    }
+
+    class PatternMapper {
+        <<static>>
+        +ToDto(pattern)$ PatternListDto
+        +ToDetailDto(pattern)$ PatternDetailDto
+    }
+
+    class Slug {
+        <<value object>>
+        +string Value
+        +Slug(value)
+    }
+
+    Pattern "1" --> "0..*" Tag : many-to-many via PatternTag
+    PatternService ..|> IPatternService
+    PatternRepository ..|> IPatternRepository
+    PatternService --> IPatternRepository : uses
+    PatternMapper --> Pattern : maps to DTOs
+    Pattern --> Slug : value object
 ```
 
 ---
