@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-02
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -19,12 +19,14 @@
 | Phase 5.2 | ✅ Complete | 2026-02-19 | Pattern Management UI (create/edit/delete forms) |
 | Phase 5.3 | ✅ Complete | 2026-02-20 | Advanced Search & Discovery (full-text, date range, saved searches) |
 | Phase 5.4 | ✅ Complete | 2026-02-20 | Accessibility Improvements (WCAG 2.1 AA) |
+| Phase 5.5 | ✅ Complete | 2026-02-26 | CMS Infrastructure (Strapi 5, Azure Container App, MySQL, Blob Storage, ISR webhook) |
 | Phase 6.1 | ✅ Complete | 2026-02-27 | UI/UX Polish (dark mode, skeleton loaders, animations, next/image) |
 | Phase 6.2 | ✅ Complete | 2026-02-27 | Related Patterns endpoint (backend + frontend, cached) |
-| **Phase 6.3** | 🔜 Next | TBD | Testing infrastructure (Lighthouse CI, visual regression, cross-browser) |
-| **Phase 6.4** | 🔜 Next | TBD | CMS Phase 2 — about, docs, login, error, 404 pages |
-| **Phase 6.5** | 🔜 Next | TBD | CMS Phase 2 — pattern listing/detail/form labels |
-| **Phase 6.6** | 🔜 Next | TBD | CMS Phase 2 — tests & documentation |
+| Phase 6.3 | ✅ Complete | 2026-03-02 | Documentation Reuse & Storybook (API ref, CMS component ref, 38 stories, governance) |
+| **Phase 6.4** | 🔜 Next | TBD | Testing infrastructure (Lighthouse CI, visual regression, cross-browser) |
+| **Phase 6.5** | 🔜 Next | TBD | CMS Content Migration — page content (layout, home, about, docs, auth pages) |
+| **Phase 6.6** | 🔜 Next | TBD | CMS Content Migration — pattern UI labels (listing, detail, form) |
+| **Phase 6.7** | 🔜 Next | TBD | CMS Content Migration — tests & documentation |
 | Phase 7 | 📋 Planned | TBD | Community features, exports, performance, advanced content |
 | Phase 8 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
 
@@ -39,7 +41,7 @@ Built the complete frontend UI against mock data: Home page, Patterns Listing pa
 Implemented ASP.NET Core 8 Web API with Clean Architecture, EF Core code-first database, CRUD endpoints, and voting endpoint.
 
 ### Phase 3 — Integration
-Connected the frontend to the live backend API, replaced mock data, and integrated initial Strapi CMS setup.
+Connected the frontend to the live backend API, replaced mock data, and created the initial Strapi CMS project (SQLite dev, content model scaffolded).
 
 ### Phase 4 — Azure Deployment & Production Readiness (2026-02-11)
 **38 remediation items completed:**
@@ -64,42 +66,62 @@ Key deliverables: xUnit test projects, Jest + React Testing Library setup, Playw
 
 **5.4 Accessibility:** WCAG 2.1 AA compliance — skip-to-content, focus indicators, ARIA attributes, screen reader support, jest-axe integration.
 
+### Phase 5.5 — CMS Infrastructure (2026-02-26)
+Full Strapi 5 production deployment for the headless CMS layer:
+- Strapi 5 project (`cms/`) with TypeScript, Docker, SQLite (dev) / MySQL (prod)
+- Azure infrastructure: MySQL Flexible Server (B1ms), Container App, Blob Storage (media)
+- CI/CD workflow (`cms-container-deploy.yml`), Docker image via ACR
+- Seed script (`cms/data/seed.ts`) populating all 10 Single Types from hardcoded content
+- On-demand ISR revalidation webhook (`app/api/revalidate/route.ts`) — Strapi triggers on publish/update/delete
+- `lib/cms/` client, types, queries, Dynamic Zone renderer, CmsUnavailableError with fallbacks
+
 ### Phase 6.1 — UI/UX Polish (2026-02-27)
 Dark mode (system/light/dark toggle with localStorage persistence and anti-flash script), CSS animations (slide-up hero, fade-in sections, card hover lift), enhanced skeleton loaders, next/image integration for Strapi media.
 
 ### Phase 6.2 — Related Patterns Endpoint (2026-02-27)
 `GET /api/patterns/{slug}/related` — category-first + tag-overlap algorithm, vote-sorted, cached 5 minutes. Removed client-side computation (no more fetch-100-patterns approach).
 
+### Phase 6.3 — Documentation Reuse & Storybook (2026-03-02)
+Four-pillar documentation and reuse infrastructure:
+- **API Reference** (`documentation/api/`): `API_REFERENCE_INDEX.md`, `PATTERNS_API.md`, `AUTH_API.md`, `HEALTH_API.md`
+- **CMS Component Reference** (`documentation/cms-components/`): COMPONENT_INDEX + 4 namespace pages covering all 26 Strapi components with field tables, "Used By" map, dependency diagram (diagram #14)
+- **Storybook UI Catalog** (`.storybook/`): 38 story files colocated with components, `@storybook/nextjs`, a11y + themes addons, shared fixtures, next-auth mock
+- **Governance** (`documentation/GOVERNANCE.md`, `DOCUMENTATION_INDEX.md`, `CLAUDE.md`): lifecycle rules, folder purposes, stakeholder reading paths, single-source-of-truth table
+
 ---
 
 ## Active Phases
 
-### Phase 6.3 — Testing Infrastructure
-**Priority:** HIGH | **Dependencies:** Phase 6.2 complete
+### Phase 6.4 — Testing Infrastructure
+**Priority:** HIGH | **Dependencies:** Phase 6.3 complete ✅
 
-- Integrate Lighthouse CI into GitHub Actions (LCP < 2.5s, TTI < 5s, FCP < 1.8s)
-- Visual regression testing (Percy or Chromatic)
+- Integrate Lighthouse CI into GitHub Actions (LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 80)
+- Visual regression testing via Chromatic (integrates with existing Storybook)
 - Playwright cross-browser matrix (Chromium, Firefox, WebKit)
-- Block deployments on performance regression
+- Block deployments on performance or visual regression
 
-### Phase 6.4 — CMS Phase 2: Page Content Migration
-**Priority:** HIGH | **Dependencies:** CMS Phase 1 complete ✅
+**Implementation plan:** [PHASE_TESTING_PLAN.md](PHASE_TESTING_PLAN.md)
 
-- About page — Dynamic Zone (mission-block, feature-grid, tech-stack, open-source-info, cta-banner)
-- Docs page — Dynamic Zone (quick-nav, doc-section, api-reference, contributing, support-links)
-- Login page — server-side label fetching, pass as props to `LoginForm`
-- Error page — with try/catch fallback (cannot fail on the error page)
-- Not-Found page — content from CMS
-
-### Phase 6.5 — CMS Phase 2: Pattern UI Labels
+### Phase 6.5 — CMS Content Migration: Page Content
 **Priority:** HIGH | **Dependencies:** Phase 6.4
+
+- Global layout: nav, footer, site metadata, skip-link from CMS
+- Home page: Dynamic Zone (hero, stats, featured patterns, CTA banner)
+- About page: Dynamic Zone (mission, feature grid, tech stack, open source CTA)
+- Docs page: Dynamic Zone (quick nav, doc sections, API reference, contributing, support)
+- Auth pages: login (labels as props), error, not-found from CMS
+
+### Phase 6.6 — CMS Content Migration: Pattern UI Labels
+**Priority:** HIGH | **Dependencies:** Phase 6.5
 
 - `pattern-listing-labels` → SearchBar, FilterPanel, SortSelector, EmptyState, Pagination
 - `pattern-detail-labels` → all detail sub-components
 - `pattern-form-labels` → PatternForm create/edit
 
-### Phase 6.6 — CMS Phase 2: Tests & Documentation
-**Priority:** HIGH | **Dependencies:** Phase 6.5
+**Implementation plan:** [PHASE_CMS_CONTENT_PLAN.md](PHASE_CMS_CONTENT_PLAN.md) (covers 6.5–6.7)
+
+### Phase 6.7 — CMS Content Migration: Tests & Documentation
+**Priority:** HIGH | **Dependencies:** Phase 6.6
 
 - Unit tests for new CMS query functions (mock `fetchStrapi`)
 - Fallback behavior tests (Strapi unavailable → hardcoded defaults render correctly)
@@ -135,5 +157,5 @@ Sub-phases:
 
 - Phase timelines may be adjusted based on business needs and user feedback
 - Technical decisions for each phase are recorded in [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md)
-- Active phase implementation plans are in [PHASE_CMS_IMPLEMENTATION_PLAN.md](PHASE_CMS_IMPLEMENTATION_PLAN.md)
+- Active phase implementation plans: [PHASE_TESTING_PLAN.md](PHASE_TESTING_PLAN.md) (Phase 6.4), [PHASE_CMS_CONTENT_PLAN.md](PHASE_CMS_CONTENT_PLAN.md) (Phases 6.5–6.7)
 - Test results per phase are in [../test_results/](../test_results/)

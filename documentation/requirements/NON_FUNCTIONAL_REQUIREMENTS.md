@@ -122,14 +122,14 @@
 - Integration tests for all API endpoints
 - E2E tests for critical user flows (Playwright)
 - Accessibility tests (jest-axe, axe-core)
-- Performance tests — Lighthouse CI (Phase 6.3+)
-- Visual regression tests (Phase 6.3+)
+- Performance tests — Lighthouse CI (Phase 6.4+)
+- Visual regression tests (Phase 6.4+)
 
 ### Quality Gates
 - All tests must pass before merging to main
 - Coverage must meet thresholds for affected modules
 - No critical accessibility violations in PR builds
-- Performance budgets enforced: LCP < 2.5s, TTI < 5s (Phase 6.3+)
+- Performance budgets enforced: LCP < 2.5s, TTI < 5s (Phase 6.4+)
 
 See [../testing/TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md) for the full testing approach.
 

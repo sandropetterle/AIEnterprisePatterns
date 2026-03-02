@@ -290,8 +290,8 @@ Tests run automatically in GitHub Actions on:
 
 ### Phase 5+
 - ✅ Accessibility testing (axe-core) - **Implemented in Phase 5.4**
-- 🔜 Performance testing (Lighthouse CI) - **Planned for Phase 6.3**
-- 🔜 Visual regression testing (Percy/Chromatic) - **Planned for Phase 6.3**
+- 🔜 Performance testing (Lighthouse CI) - **Planned for Phase 6.4**
+- 🔜 Visual regression testing (Chromatic) - **Planned for Phase 6.4**
 
 ### Phase 7+
 - Mutation testing for critical modules (Stryker for frontend, Stryker.NET for backend)
@@ -307,7 +307,9 @@ Tests run automatically in GitHub Actions on:
 
 ## 9. Summary & Current State
 
-### Phase 6.2 Complete — as of 2026-02-27
+### Phase 6.3 Complete — as of 2026-03-02
+
+Phase 6.3 (Documentation Reuse & Storybook) added 38 Storybook stories but no new Jest/xUnit tests — test counts unchanged from Phase 6.2.
 
 **Backend (xUnit + Moq):**
 - ✅ 105/105 tests passing (~85% testable coverage)
@@ -331,10 +333,12 @@ Tests run automatically in GitHub Actions on:
 **CI/CD Gates (`.github/workflows/test.yml`):**
 - ✅ Backend tests → Frontend tests → E2E tests must all pass before deployment
 
-### Next Phase: Phase 6.3
-- Lighthouse CI (LCP < 2.5s, TTI < 5s)
-- Visual regression testing (Percy or Chromatic)
-- Playwright cross-browser (Chromium / Firefox / WebKit)
+### Next Phase: Phase 6.4
+- Lighthouse CI (LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 80)
+- Visual regression testing (Chromatic — integrates with existing Storybook)
+- Playwright cross-browser matrix (Chromium / Firefox / WebKit)
+
+See [../project/PHASE_TESTING_PLAN.md](../project/PHASE_TESTING_PLAN.md) for the full implementation plan.
 
 ### Maintenance
 - Update tests as features are added/modified
