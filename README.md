@@ -156,8 +156,8 @@ AIEnterprisePatterns/
 - ✅ 350+ frontend tests, 105 backend tests
 
 ### Upcoming 🔜
-- 🔜 CMS Phase 2 — all page content and UI labels from Strapi (Phase 6.4-6.6)
-- 🔜 Lighthouse CI and visual regression testing (Phase 6.3)
+- 🔜 Lighthouse CI, Chromatic visual regression, cross-browser Playwright (Phase 6.4)
+- 🔜 CMS Phase 2 — all page content and UI labels from Strapi (Phase 6.5-6.7)
 - 🔜 Community features — comments, ratings, bookmarks (Phase 7)
 - 🔜 Internationalization and enterprise features (Phase 8)
 

@@ -1674,7 +1674,7 @@ Getting Strapi 5 running locally in Docker required four separate fixes:
 
 ---
 
-## Decision 30: Strapi 5 Headless CMS Integration (Phase CMS)
+## Decision 30: Strapi 5 Headless CMS Integration (Phase 5.5)
 
 **Date:** 2026-02-25
 **Title:** Strapi 5 as Headless CMS for Static Frontend Content

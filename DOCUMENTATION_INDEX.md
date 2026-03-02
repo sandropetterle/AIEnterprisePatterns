@@ -129,7 +129,8 @@
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
 | [ROADMAP.md](documentation/project/ROADMAP.md) | Phase plans, status summary table, deliverables, upcoming phases | PM, Architect, all | Current |
-| [PHASE_CMS_IMPLEMENTATION_PLAN.md](documentation/project/PHASE_CMS_IMPLEMENTATION_PLAN.md) | Strapi 5 CMS integration implementation plan | Developers, Architect | Active (Phase 6.4-6.6) |
+| [PHASE_TESTING_PLAN.md](documentation/project/PHASE_TESTING_PLAN.md) | Phase 6.4 implementation plan — Lighthouse CI, Chromatic, cross-browser Playwright | Developers, DevOps | Active (Phase 6.4) |
+| [PHASE_CMS_CONTENT_PLAN.md](documentation/project/PHASE_CMS_CONTENT_PLAN.md) | Phases 6.5–6.7 implementation plan — CMS content migration, files-to-modify table, test strategy | Frontend devs, Architect | Active (Phases 6.5–6.7) |
 
 ---
 
@@ -171,7 +172,6 @@
 | [phase4_5_week2_completion.md](documentation/test_results/phase4_5_week2_completion.md) | Phase 4.5 week 2 completion report | Historical |
 | [phase4_5_week3_test_results.md](documentation/test_results/phase4_5_week3_test_results.md) | Phase 4.5 week 3 test results | Historical |
 | [phase5_1_auth_test_results.md](documentation/test_results/phase5_1_auth_test_results.md) | Phase 5.1 auth test results | Historical |
-| [PHASE3_TEST_RESULTS.md](documentation/test_results/PHASE3_TEST_RESULTS.md) | Phase 3 test results (eligible for deletion at Phase 7 start) | Historical — deletion eligible |
 
 ---
 
