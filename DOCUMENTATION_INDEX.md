@@ -153,11 +153,11 @@
 
 ## documentation/diagrams/ — Visual diagrams
 
-*Mermaid format, embedded directly in their target architecture docs. All 13 complete.*
+*Mermaid format, embedded directly in their target architecture docs. All 14 complete.*
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [DIAGRAM_INDEX.md](documentation/diagrams/DIAGRAM_INDEX.md) | Index of all 13 diagrams — where each lives, format, and Mermaid conventions. | Current |
+| [DIAGRAM_INDEX.md](documentation/diagrams/DIAGRAM_INDEX.md) | Index of all 14 diagrams — where each lives, format, and Mermaid conventions. | Current |
 
 **All diagrams (embedded in their target docs):**
 | Diagram | Embedded In |
@@ -166,6 +166,7 @@
 | Clean Architecture Layers | [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) |
 | Frontend Component Tree | [FRONTEND_ARCHITECTURE.md](documentation/architecture/FRONTEND_ARCHITECTURE.md) |
 | CMS ISR Revalidation Flow | [CMS_ARCHITECTURE.md](documentation/architecture/CMS_ARCHITECTURE.md) |
+| CMS Component Dependency Map | [COMPONENT_INDEX.md](documentation/cms-components/COMPONENT_INDEX.md) |
 | Azure Infrastructure | [CONTAINER_APPS_GUIDE.md](deployment/CONTAINER_APPS_GUIDE.md) |
 | Authentication Flow (sequence) | [SECURITY_OVERVIEW.md](documentation/architecture/SECURITY_OVERVIEW.md) |
 | Pattern Vote Flow (sequence) | [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) |

@@ -20,6 +20,68 @@
 
 ---
 
+## Component dependency map
+
+The diagram below shows which section components depend on which layout and shared components. Five standalone section components with no child dependencies (`page-header`, `mission-block`, `rich-text`, `featured-patterns`, `doc-section`) are omitted — see the catalog table below.
+
+```mermaid
+flowchart TD
+    classDef sectionCls fill:#EDE9FE,stroke:#7C3AED,color:#4C1D95
+    classDef layoutCls fill:#CCFBF1,stroke:#0D9488,color:#134E4A
+    classDef sharedCls fill:#FEF3C7,stroke:#D97706,color:#78350F
+
+    subgraph SEC["sections namespace"]
+        direction LR
+        hero["hero"]:::sectionCls
+        ctab["cta-banner"]:::sectionCls
+        sb["stats-bar"]:::sectionCls
+        fg["feature-grid"]:::sectionCls
+        ts["tech-stack"]:::sectionCls
+        osi["open-source-info"]:::sectionCls
+        qn["quick-nav"]:::sectionCls
+        ar["api-reference"]:::sectionCls
+        co["contributing"]:::sectionCls
+        sl["support-links"]:::sectionCls
+    end
+
+    subgraph LAY["layout namespace"]
+        direction LR
+        ctaBtn["cta-button"]:::layoutCls
+        fc["footer-config"]:::layoutCls
+        nl["nav-link"]:::layoutCls
+    end
+
+    subgraph SHR["shared namespace"]
+        direction LR
+        si["stat-item"]:::sharedCls
+        qni["quick-nav-item"]:::sharedCls
+        sui["support-item"]:::sharedCls
+        feac["feature-card"]:::sharedCls
+        tg["tech-group"]:::sharedCls
+        ae["api-endpoint"]:::sharedCls
+        ti["text-item"]:::sharedCls
+        kv["key-value"]:::sharedCls
+    end
+
+    hero --> ctaBtn
+    ctab --> ctaBtn
+    osi --> ctaBtn
+    co --> ctaBtn
+    sb --> si
+    fg --> feac
+    ts --> tg
+    qn --> qni
+    ar --> ae
+    co --> ti
+    sl --> sui
+    fc --> nl
+    feac --> ti
+    tg --> ti
+    ae --> kv
+```
+
+---
+
 ## Full catalog
 
 ### Layout components
