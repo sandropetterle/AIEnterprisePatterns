@@ -23,7 +23,7 @@ AIEnterprisePatterns.Data         ← Persistence layer: Repositories, DbContext
 flowchart TD
     %% ── Api Layer ────────────────────────────────────────────────────────────
     subgraph API["🌐  .Api — HTTP Layer"]
-        direction LR
+        direction TB
         A1["🎮 Controllers<br/>PatternsController · AuthController"]
         A2["📋 DTOs<br/>Request · Response models"]
         A3["✅ Validators<br/>FluentValidation"]
@@ -32,7 +32,7 @@ flowchart TD
 
     %% ── Core Layer ───────────────────────────────────────────────────────────
     subgraph Core["⚙️  .Core — Domain Layer"]
-        direction LR
+        direction TB
         C1["🏗️ Entities<br/>Pattern · Tag"]
         C2["🔌 Interfaces<br/>IPatternRepository · IPatternService"]
         C3["🔧 Services<br/>PatternService"]
@@ -41,7 +41,7 @@ flowchart TD
 
     %% ── Data Layer ───────────────────────────────────────────────────────────
     subgraph Data["🗄️  .Data — Persistence Layer"]
-        direction LR
+        direction TB
         D1["📂 Repositories<br/>PatternRepository · UnitOfWork"]
         D2["🔗 DbContext<br/>ApplicationDbContext"]
         D3["🔄 Migrations<br/>EF Core code-first"]
