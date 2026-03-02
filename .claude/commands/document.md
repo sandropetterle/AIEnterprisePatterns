@@ -1,4 +1,5 @@
 Update documentation, memmory.md and claude.md where appropriate and relevant. 
 
 Don't update documentation if it isn't relevant or significant.
-Update or create diagrams where appopriate and relevant to make it significantly easier to visualise the textual information.
+Update existing diagrams if the information on them has changed.
+Create diagrams where appopriate and relevant ONLY IF it makes it significantly easier to understand the textual information in diagram form.

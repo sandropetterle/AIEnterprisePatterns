@@ -23,6 +23,8 @@ npm run dev          # Start dev server at http://localhost:3000
 npm run build        # Production build
 npm run lint         # Run ESLint
 npm test             # Run Jest tests
+npm run storybook    # Storybook dev server at http://localhost:6006
+npm run build-storybook  # Static Storybook build to storybook-static/
 ```
 
 ### Backend (from backend directory)
@@ -207,6 +209,8 @@ Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 **Key docs:** `documentation/decisions/TECHNICAL_DECISIONS_LOG.md`, `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** All 13 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
+
+**Storybook:** Stories are colocated with their components (`*.stories.tsx`). Config in `.storybook/`. Shared fixtures in `.storybook/fixtures.ts`. Mock for `next-auth/react` in `.storybook/mocks/next-auth-react.tsx`.
 
 ## Technical Decision Log (MANDATORY)
 

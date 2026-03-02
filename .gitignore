@@ -66,3 +66,4 @@ deployment/github-secrets-values.txt
 
 # Playwright MCP logs
 /.playwright-mcp/
+storybook-static/
