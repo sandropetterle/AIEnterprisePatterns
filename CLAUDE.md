@@ -199,8 +199,11 @@ Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 | Audit/review snapshots | `documentation/reviews/` |
 | Phase-specific test reports | `documentation/test_results/` |
 | Azure deployment guides | `deployment/` |
+| Visual diagrams (Mermaid) | `documentation/diagrams/` |
 
 **Key docs:** `documentation/decisions/TECHNICAL_DECISIONS_LOG.md`, `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+
+**Diagrams:** All 13 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
 
 ## Technical Decision Log (MANDATORY)
 

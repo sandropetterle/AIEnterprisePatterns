@@ -5,7 +5,7 @@
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
 > **Rules and governance:** [documentation/GOVERNANCE.md](documentation/GOVERNANCE.md)
-> **Diagram roadmap:** [documentation/diagrams/DIAGRAM_PLAN.md](documentation/diagrams/DIAGRAM_PLAN.md)
+> **Diagram index:** [documentation/diagrams/DIAGRAM_INDEX.md](documentation/diagrams/DIAGRAM_INDEX.md)
 
 ---
 
@@ -130,7 +130,7 @@
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [DIAGRAM_PLAN.md](documentation/diagrams/DIAGRAM_PLAN.md) | Tracks all 13 diagrams — format, target doc, completion status. All complete. | Active |
+| [DIAGRAM_INDEX.md](documentation/diagrams/DIAGRAM_INDEX.md) | Index of all 13 diagrams — where each lives, format, and Mermaid conventions. | Current |
 
 **All diagrams (embedded in their target docs):**
 | Diagram | Embedded In |
