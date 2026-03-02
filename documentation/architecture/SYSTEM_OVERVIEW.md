@@ -109,8 +109,75 @@ Next.js Frontend (Azure Container App)
          └──► Azure MySQL Database
 ```
 
-<!-- DIAGRAM: System Architecture Overview (C4 Container) -->
-> 📐 *Architecture diagram planned — see [DIAGRAM_PLAN.md](../diagrams/DIAGRAM_PLAN.md)*
+```mermaid
+flowchart TD
+    %% ── External Actor ─────────────────────────────────────────────────────
+    User(["👤  User / Browser"])
+
+    %% ── Azure Container Apps ────────────────────────────────────────────────
+    subgraph ACA["☁️  Azure Container Apps Environment"]
+        FE["⚡ Next.js 16\nApp Router · ISR · Auth.js v5"]
+        API["🔧 ASP.NET Core 8\nREST API · JWT · Rate Limiting"]
+        CMS["📝 Strapi 5\nHeadless CMS · Webhook"]
+    end
+
+    %% ── Databases ───────────────────────────────────────────────────────────
+    subgraph DB["💾  Databases"]
+        direction LR
+        SQLDB[("Azure SQL\nPatterns & Tags")]
+        MySQL[("Azure MySQL\nCMS Content")]
+    end
+
+    %% ── Azure Platform Services ─────────────────────────────────────────────
+    subgraph Platform["🔷  Azure Platform Services"]
+        direction LR
+        Entra["🔐 Entra External ID\nOIDC Provider"]
+        Blob["📦 Blob Storage\nMedia Files"]
+        AI["📊 Application Insights\nMonitoring"]
+    end
+
+    %% ── CI/CD Pipeline ──────────────────────────────────────────────────────
+    subgraph CICD["🔄  CI/CD Pipeline"]
+        direction LR
+        GHA["⚙️  GitHub Actions"]
+        ACR["🐳  Container Registry"]
+    end
+
+    %% ── Primary Flows ───────────────────────────────────────────────────────
+    User -->|"HTTPS"| FE
+    FE -->|"REST / JSON"| API
+    FE -->|"Content API"| CMS
+    FE <-->|"OIDC"| Entra
+    CMS -->|"ISR Webhook"| FE
+    API --> SQLDB
+    CMS --> MySQL
+    CMS -->|"Media Upload"| Blob
+
+    %% ── Secondary Flows (dashed) ────────────────────────────────────────────
+    GHA -->|"Push image"| ACR
+    ACR -.->|"Pull"| FE
+    ACR -.->|"Pull"| API
+    ACR -.->|"Pull"| CMS
+    FE -.->|"Telemetry"| AI
+    API -.->|"Telemetry"| AI
+
+    %% ── Node Styles ─────────────────────────────────────────────────────────
+    classDef user     fill:#F9FAFB,stroke:#6B7280,stroke-width:2px,color:#111827,font-weight:bold
+    classDef frontend fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E3A8A,font-weight:bold
+    classDef backend  fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#064E3B,font-weight:bold
+    classDef cms      fill:#EDE9FE,stroke:#7C3AED,stroke-width:2px,color:#3B0764,font-weight:bold
+    classDef database fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F,font-weight:bold
+    classDef azure    fill:#E0F2FE,stroke:#0284C7,stroke-width:2px,color:#0C4A6E,font-weight:bold
+    classDef cicd     fill:#F3F4F6,stroke:#374151,stroke-width:2px,color:#111827,font-weight:bold
+
+    class User user
+    class FE frontend
+    class API backend
+    class CMS cms
+    class SQLDB,MySQL database
+    class Entra,Blob,AI azure
+    class GHA,ACR cicd
+```
 
 ---
 
