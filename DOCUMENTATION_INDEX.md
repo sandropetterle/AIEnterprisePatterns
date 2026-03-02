@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-02 (API reference extracted to documentation/api/)
+**Last Updated:** 2026-03-02 (CMS component reference added to documentation/cms-components/)
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -26,7 +26,7 @@
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
 | [SYSTEM_OVERVIEW.md](documentation/architecture/SYSTEM_OVERVIEW.md) | High-level: vision, tech stack, component interaction, deployed URLs | Architect, all devs | Current |
-| [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) | Clean Architecture layers, API reference, patterns, testing | Backend devs, Architect | Current |
+| [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) | Clean Architecture layers, key patterns (caching, rate limiting, mapper), testing | Backend devs, Architect | Current |
 | [FRONTEND_ARCHITECTURE.md](documentation/architecture/FRONTEND_ARCHITECTURE.md) | App Router, auth flow, ISR, component structure, coding standards | Frontend devs, Architect | Current |
 | [CMS_ARCHITECTURE.md](documentation/architecture/CMS_ARCHITECTURE.md) | Strapi 5 content model, deployment, webhooks, known gotchas | Frontend devs, Infra | Current |
 | [DATA_MODEL.md](documentation/architecture/DATA_MODEL.md) | Entities, relationships, seeding, category enum mapping | Backend devs, Architect | Current |
@@ -44,6 +44,20 @@
 | [PATTERNS_API.md](documentation/api/PATTERNS_API.md) | All `/patterns` endpoints — DTOs, validation rules, request/response examples | Developers, API consumers | Current |
 | [AUTH_API.md](documentation/api/AUTH_API.md) | `/auth/me` — current user identity and roles | Developers | Current |
 | [HEALTH_API.md](documentation/api/HEALTH_API.md) | `/health`, `/health/ready` — liveness and readiness probes | DevOps, Infrastructure | Current |
+
+---
+
+## documentation/cms-components/ — CMS Component Reference
+
+*Updated when Strapi component schemas change.*
+
+| File | Purpose | Audience | Status |
+|------|---------|----------|--------|
+| [COMPONENT_INDEX.md](documentation/cms-components/COMPONENT_INDEX.md) | Scannable catalog of all 26 Strapi components with "Used By" dependency map | Frontend devs, Content editors | Current |
+| [LAYOUT_COMPONENTS.md](documentation/cms-components/LAYOUT_COMPONENTS.md) | `layout` namespace — `cta-button`, `footer-config`, `nav-link` (3 components) | Frontend devs | Current |
+| [SECTION_COMPONENTS.md](documentation/cms-components/SECTION_COMPONENTS.md) | `sections` namespace — all 15 Dynamic Zone block components with renderers | Frontend devs, Content editors | Current |
+| [SHARED_COMPONENTS.md](documentation/cms-components/SHARED_COMPONENTS.md) | `shared` namespace — 8 reusable primitives embedded within section components | Frontend devs | Current |
+| [SEO_COMPONENTS.md](documentation/cms-components/SEO_COMPONENTS.md) | `seo` namespace — `metadata` component used on all page content types | Frontend devs | Current |
 
 ---
 
