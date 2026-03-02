@@ -1,1 +1,1 @@
-Update documentation where appropriate and relevant. Don't update documentation if it isn't relevant or significant.
+Update documentation, memmory.md and claude.md where appropriate and relevant. Don't update documentation if it isn't relevant or significant.
