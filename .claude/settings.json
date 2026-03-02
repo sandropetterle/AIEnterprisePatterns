@@ -81,7 +81,8 @@
       "Bash(sed 's/.*2026-02-26T18:46:40\\\\.[0-9]*Z //')",
       "Bash(npx next lint)",
       "Bash(wc -l /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/documentation/test_results/*.md)",
-      "Bash(wc -l /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/deployment/*.md /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/deployment/scripts/README_MONITORING.md)"
+      "Bash(wc -l /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/deployment/*.md /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/deployment/scripts/README_MONITORING.md)",
+      "Bash(npm run build-storybook)"
     ],
     "additionalDirectories": [
       "C:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\cms\\src\\components\\shared",

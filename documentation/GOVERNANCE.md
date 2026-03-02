@@ -23,6 +23,7 @@ Every documentation file must live in the correct folder based on its content ty
 | `documentation/test_results/` | Historical test execution reports — ephemeral | QA, Developers | Retention: current phase + 2 prior phases |
 | `documentation/cms-components/` | CMS component reference — 26 Strapi component schemas, field tables, dependency map | Frontend devs, Content editors | Updated when CMS component schemas change |
 | `documentation/diagrams/` | Architecture and flow diagrams — permanent | All audiences | Created when diagram tooling is adopted |
+| `.storybook/` | Storybook configuration and shared fixtures — interactive UI component catalog | Frontend devs | Updated when components are added or config changes |
 | `deployment/` | Azure deployment scripts and step-by-step guides | Infrastructure Engineers, DevOps | Updated on infrastructure changes |
 | `CLAUDE.md` (root) | AI assistant operational context — quick-reference | AI assistant, Developers | Updated when conventions or structure changes |
 | `README.md` (root) | Public-facing project entry point | New contributors, GitHub visitors | Updated each major phase |
@@ -191,3 +192,4 @@ All 13 planned diagrams are complete and embedded in their target architecture d
 | A deployment procedure for Azure | `deployment/` |
 | A security audit finding | `documentation/reviews/` |
 | A diagram or visual | `documentation/diagrams/` |
+| Storybook stories for a UI component | Colocated with the component (`*.stories.tsx` next to the component file) |

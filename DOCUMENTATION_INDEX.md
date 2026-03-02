@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-02 (CMS component reference added to documentation/cms-components/)
+**Last Updated:** 2026-03-02 (Storybook catalog added to .storybook/)
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -16,6 +16,30 @@
 | [README.md](README.md) | Public entry point: quick start, features, project links | New contributors, GitHub visitors | Current |
 | [CLAUDE.md](CLAUDE.md) | AI assistant operational context: commands, conventions, quick reference | AI assistant, Developers | Current |
 | [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) | This file — central map of all documentation | All | Current |
+
+---
+
+## .storybook/ — Interactive UI Component Catalog
+
+*Updated when components are added or Storybook config changes.*
+
+| File/Folder | Purpose | Audience | Status |
+|-------------|---------|----------|--------|
+| [.storybook/main.ts](.storybook/main.ts) | Framework config (`@storybook/nextjs`), addons, webpack alias for next-auth mock | Frontend devs | Current |
+| [.storybook/preview.tsx](.storybook/preview.tsx) | Global decorators: ThemeProvider, withThemeByClassName (light/dark toolbar) | Frontend devs | Current |
+| [.storybook/fixtures.ts](.storybook/fixtures.ts) | Shared mock data: Pattern fixtures + all 14 CMS block fixtures | Frontend devs | Current |
+| [.storybook/mocks/next-auth-react.tsx](.storybook/mocks/next-auth-react.tsx) | next-auth/react mock with `withSession()` / `withLoadingSession` decorators | Frontend devs | Current |
+
+**Stories (38 files, colocated with components):**
+- `components/ui/*.stories.tsx` — shadcn/ui primitives (14 stories)
+- `components/layout/*.stories.tsx` — Header, Footer, Navigation, ThemeToggle, UserMenu (5 stories)
+- `components/shared/*.stories.tsx` — Logo, ErrorBoundary (2 stories)
+- `components/home/*.stories.tsx` — Hero, PatternCard, FeaturedPatterns, StatsSection, CTASection (5 stories)
+- `components/patterns/*.stories.tsx` — SearchBar, Pagination, PatternForm, NewPatternButton, EmptyState, PatternsGrid (6 stories)
+- `components/patterns/details/*.stories.tsx` — VotingButton, Breadcrumb, PatternContent, PatternActions, RelatedPatternsSection (5 stories)
+- `lib/cms/components.stories.tsx` — all 14 CMS block renderers + 3 composite page layouts
+
+**Commands:** `npm run storybook` (dev at http://localhost:6006) · `npm run build-storybook`
 
 ---
 

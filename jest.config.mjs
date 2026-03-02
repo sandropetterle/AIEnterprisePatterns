@@ -42,6 +42,10 @@ const config = {
     '!app/api/**',
     // CMS integration layer — requires live Strapi server, covered by E2E/Docker build
     '!lib/cms/**',
+    // Storybook story files — consumed by Storybook, not Jest
+    '!**/*.stories.{js,jsx,ts,tsx}',
+    // Storybook config — not application code
+    '!.storybook/**',
   ],
   coverageThreshold: {
     global: {

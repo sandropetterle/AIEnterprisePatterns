@@ -29,50 +29,50 @@ When adding a diagram placeholder in a document, use:
 
 | Diagram | Target Document | Format |
 |---------|----------------|--------|
-| System Architecture Overview | `documentation/architecture/SYSTEM_OVERVIEW.md` | Mermaid flowchart TD |
-| Clean Architecture Layers | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Mermaid flowchart TD |
-| Frontend Component Tree | `documentation/architecture/FRONTEND_ARCHITECTURE.md` | Mermaid flowchart TD |
-| CMS ISR Revalidation Flow | `documentation/architecture/CMS_ARCHITECTURE.md` | Mermaid sequence |
-| CMS Component Dependency Map | `documentation/cms-components/COMPONENT_INDEX.md` | Mermaid flowchart TD |
+| System Architecture Overview | [documentation/architecture/SYSTEM_OVERVIEW.md](../architecture/SYSTEM_OVERVIEW.md) | Mermaid flowchart TD |
+| Clean Architecture Layers | [documentation/architecture/BACKEND_ARCHITECTURE.md](../architecture/BACKEND_ARCHITECTURE.md) | Mermaid flowchart TD |
+| Frontend Component Tree | [documentation/architecture/FRONTEND_ARCHITECTURE.md](../architecture/FRONTEND_ARCHITECTURE.md) | Mermaid flowchart TD |
+| CMS ISR Revalidation Flow | [documentation/architecture/CMS_ARCHITECTURE.md](../architecture/CMS_ARCHITECTURE.md) | Mermaid sequence |
+| CMS Component Dependency Map | [documentation/cms-components/COMPONENT_INDEX.md](../cms-components/COMPONENT_INDEX.md) | Mermaid flowchart TD |
 
 ### Infrastructure Diagram
 
 | Diagram | Target Document | Format |
 |---------|----------------|--------|
-| Azure Infrastructure | `deployment/CONTAINER_APPS_GUIDE.md` | Mermaid flowchart TD |
+| Azure Infrastructure | [deployment/CONTAINER_APPS_GUIDE.md](../../deployment/CONTAINER_APPS_GUIDE.md) | Mermaid flowchart TD |
 
 ### Sequence Diagrams
 
 | Diagram | Target Document | Format |
 |---------|----------------|--------|
-| Authentication Flow | `documentation/architecture/SECURITY_OVERVIEW.md` | Mermaid sequence |
-| Pattern Vote Flow | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Mermaid sequence |
+| Authentication Flow | [documentation/architecture/SECURITY_OVERVIEW.md](../architecture/SECURITY_OVERVIEW.md) | Mermaid sequence |
+| Pattern Vote Flow | [documentation/architecture/BACKEND_ARCHITECTURE.md](../architecture/BACKEND_ARCHITECTURE.md) | Mermaid sequence |
 
 ### Entity Relationship Diagram
 
 | Diagram | Target Document | Format |
 |---------|----------------|--------|
-| Database Schema (ERD) | `documentation/architecture/DATA_MODEL.md` | Mermaid erDiagram |
+| Database Schema (ERD) | [documentation/architecture/DATA_MODEL.md](../architecture/DATA_MODEL.md) | Mermaid erDiagram |
 
 ### User Journey Diagrams
 
 | Diagram | Target Document | Format |
 |---------|----------------|--------|
-| Browse and Vote | `documentation/requirements/FUNCTIONAL_REQUIREMENTS.md` | Mermaid journey |
-| Create Pattern | `documentation/requirements/FUNCTIONAL_REQUIREMENTS.md` | Mermaid journey |
+| Browse and Vote | [documentation/requirements/FUNCTIONAL_REQUIREMENTS.md](../requirements/FUNCTIONAL_REQUIREMENTS.md) | Mermaid journey |
+| Create Pattern | [documentation/requirements/FUNCTIONAL_REQUIREMENTS.md](../requirements/FUNCTIONAL_REQUIREMENTS.md) | Mermaid journey |
 
 ### State Diagrams
 
 | Diagram | Target Document | Format |
 |---------|----------------|--------|
-| Pattern Lifecycle | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Mermaid stateDiagram-v2 |
-| Authentication States | `documentation/architecture/SECURITY_OVERVIEW.md` | Mermaid stateDiagram-v2 |
+| Pattern Lifecycle | [documentation/architecture/BACKEND_ARCHITECTURE.md](../architecture/BACKEND_ARCHITECTURE.md) | Mermaid stateDiagram-v2 |
+| Authentication States | [documentation/architecture/SECURITY_OVERVIEW.md](../architecture/SECURITY_OVERVIEW.md) | Mermaid stateDiagram-v2 |
 
 ### Class Diagram
 
 | Diagram | Target Document | Format |
 |---------|----------------|--------|
-| Backend Domain Model | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Mermaid classDiagram |
+| Backend Domain Model | [documentation/architecture/BACKEND_ARCHITECTURE.md](../architecture/BACKEND_ARCHITECTURE.md) | Mermaid classDiagram |
 
 ---
 
