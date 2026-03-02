@@ -30,9 +30,9 @@ In any document, mark a planned diagram with a comment:
 | Diagram | Target Document | Description | Format | Status |
 |---------|----------------|-------------|--------|--------|
 | System Architecture Overview | `documentation/architecture/SYSTEM_OVERVIEW.md` | High-level components: Next.js frontend, ASP.NET Core API, Azure SQL, Strapi CMS, Azure Container Apps | Mermaid flowchart TD | ✅ Complete |
-| Clean Architecture Layers | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Api → Core → Data layer boundaries and dependencies | Mermaid flowchart |
-| Frontend Component Tree | `documentation/architecture/FRONTEND_ARCHITECTURE.md` | App Router pages, layout components, shared UI components | Mermaid flowchart |
-| CMS Content Flow | `documentation/architecture/CMS_ARCHITECTURE.md` | Strapi → ISR webhook → Next.js revalidation flow | Mermaid sequence |
+| Clean Architecture Layers | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Api → Core → Data layer boundaries and dependencies | Mermaid flowchart LR | ✅ Complete |
+| Frontend Component Tree | `documentation/architecture/FRONTEND_ARCHITECTURE.md` | App Router pages, layout components, shared UI components | Mermaid flowchart TD | ✅ Complete |
+| CMS Content Flow | `documentation/architecture/CMS_ARCHITECTURE.md` | Strapi → ISR webhook → Next.js revalidation flow | Mermaid sequence | ✅ Complete |
 
 ### Infrastructure Diagram
 
@@ -100,6 +100,6 @@ See [Mermaid documentation](https://mermaid.js.org) for full syntax reference.
 
 | Count | Status |
 |-------|--------|
-| 12 | Planned |
+| 9 | Planned |
 | 0 | In Progress |
-| 1 | Complete |
+| 4 | Complete |
