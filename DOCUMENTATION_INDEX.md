@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-02 (diagrams complete)
+**Last Updated:** 2026-03-02 (API reference extracted to documentation/api/)
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -31,6 +31,19 @@
 | [CMS_ARCHITECTURE.md](documentation/architecture/CMS_ARCHITECTURE.md) | Strapi 5 content model, deployment, webhooks, known gotchas | Frontend devs, Infra | Current |
 | [DATA_MODEL.md](documentation/architecture/DATA_MODEL.md) | Entities, relationships, seeding, category enum mapping | Backend devs, Architect | Current |
 | [SECURITY_OVERVIEW.md](documentation/architecture/SECURITY_OVERVIEW.md) | Auth architecture, CORS, CSP, rate limiting, security headers | Security, Architect, Devs | Current |
+
+---
+
+## documentation/api/ — REST API Reference
+
+*Updated when endpoints, DTOs, or validation rules change.*
+
+| File | Purpose | Audience | Status |
+|------|---------|----------|--------|
+| [API_REFERENCE_INDEX.md](documentation/api/API_REFERENCE_INDEX.md) | Overview: base URLs, versioning, auth, rate limiting, error shapes | Developers, API consumers | Current |
+| [PATTERNS_API.md](documentation/api/PATTERNS_API.md) | All `/patterns` endpoints — DTOs, validation rules, request/response examples | Developers, API consumers | Current |
+| [AUTH_API.md](documentation/api/AUTH_API.md) | `/auth/me` — current user identity and roles | Developers | Current |
+| [HEALTH_API.md](documentation/api/HEALTH_API.md) | `/health`, `/health/ready` — liveness and readiness probes | DevOps, Infrastructure | Current |
 
 ---
 

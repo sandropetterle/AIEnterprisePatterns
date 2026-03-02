@@ -108,43 +108,13 @@ flowchart TD
 
 ## 3. API Reference
 
-Base URL (development): `http://localhost:5255/api`
-Base URL (production): `https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/api`
+> Full API reference has moved to **[`documentation/api/`](../api/API_REFERENCE_INDEX.md)** — includes DTOs, validation rules, request/response examples, and query parameter details.
 
-**API Versioning:** URL segment reader. Current version: `v1`.
-- Versioned: `/api/v1/patterns`
-- Unversioned fallback: `/api/patterns`
-
-| Method | Endpoint | Auth Required | Rate Limit | Notes |
-|--------|----------|---------------|------------|-------|
-| GET | `/patterns` | None | `api` | Paginated; supports search, filter, sort |
-| GET | `/patterns/featured` | None | `api` | Cached 5 min |
-| GET | `/patterns/trending` | None | `api` | Cached 5 min |
-| GET | `/patterns/{slug}` | None | `api` | Returns 404 if not found |
-| GET | `/patterns/{slug}/related` | None | `api` | Cached 5 min per slug |
-| POST | `/patterns/{id}/vote` | None | `vote` | Atomic update; 10 req/min |
-| POST | `/patterns` | RequireEditor | `api` | Creates new pattern |
-| PUT | `/patterns/{id}` | RequireEditor | `api` | Updates existing pattern |
-| DELETE | `/patterns/{id}` | RequireAdmin | `api` | Soft-deletes or hard-deletes |
-| GET | `/auth/me` | Authorize | — | Returns current user info |
-| GET | `/health` | None | — | Returns "Healthy" |
-| GET | `/health/ready` | None | — | Readiness probe |
-
-**Query parameters for `GET /patterns`:**
-
-| Parameter | Type | Description |
-|-----------|------|-------------|
-| `search` | string | Full-text search across title, description, tags, content |
-| `category` | string | Filter by category enum value |
-| `tags` | string[] | Filter by tags (comma-separated) |
-| `tagMode` | `any`\|`all` | Tag filter mode |
-| `sortBy` | string | `newest`, `mostVoted`, `alphabetical` |
-| `page` | int | Page number (1-based) |
-| `pageSize` | int | Items per page |
-| `dateFrom` | date | Filter by created date |
-| `dateTo` | date | Filter by created date |
-
-**Swagger UI:** Available at `/swagger` in development only. Disabled in production.
+Quick links:
+- [API Reference Index](../api/API_REFERENCE_INDEX.md) — base URLs, versioning, auth, rate limiting, error shapes
+- [Patterns API](../api/PATTERNS_API.md) — all `/patterns` endpoints with full DTO tables and examples
+- [Auth API](../api/AUTH_API.md) — `/auth/me`
+- [Health API](../api/HEALTH_API.md) — `/health`, `/health/ready`
 
 ---
 

@@ -13,6 +13,7 @@ Every documentation file must live in the correct folder based on its content ty
 | Folder | Purpose | Audience | Lifecycle |
 |--------|---------|----------|-----------|
 | `documentation/architecture/` | How the system is built — permanent system knowledge | Solutions Architect, Developers | Updated when architecture changes |
+| `documentation/api/` | REST API reference — endpoint details, DTOs, examples | Developers, API consumers | Updated when endpoints or DTOs change |
 | `documentation/requirements/` | What the system should do — stable feature and NFR specs | Product/UX, Architect, PM | Updated when scope changes |
 | `documentation/decisions/` | Why we built it this way — append-only decision log | Architect, Senior Developers | Append on each decision; compact quarterly |
 | `documentation/testing/` | How we test — strategy, guides, templates | Developers, QA Engineers | Updated when testing approach changes |
@@ -59,7 +60,7 @@ Each fact must have exactly one authoritative document. Other documents may refe
 |------|-------------|----------------------|
 | Cost data | `deployment/COST_ANALYSIS.md` | `deployment/README.md`, `CONTAINER_APPS_GUIDE.md` |
 | Alert thresholds | `documentation/operations/MONITORING_GUIDE.md` | `deployment/scripts/README_MONITORING.md` |
-| API endpoint table (full) | `documentation/architecture/BACKEND_ARCHITECTURE.md` | `CLAUDE.md` (quick ref), `README.md` (selection), `backend/README.md` |
+| API reference (full) | `documentation/api/` (`API_REFERENCE_INDEX.md`, `PATTERNS_API.md`, `AUTH_API.md`, `HEALTH_API.md`) | `BACKEND_ARCHITECTURE.md` Section 3 (links to it), `CLAUDE.md` (quick ref) |
 | Phase status | `documentation/project/ROADMAP.md` | `CLAUDE.md` references current phase only |
 | Auth architecture | `documentation/architecture/SECURITY_OVERVIEW.md` | `CLAUDE.md` has summary |
 | Category enum mapping | `documentation/architecture/DATA_MODEL.md` | `CLAUDE.md` has reminder note |
@@ -140,7 +141,7 @@ Diagrams are planned for a future phase. When adding diagrams:
 - **Placeholder syntax:** `<!-- DIAGRAM: Architecture Overview -->` in the relevant section
 - **Storage:** Diagrams live in `documentation/diagrams/` with their source files
 - **Types planned:** Architecture, Infrastructure, Sequence, ERD, User Journey, State, Class
-- See `documentation/diagrams/DIAGRAM_PLAN.md` for the full diagram roadmap
+- See `documentation/diagrams/DIAGRAM_INDEX.md` for the complete diagram inventory and conventions
 
 ---
 

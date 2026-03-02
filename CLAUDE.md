@@ -122,7 +122,7 @@ STRAPI_API_TOKEN=<read-only-api-token>
 
 ## API Endpoints
 
-Base: `http://localhost:5255/api`
+Base: `http://localhost:5255/api` | Full reference: `documentation/api/`
 
 | Method | Endpoint | Auth Required | Rate Limit |
 |--------|----------|---------------|------------|
@@ -130,6 +130,7 @@ Base: `http://localhost:5255/api`
 | GET | `/patterns/featured` | None | api |
 | GET | `/patterns/trending` | None | api |
 | GET | `/patterns/{slug}` | None | api |
+| GET | `/patterns/{slug}/related` | None | api |
 | POST | `/patterns/{id}/vote` | None | vote (10/min) |
 | POST | `/patterns` | RequireEditor | api |
 | PUT | `/patterns/{id}` | RequireEditor | api |
@@ -191,6 +192,7 @@ Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 | Content Type | Folder |
 |-------------|--------|
 | How the system is built | `documentation/architecture/` |
+| REST API reference (endpoints, DTOs, examples) | `documentation/api/` |
 | What the system should do | `documentation/requirements/` |
 | Why we made a decision | `documentation/decisions/` |
 | How we test | `documentation/testing/` |
