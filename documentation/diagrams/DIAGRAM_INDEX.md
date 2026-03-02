@@ -8,7 +8,7 @@
 
 ## Overview
 
-All diagrams use **Mermaid** format (renders natively in GitHub) and are embedded directly in their target architecture documents. There are 13 diagrams total.
+All diagrams use **Mermaid** format (renders natively in GitHub) and are embedded directly in their target architecture documents. There are 14 diagrams total.
 
 ---
 
@@ -33,6 +33,7 @@ When adding a diagram placeholder in a document, use:
 | Clean Architecture Layers | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Mermaid flowchart TD |
 | Frontend Component Tree | `documentation/architecture/FRONTEND_ARCHITECTURE.md` | Mermaid flowchart TD |
 | CMS ISR Revalidation Flow | `documentation/architecture/CMS_ARCHITECTURE.md` | Mermaid sequence |
+| CMS Component Dependency Map | `documentation/cms-components/COMPONENT_INDEX.md` | Mermaid flowchart TD |
 
 ### Infrastructure Diagram
 
