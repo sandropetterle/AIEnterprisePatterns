@@ -1,14 +1,14 @@
 # Diagram Plan
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-02
 **Audience:** All contributors
-**Purpose:** Defines the planned visual diagrams for this project, their format, target location, and placeholder conventions.
+**Purpose:** Defines the planned visual diagrams for this project, their format, target location, and completion status.
 
 ---
 
 ## Overview
 
-Diagrams are planned for a future phase. They will use **Mermaid** format (renders natively in GitHub) where possible. This file tracks what diagrams are planned, which document they belong to, and what they should depict.
+Diagrams use **Mermaid** format (renders natively in GitHub) and are embedded directly in their target architecture documents. All 13 planned diagrams are now complete.
 
 ---
 
@@ -23,74 +23,78 @@ In any document, mark a planned diagram with a comment:
 
 ---
 
-## Planned Diagrams
+## All Diagrams
 
 ### Architecture Diagrams
 
-| Diagram | Target Document | Description | Format | Status |
-|---------|----------------|-------------|--------|--------|
-| System Architecture Overview | `documentation/architecture/SYSTEM_OVERVIEW.md` | High-level components: Next.js frontend, ASP.NET Core API, Azure SQL, Strapi CMS, Azure Container Apps | Mermaid flowchart TD | ✅ Complete |
-| Clean Architecture Layers | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Api → Core → Data layer boundaries and dependencies | Mermaid flowchart LR | ✅ Complete |
-| Frontend Component Tree | `documentation/architecture/FRONTEND_ARCHITECTURE.md` | App Router pages, layout components, shared UI components | Mermaid flowchart TD | ✅ Complete |
-| CMS Content Flow | `documentation/architecture/CMS_ARCHITECTURE.md` | Strapi → ISR webhook → Next.js revalidation flow | Mermaid sequence | ✅ Complete |
+| Diagram | Target Document | Format | Status |
+|---------|----------------|--------|--------|
+| System Architecture Overview | `documentation/architecture/SYSTEM_OVERVIEW.md` | Mermaid flowchart TD | ✅ Complete |
+| Clean Architecture Layers | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Mermaid flowchart TD | ✅ Complete |
+| Frontend Component Tree | `documentation/architecture/FRONTEND_ARCHITECTURE.md` | Mermaid flowchart TD | ✅ Complete |
+| CMS ISR Revalidation Flow | `documentation/architecture/CMS_ARCHITECTURE.md` | Mermaid sequence | ✅ Complete |
 
 ### Infrastructure Diagram
 
-| Diagram | Target Document | Description | Format |
-|---------|----------------|-------------|--------|
-| Azure Infrastructure | `deployment/CONTAINER_APPS_GUIDE.md` | Container Apps environment, ACR, Azure SQL, MySQL (CMS), Key Vault, Application Insights, Blob Storage | Mermaid C4 Deployment |
+| Diagram | Target Document | Format | Status |
+|---------|----------------|--------|--------|
+| Azure Infrastructure | `deployment/CONTAINER_APPS_GUIDE.md` | Mermaid flowchart TD | ✅ Complete |
 
 ### Sequence Diagrams
 
-| Diagram | Target Document | Description | Format |
-|---------|----------------|-------------|--------|
-| Authentication Flow | `documentation/architecture/SECURITY_OVERVIEW.md` | Browser → Auth.js → Entra External ID → JWT → ASP.NET Core API | Mermaid sequence |
-| Pattern Vote Flow | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Client → Rate limiter → Controller → Service → DB atomic update | Mermaid sequence |
-| CMS ISR Revalidation | `documentation/architecture/CMS_ARCHITECTURE.md` | Strapi publish event → webhook → Next.js revalidate → ISR cache clear | Mermaid sequence |
+| Diagram | Target Document | Format | Status |
+|---------|----------------|--------|--------|
+| Authentication Flow | `documentation/architecture/SECURITY_OVERVIEW.md` | Mermaid sequence | ✅ Complete |
+| Pattern Vote Flow | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Mermaid sequence | ✅ Complete |
 
-### Entity Relationship Diagram (ERD)
+### Entity Relationship Diagram
 
-| Diagram | Target Document | Description | Format |
-|---------|----------------|-------------|--------|
-| Database Schema | `documentation/architecture/DATA_MODEL.md` | Pattern, Tag, PatternTag (junction), Category enum | Mermaid ER diagram |
+| Diagram | Target Document | Format | Status |
+|---------|----------------|--------|--------|
+| Database Schema (ERD) | `documentation/architecture/DATA_MODEL.md` | Mermaid erDiagram | ✅ Complete |
 
 ### User Journey Diagrams
 
-| Diagram | Target Document | Description | Format |
-|---------|----------------|-------------|--------|
-| Browse and Vote | `documentation/requirements/FUNCTIONAL_REQUIREMENTS.md` | Anonymous user: Home → Browse → Filter/Search → Detail → Vote | Mermaid user journey |
-| Create Pattern | `documentation/requirements/FUNCTIONAL_REQUIREMENTS.md` | Authenticated Editor: Login → New Pattern → Form → Publish | Mermaid user journey |
+| Diagram | Target Document | Format | Status |
+|---------|----------------|--------|--------|
+| Browse and Vote | `documentation/requirements/FUNCTIONAL_REQUIREMENTS.md` | Mermaid journey | ✅ Complete |
+| Create Pattern | `documentation/requirements/FUNCTIONAL_REQUIREMENTS.md` | Mermaid journey | ✅ Complete |
 
 ### State Diagrams
 
-| Diagram | Target Document | Description | Format |
-|---------|----------------|-------------|--------|
-| Pattern Lifecycle | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Draft → Published states, edit/delete transitions | Mermaid state diagram |
-| Authentication States | `documentation/architecture/SECURITY_OVERVIEW.md` | Unauthenticated → Sign-in → Authenticated → Role-gated actions | Mermaid state diagram |
+| Diagram | Target Document | Format | Status |
+|---------|----------------|--------|--------|
+| Pattern Lifecycle | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Mermaid stateDiagram-v2 | ✅ Complete |
+| Authentication States | `documentation/architecture/SECURITY_OVERVIEW.md` | Mermaid stateDiagram-v2 | ✅ Complete |
 
 ### Class Diagram
 
-| Diagram | Target Document | Description | Format |
-|---------|----------------|-------------|--------|
-| Backend Domain Model | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Pattern, Tag, PatternService, PatternRepository, IUnitOfWork relationships | Mermaid class diagram |
+| Diagram | Target Document | Format | Status |
+|---------|----------------|--------|--------|
+| Backend Domain Model | `documentation/architecture/BACKEND_ARCHITECTURE.md` | Mermaid classDiagram | ✅ Complete |
 
 ---
 
-## Mermaid Quick Reference
+## Mermaid Conventions
 
-```mermaid
-flowchart TD
-    A[Component A] --> B[Component B]
-    B --> C[(Database)]
-```
+**Color palette (consistent across all diagrams):**
 
-```mermaid
-sequenceDiagram
-    Browser->>+NextJS: GET /patterns
-    NextJS->>+API: GET /api/patterns
-    API-->>-NextJS: JSON response
-    NextJS-->>-Browser: HTML page
-```
+| Color | Usage | Fill / Stroke |
+|-------|-------|---------------|
+| Blue | Next.js · API layer · Server Components | `#DBEAFE / #2563EB` |
+| Green | ASP.NET Core · Core domain layer | `#D1FAE5 / #059669` |
+| Amber | Databases · Data/persistence layer | `#FEF3C7 / #D97706` |
+| Purple | Strapi CMS · OIDC Providers | `#EDE9FE / #7C3AED` |
+| Sky | Azure Platform services | `#E0F2FE / #0284C7` |
+| Gray | CI/CD · Infrastructure | `#F3F4F6 / #374151` |
+| Teal | Layout components | `#CCFBF1 / #0D9488` |
+| Pink | Client Components | `#FCE7F3 / #DB2777` |
+
+**Other conventions:**
+- Line breaks in node labels: use `<br/>` not `\n`
+- Sequence diagram theme: `%%{init: {'theme': 'base', 'themeVariables': {...}}}%%`
+- Subgraph direction: `direction LR` or `direction TB` to override the outer flow
+- Placeholder nodes: `stroke-dasharray:5 5` classDef
 
 See [Mermaid documentation](https://mermaid.js.org) for full syntax reference.
 
@@ -100,6 +104,6 @@ See [Mermaid documentation](https://mermaid.js.org) for full syntax reference.
 
 | Count | Status |
 |-------|--------|
-| 9 | Planned |
+| 0 | Planned |
 | 0 | In Progress |
-| 4 | Complete |
+| 13 | Complete |

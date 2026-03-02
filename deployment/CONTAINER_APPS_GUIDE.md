@@ -51,6 +51,73 @@ This guide covers deploying the AI Enterprise Patterns application using **Azure
 └──────────────────────────┘
 ```
 
+```mermaid
+flowchart TD
+    %% ── CI/CD ────────────────────────────────────────────────────────────────
+    subgraph CICD["🔄  CI/CD"]
+        direction LR
+        GH["📁 GitHub<br/>Repository"]
+        GHA["⚙️ GitHub Actions<br/>CI/CD Pipelines"]
+        ACR["🐳 Azure Container<br/>Registry (Basic SKU)"]
+    end
+
+    %% ── Azure Container Apps Environment ─────────────────────────────────────
+    subgraph ACA["☁️  Azure Container Apps Environment — centralus"]
+        direction TB
+        FE["⚡ Frontend<br/>Next.js 16<br/>ca-aipatterns-web-prod<br/>Port 3000 · 0–5 replicas"]
+        API["🔧 Backend API<br/>ASP.NET Core 8<br/>ca-aipatterns-api-prod<br/>Port 8080 · 0–5 replicas"]
+        CMS["📝 Strapi CMS<br/>Strapi 5<br/>ca-aipatterns-cms-prod<br/>Port 1337 · 0–5 replicas"]
+    end
+
+    %% ── Databases ────────────────────────────────────────────────────────────
+    subgraph Databases["💾  Databases"]
+        direction LR
+        SQLDB[("Azure SQL<br/>Serverless<br/>Patterns & Tags<br/>Auto-pause 15 min")]
+        MySQL[("Azure MySQL<br/>Flexible Server<br/>CMS Content<br/>francecentral")]
+    end
+
+    %% ── Azure Platform Services ──────────────────────────────────────────────
+    subgraph Platform["🔷  Azure Platform Services"]
+        direction LR
+        Entra["🔐 Entra External ID<br/>OIDC Provider"]
+        Blob["📦 Blob Storage<br/>staipatternsmedia<br/>CMS Media Files"]
+        AI["📊 Application Insights<br/>Monitoring + Telemetry"]
+        KV["🔑 Key Vault<br/>Secrets Management"]
+    end
+
+    %% ── Flows ────────────────────────────────────────────────────────────────
+    GH -->|"git push main"| GHA
+    GHA -->|"Push image"| ACR
+    ACR -.->|"Pull on deploy"| FE
+    ACR -.->|"Pull on deploy"| API
+    ACR -.->|"Pull on deploy"| CMS
+    FE -->|"REST / JSON"| API
+    FE -->|"Content API"| CMS
+    FE <-->|"OIDC"| Entra
+    CMS -->|"ISR Webhook"| FE
+    API --> SQLDB
+    CMS --> MySQL
+    CMS -->|"Media Upload"| Blob
+    FE -.->|"Telemetry"| AI
+    API -.->|"Telemetry"| AI
+    GHA -.->|"Read secrets"| KV
+
+    %% ── Node Styles ──────────────────────────────────────────────────────────
+    classDef frontend fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E3A8A,font-weight:bold
+    classDef backend  fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#064E3B,font-weight:bold
+    classDef cms      fill:#EDE9FE,stroke:#7C3AED,stroke-width:2px,color:#3B0764,font-weight:bold
+    classDef database fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F,font-weight:bold
+    classDef azure    fill:#E0F2FE,stroke:#0284C7,stroke-width:2px,color:#0C4A6E,font-weight:bold
+    classDef cicd     fill:#F3F4F6,stroke:#374151,stroke-width:2px,color:#111827,font-weight:bold
+
+    class FE frontend
+    class API backend
+    class CMS cms
+    class SQLDB,MySQL database
+    class Entra,Blob,AI,KV azure
+    class GH,GHA,ACR cicd
+```
+
 ---
 
 ## 🚀 Quick Start

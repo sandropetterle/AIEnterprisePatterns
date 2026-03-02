@@ -29,8 +29,45 @@ ASP.NET Core API (JwtBearer middleware)
   - Standard AddJwtBearer()
 ```
 
-<!-- DIAGRAM: Authentication Sequence -->
-> 📐 *Sequence diagram planned — see [DIAGRAM_PLAN.md](../diagrams/DIAGRAM_PLAN.md)*
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#DBEAFE', 'primaryBorderColor': '#2563EB', 'primaryTextColor': '#1E3A8A', 'noteBkgColor': '#FEF3C7', 'noteTextColor': '#78350F'}}}%%
+sequenceDiagram
+    actor Browser as 👤 Browser
+    participant NextJS as ⚡ Next.js<br/>(Auth.js v5)
+    participant Entra as 🔐 Entra<br/>External ID
+    participant API as 🔧 ASP.NET Core<br/>API
+
+    Browser->>NextJS: GET /login
+    NextJS-->>Browser: Redirect to /api/auth/signin
+    Browser->>NextJS: GET /api/auth/signin
+    NextJS-->>Browser: Redirect to Entra /authorize URL
+
+    Browser->>Entra: GET /authorize (OIDC)
+    Entra-->>Browser: Sign-in page
+    Browser->>Entra: Submit credentials
+
+    alt Authentication successful
+        Entra-->>Browser: Redirect with authorization code
+        Browser->>NextJS: GET /api/auth/callback?code=...
+        NextJS->>Entra: POST /token (code exchange)
+        Entra-->>NextJS: ID token + access token (roles embedded)
+        NextJS->>NextJS: Encrypt session → JWT cookie
+        NextJS-->>Browser: Set-Cookie: authjs.session-token
+        Note over Browser,NextJS: User is now authenticated
+    else Authentication failed
+        Entra-->>Browser: Error redirect
+        NextJS-->>Browser: Show error page
+    end
+
+    Note over Browser,API: Subsequent API calls (protected endpoints)
+    Browser->>NextJS: Submit create/edit pattern form
+    NextJS->>API: POST /api/patterns<br/>(Authorization: Bearer access_token)
+    API->>Entra: GET /.well-known/openid-configuration
+    Entra-->>API: JWKS URI
+    API->>API: Validate JWT signature + roles claim
+    API-->>NextJS: 201 Created
+    NextJS-->>Browser: Pattern saved
+```
 
 **Provider:** Azure Entra External ID (free tier, <50,000 MAU). Note: Azure AD B2C was deprecated May 2025.
 
@@ -61,6 +98,34 @@ Policies are always registered (even without Entra configured), required for `[A
 | `RequireAdmin` | Admin | DELETE `/patterns/{id}` |
 | `RequireEditor` | Editor or Admin | POST `/patterns`, PUT `/patterns/{id}` |
 | `RequireViewer` | Any authenticated | GET `/auth/me` |
+
+```mermaid
+%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#DBEAFE', 'primaryBorderColor': '#2563EB', 'primaryTextColor': '#1E3A8A', 'noteBkgColor': '#FEF3C7', 'noteTextColor': '#78350F'}}}%%
+stateDiagram-v2
+    [*] --> Unauthenticated : Initial visit
+
+    Unauthenticated --> SigningIn : Click Sign In
+    SigningIn --> Unauthenticated : Cancel or auth error
+    SigningIn --> Authenticated : OIDC callback success
+
+    state Authenticated {
+        [*] --> Viewer
+        Viewer --> Editor : Has Editor role
+        Viewer --> Admin : Has Admin + Editor roles
+        Editor --> Admin : Has Admin role
+    }
+
+    Authenticated --> Unauthenticated : Sign out / session expired
+
+    note right of Unauthenticated
+        Can browse patterns and vote.
+        No write access.
+    end note
+
+    note right of Authenticated
+        Viewer: read-only (same as anonymous)<br/>Editor: create + edit patterns<br/>Admin: + delete patterns
+    end note
+```
 
 ### Public Endpoints
 

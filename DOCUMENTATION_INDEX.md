@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-03-02 (diagrams complete)
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -126,19 +126,28 @@
 
 ## documentation/diagrams/ — Visual diagrams
 
-*Mermaid format, embedded directly in their target architecture docs. 4 of 13 complete.*
+*Mermaid format, embedded directly in their target architecture docs. All 13 complete.*
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [DIAGRAM_PLAN.md](documentation/diagrams/DIAGRAM_PLAN.md) | Tracks all 13 planned diagrams — format, target doc, completion status. 4 complete, 9 planned. | Active |
+| [DIAGRAM_PLAN.md](documentation/diagrams/DIAGRAM_PLAN.md) | Tracks all 13 diagrams — format, target doc, completion status. All complete. | Active |
 
-**Completed diagrams (embedded in architecture docs):**
+**All diagrams (embedded in their target docs):**
 | Diagram | Embedded In |
 |---------|------------|
 | System Architecture Overview | [SYSTEM_OVERVIEW.md](documentation/architecture/SYSTEM_OVERVIEW.md) |
 | Clean Architecture Layers | [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) |
 | Frontend Component Tree | [FRONTEND_ARCHITECTURE.md](documentation/architecture/FRONTEND_ARCHITECTURE.md) |
 | CMS ISR Revalidation Flow | [CMS_ARCHITECTURE.md](documentation/architecture/CMS_ARCHITECTURE.md) |
+| Azure Infrastructure | [CONTAINER_APPS_GUIDE.md](deployment/CONTAINER_APPS_GUIDE.md) |
+| Authentication Flow (sequence) | [SECURITY_OVERVIEW.md](documentation/architecture/SECURITY_OVERVIEW.md) |
+| Pattern Vote Flow (sequence) | [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) |
+| Database Schema (ERD) | [DATA_MODEL.md](documentation/architecture/DATA_MODEL.md) |
+| Browse and Vote (user journey) | [FUNCTIONAL_REQUIREMENTS.md](documentation/requirements/FUNCTIONAL_REQUIREMENTS.md) |
+| Create Pattern (user journey) | [FUNCTIONAL_REQUIREMENTS.md](documentation/requirements/FUNCTIONAL_REQUIREMENTS.md) |
+| Pattern Lifecycle (state) | [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) |
+| Authentication States (state) | [SECURITY_OVERVIEW.md](documentation/architecture/SECURITY_OVERVIEW.md) |
+| Backend Domain Model (class) | [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) |
 
 ---
 

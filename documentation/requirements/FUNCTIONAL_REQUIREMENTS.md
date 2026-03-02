@@ -53,6 +53,28 @@
 
 **Current Status:** ✅ Implemented (Phases 1, 3, 5.3, 6.1)
 
+```mermaid
+journey
+    title Browse and Vote — Anonymous User
+    section Landing
+        Open home page: 5: User
+        View featured patterns: 5: User
+    section Browse
+        Navigate to Patterns listing: 5: User
+        Apply category filter: 4: User
+        Enter search keyword: 4: User
+        Toggle tag AND / OR mode: 3: User
+    section Discover
+        View filtered pattern cards: 5: User
+        Click pattern card: 5: User
+        Read full pattern detail: 5: User
+        View related patterns: 4: User
+    section Vote
+        Click vote button: 5: User
+        See optimistic count update: 5: System
+        Vote confirmed by API: 5: System
+```
+
 ---
 
 ## 3. Pattern Detail Page
@@ -93,6 +115,27 @@
 - Role-gated access: Create/Edit → Editor+; Delete → Admin only
 
 **Current Status:** ✅ Implemented (Phase 5.2)
+
+```mermaid
+journey
+    title Create Pattern — Authenticated Editor
+    section Sign In
+        Click Sign In in header: 5: Editor
+        Redirected to Entra sign-in page: 3: System
+        Enter credentials: 4: Editor
+        Redirected back with session cookie: 5: System
+    section Create
+        Click New Pattern button: 5: Editor
+        Fill in title and description: 4: Editor
+        Select category and add tags: 4: Editor
+        Write content in Markdown: 3: Editor
+        Select Draft or Published: 5: Editor
+        Submit pattern form: 5: Editor
+    section Confirm
+        Pattern saved via POST /patterns: 5: System
+        Redirected to pattern detail page: 5: System
+        View published pattern: 5: Editor
+```
 
 ---
 

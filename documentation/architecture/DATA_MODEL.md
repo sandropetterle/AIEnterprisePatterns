@@ -92,8 +92,37 @@ Seed data is applied during development database creation.
 
 ## 5. Entity Relationship Diagram
 
-<!-- DIAGRAM: Database ERD (Pattern, Tag, PatternTag) -->
-> 📐 *ERD diagram planned — see [DIAGRAM_PLAN.md](../diagrams/DIAGRAM_PLAN.md)*
+```mermaid
+erDiagram
+    PATTERN {
+        guid Id PK
+        string Title
+        string Slug UK
+        string ShortDescription
+        string FullContent
+        enum Category
+        string Author
+        datetime CreatedDate
+        datetime UpdatedDate
+        int VoteCount
+        enum Status
+        bool IsFeatured
+        bool IsTrending
+    }
+
+    TAG {
+        guid Id PK
+        string Name UK
+    }
+
+    PATTERN_TAG {
+        guid PatternId FK
+        guid TagId FK
+    }
+
+    PATTERN ||--o{ PATTERN_TAG : "has"
+    TAG ||--o{ PATTERN_TAG : "has"
+```
 
 ---
 
