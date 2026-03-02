@@ -20,10 +20,10 @@ AIEnterprisePatterns.Data         ← Persistence layer: Repositories, DbContext
 **Dependency rule:** Outer layers depend on inner layers. `Api` → `Core` → `Data`. No reverse dependencies.
 
 ```mermaid
-flowchart LR
+flowchart TD
     %% ── Api Layer ────────────────────────────────────────────────────────────
     subgraph API["🌐  .Api — HTTP Layer"]
-        direction TB
+        direction LR
         A1["🎮 Controllers<br/>PatternsController · AuthController"]
         A2["📋 DTOs<br/>Request · Response models"]
         A3["✅ Validators<br/>FluentValidation"]
@@ -32,7 +32,7 @@ flowchart LR
 
     %% ── Core Layer ───────────────────────────────────────────────────────────
     subgraph Core["⚙️  .Core — Domain Layer"]
-        direction TB
+        direction LR
         C1["🏗️ Entities<br/>Pattern · Tag"]
         C2["🔌 Interfaces<br/>IPatternRepository · IPatternService"]
         C3["🔧 Services<br/>PatternService"]
@@ -41,7 +41,7 @@ flowchart LR
 
     %% ── Data Layer ───────────────────────────────────────────────────────────
     subgraph Data["🗄️  .Data — Persistence Layer"]
-        direction TB
+        direction LR
         D1["📂 Repositories<br/>PatternRepository · UnitOfWork"]
         D2["🔗 DbContext<br/>ApplicationDbContext"]
         D3["🔄 Migrations<br/>EF Core code-first"]
