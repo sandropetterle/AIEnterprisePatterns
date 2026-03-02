@@ -1,6 +1,6 @@
 # Documentation Governance
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-02
 **Audience:** All contributors (developers, architects, infrastructure engineers, product, PM)
 **Purpose:** Define the rules, folder structure, naming conventions, and lifecycle policies for all project documentation.
 
@@ -21,6 +21,7 @@ Every documentation file must live in the correct folder based on its content ty
 | `documentation/project/` | Project management — roadmap, phase plans, status | PM, Architect | Updated per phase; phase plans deleted after completion |
 | `documentation/reviews/` | Point-in-time audit snapshots — immutable | Architects, Security Engineers | Created per audit; never modified after creation |
 | `documentation/test_results/` | Historical test execution reports — ephemeral | QA, Developers | Retention: current phase + 2 prior phases |
+| `documentation/cms-components/` | CMS component reference — 26 Strapi component schemas, field tables, dependency map | Frontend devs, Content editors | Updated when CMS component schemas change |
 | `documentation/diagrams/` | Architecture and flow diagrams — permanent | All audiences | Created when diagram tooling is adopted |
 | `deployment/` | Azure deployment scripts and step-by-step guides | Infrastructure Engineers, DevOps | Updated on infrastructure changes |
 | `CLAUDE.md` (root) | AI assistant operational context — quick-reference | AI assistant, Developers | Updated when conventions or structure changes |
@@ -61,6 +62,7 @@ Each fact must have exactly one authoritative document. Other documents may refe
 | Cost data | `deployment/COST_ANALYSIS.md` | `deployment/README.md`, `CONTAINER_APPS_GUIDE.md` |
 | Alert thresholds | `documentation/operations/MONITORING_GUIDE.md` | `deployment/scripts/README_MONITORING.md` |
 | API reference (full) | `documentation/api/` (`API_REFERENCE_INDEX.md`, `PATTERNS_API.md`, `AUTH_API.md`, `HEALTH_API.md`) | `BACKEND_ARCHITECTURE.md` Section 3 (links to it), `CLAUDE.md` (quick ref) |
+| CMS component schemas | `documentation/cms-components/` (`COMPONENT_INDEX.md` + 4 namespace pages) | `CMS_ARCHITECTURE.md` Section 2 (links to it) |
 | Phase status | `documentation/project/ROADMAP.md` | `CLAUDE.md` references current phase only |
 | Auth architecture | `documentation/architecture/SECURITY_OVERVIEW.md` | `CLAUDE.md` has summary |
 | Category enum mapping | `documentation/architecture/DATA_MODEL.md` | `CLAUDE.md` has reminder note |
@@ -136,12 +138,11 @@ Run at the start of each major phase or quarterly, whichever comes first.
 
 ## 8. Diagram Conventions
 
-Diagrams are planned for a future phase. When adding diagrams:
+All 13 planned diagrams are complete and embedded in their target architecture docs. When adding new diagrams:
 - **Preferred format:** Mermaid (renders natively in GitHub)
-- **Placeholder syntax:** `<!-- DIAGRAM: Architecture Overview -->` in the relevant section
-- **Storage:** Diagrams live in `documentation/diagrams/` with their source files
-- **Types planned:** Architecture, Infrastructure, Sequence, ERD, User Journey, State, Class
-- See `documentation/diagrams/DIAGRAM_INDEX.md` for the complete diagram inventory and conventions
+- **Storage:** Source lives in `documentation/diagrams/`; diagrams are embedded inline in the relevant target doc
+- **Color palette:** Follow the established palette — blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure, gray=CI/CD (see DIAGRAM_INDEX.md)
+- See `documentation/diagrams/DIAGRAM_INDEX.md` for the complete inventory, conventions, and color palette
 
 ---
 
@@ -180,6 +181,7 @@ Diagrams are planned for a future phase. When adding diagrams:
 
 | "I need to document..." | Correct location |
 |------------------------|-----------------|
+| A new or changed Strapi CMS component schema | `documentation/cms-components/` |
 | A new architectural pattern or component | `documentation/architecture/` |
 | A new feature requirement | `documentation/requirements/FUNCTIONAL_REQUIREMENTS.md` |
 | A technical decision with trade-offs | `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` |

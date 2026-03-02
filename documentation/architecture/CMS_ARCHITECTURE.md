@@ -35,6 +35,8 @@ Strapi content types and their purpose:
 
 **Dynamic Zones** allow page-specific component sections to be managed from the CMS without code changes.
 
+For the full component schema reference (field tables, dependency map, reuse guide), see [documentation/cms-components/COMPONENT_INDEX.md](../cms-components/COMPONENT_INDEX.md).
+
 ---
 
 ## 3. Infrastructure

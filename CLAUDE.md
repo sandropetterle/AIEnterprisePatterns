@@ -193,6 +193,7 @@ Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 |-------------|--------|
 | How the system is built | `documentation/architecture/` |
 | REST API reference (endpoints, DTOs, examples) | `documentation/api/` |
+| CMS component schemas, field tables, dependency map | `documentation/cms-components/` |
 | What the system should do | `documentation/requirements/` |
 | Why we made a decision | `documentation/decisions/` |
 | How we test | `documentation/testing/` |
