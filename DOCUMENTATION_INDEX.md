@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-02
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -124,13 +124,21 @@
 
 ---
 
-## documentation/diagrams/ — Planned visual diagrams
+## documentation/diagrams/ — Visual diagrams
 
-*To be created when diagram tooling is adopted.*
+*Mermaid format, embedded directly in their target architecture docs. 4 of 13 complete.*
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [DIAGRAM_PLAN.md](documentation/diagrams/DIAGRAM_PLAN.md) | Lists all planned diagrams with type, target doc, and placeholder convention | Active |
+| [DIAGRAM_PLAN.md](documentation/diagrams/DIAGRAM_PLAN.md) | Tracks all 13 planned diagrams — format, target doc, completion status. 4 complete, 9 planned. | Active |
+
+**Completed diagrams (embedded in architecture docs):**
+| Diagram | Embedded In |
+|---------|------------|
+| System Architecture Overview | [SYSTEM_OVERVIEW.md](documentation/architecture/SYSTEM_OVERVIEW.md) |
+| Clean Architecture Layers | [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) |
+| Frontend Component Tree | [FRONTEND_ARCHITECTURE.md](documentation/architecture/FRONTEND_ARCHITECTURE.md) |
+| CMS ISR Revalidation Flow | [CMS_ARCHITECTURE.md](documentation/architecture/CMS_ARCHITECTURE.md) |
 
 ---
 
