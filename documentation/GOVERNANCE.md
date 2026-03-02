@@ -139,7 +139,7 @@ Run at the start of each major phase or quarterly, whichever comes first.
 
 ## 8. Diagram Conventions
 
-All 14 diagrams are complete and embedded in their target architecture docs. When adding new diagrams:
+All diagrams are complete and embedded in their target architecture docs. When adding new diagrams:
 - **Preferred format:** Mermaid (renders natively in GitHub)
 - **Storage:** Source lives in `documentation/diagrams/`; diagrams are embedded inline in the relevant target doc
 - **Color palette:** Follow the established palette — blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure, gray=CI/CD (see DIAGRAM_INDEX.md)
