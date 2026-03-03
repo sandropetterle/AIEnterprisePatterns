@@ -9,11 +9,17 @@ import { toast } from 'sonner'
 type VotingButtonProps = {
   initialVoteCount: number
   patternId: string
+  votesLabel?: string
+  voteAriaTemplate?: string
+  voteAnnouncementTemplate?: string
 }
 
 export function VotingButton({
   initialVoteCount,
   patternId,
+  votesLabel = 'votes',
+  voteAriaTemplate = 'Vote for this pattern. {count} votes',
+  voteAnnouncementTemplate = 'Voted! {count} total votes',
 }: VotingButtonProps) {
   const [voteCount, setVoteCount] = useState(initialVoteCount)
   const [hasVoted, setHasVoted] = useState(false)
@@ -53,7 +59,7 @@ export function VotingButton({
         className="gap-2"
         disabled={isLoading || hasVoted}
         aria-pressed={hasVoted}
-        aria-label={`Vote for this pattern. ${voteCount} votes`}
+        aria-label={voteAriaTemplate.replace('{count}', String(voteCount))}
         aria-busy={isLoading}
       >
         <Heart
@@ -63,7 +69,7 @@ export function VotingButton({
           aria-hidden="true"
         />
         <span className="font-medium">{voteCount}</span>
-        <span className="text-muted-foreground">votes</span>
+        <span className="text-muted-foreground">{votesLabel}</span>
       </Button>
       <span
         role="status"
@@ -71,7 +77,7 @@ export function VotingButton({
         aria-atomic="true"
         className="sr-only"
       >
-        {justVoted ? `Voted! ${voteCount} total votes` : ''}
+        {justVoted ? voteAnnouncementTemplate.replace('{count}', String(voteCount)) : ''}
       </span>
     </>
   )

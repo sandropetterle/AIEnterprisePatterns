@@ -4,7 +4,7 @@
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**44 active decisions | 0 archived**
+**45 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,46 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 45: Phase 6.6 — CMS Pattern UI Labels via Server-Side Prop Threading
+
+**Date:** 2026-03-03
+**Title:** Thread CMS Pattern UI Labels from Server Pages to Client Components via Props
+**Category:** Frontend / CMS Integration / Architecture
+
+### Problem
+
+Patterns listing, detail, and form pages contained 70+ hardcoded UI label strings spread across 13 components (SearchBar, SortSelector, FilterPanel, FilterSheet, DateRangeFilter, SavedSearches, RecentlyViewedSidebar, VotingButton, Breadcrumb, PatternForm, PatternActions, RelatedPatternsSection, EmptyState/Pagination). These could not be changed without a code deployment.
+
+### Decision
+
+Fetch CMS label Single Types (`pattern-listing-labels`, `pattern-detail-labels`, `pattern-form-labels`) at the server page level and pass labels down to child components as optional props. Each component retains hardcoded defaults matching the previous values so no behaviour changes occur when CMS is unavailable.
+
+**Architecture:**
+- Server pages (`app/patterns/page.tsx`, `app/patterns/[slug]/page.tsx`, `app/patterns/new/page.tsx`, `app/patterns/[slug]/edit/page.tsx`) call `getPatternListingLabels()`, `getPatternDetailLabels()`, `getPatternFormLabels()` — already fetched in parallel with API data.
+- `FilterPanel` and `FilterSheet` accept `labels?: CmsPatternListingLabels` (full labels object). FilterPanel threads sub-labels to `DateRangeFilter`, `SavedSearches`, `RecentlyViewedSidebar`.
+- Leaf components (`SearchBar`, `SortSelector`, `DateRangeFilter`, `SavedSearches`, `RecentlyViewedSidebar`, `VotingButton`, `Breadcrumb`) accept individual optional label props with sensible defaults.
+- Template strings use `{placeholder}` replacement (e.g. `voteAriaTemplate.replace('{count}', voteCount)`) so editors can reword without understanding code.
+- `CmsPatternListingLabels` type is imported directly in `FilterPanel`/`FilterSheet` to avoid creating a parallel duplicate type.
+
+### Rationale
+
+- **Server-side fetch** maintains ISR benefits: labels are embedded in HTML at build time, not fetched client-side.
+- **Prop threading** keeps client components pure (no CMS imports, no `useEffect` fetches). The 1-hour ISR TTL for labels means changes appear within 1 hour without a redeploy.
+- **Defaults = current hardcoded values** ensures zero risk: if Strapi is unreachable, the app renders identically to before this phase.
+- **Full labels object on FilterPanel/FilterSheet** avoids 20+ individual prop declarations per component; CMS type reuse eliminates duplication.
+
+### Alternatives Evaluated
+
+- **React Context for labels** — rejected: adds unnecessary complexity for a static prop threading pattern; context crosses RSC/Client boundary unnecessarily.
+- **Client-side fetch in each component** — rejected: breaks ISR, adds waterfall fetching, creates loading states for labels.
+- **Hardcoded strings remain** — rejected: defeats the CMS content management goal.
+
+### sortOptions fallback fix
+
+The `queries.ts` fallback for `pattern-listing-labels.sortOptions` contained incorrect values (`'newest'`, `'popular'`, `'title'`) that did not match the backend `SortOption` enum (`'recent'`, `'votes'`, `'alphabetical'`). Fixed to use correct values.
 
 ---
 

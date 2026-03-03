@@ -5,7 +5,7 @@
 **Purpose:** Implementation plan for migrating 300+ hardcoded strings from frontend components into the live Strapi CMS (already production-deployed as of Phase 5.5).
 
 **Dependencies:** Phase 6.4 complete | CMS live at https://ca-aipatterns-cms-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io
-**Status:** 🔜 Upcoming (after Phase 6.4)
+**Status:** Phase 6.5 ✅ Complete | Phase 6.6 ✅ Complete | Phase 6.7 🔜 Next
 
 ---
 
@@ -95,7 +95,7 @@ Three stages, applied per page/component:
 1. **Unit tests for CMS queries** — mock `fetchStrapi` in `lib/cms/__tests__/queries.test.ts`; verify each query returns correctly shaped data
 2. **Fallback tests** — mock `fetchStrapi` to throw `CmsUnavailableError`; verify each component renders its hardcoded defaults
 3. **Coverage gate** — run `npm run test:ci`; all four metrics (stmt/branch/fn/line) must remain ≥ 70%
-4. **Full test suite** — verify all 350+ frontend tests still pass after label prop threading
+4. **Full test suite** — verify all 354+ frontend tests still pass after label prop threading
 5. **Backend tests** — no backend changes; `dotnet test` must remain 105/105
 
 ### Documentation Tasks

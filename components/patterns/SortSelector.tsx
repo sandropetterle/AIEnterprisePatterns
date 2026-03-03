@@ -10,18 +10,24 @@ import {
 } from '@/components/ui/select'
 import type { SortOption } from '@/lib/types/pattern'
 
-const sortOptions: { value: SortOption; label: string }[] = [
+const DEFAULT_SORT_OPTIONS: { value: SortOption; label: string }[] = [
   { value: 'recent', label: 'Most Recent' },
   { value: 'votes', label: 'Most Voted' },
   { value: 'alphabetical', label: 'Alphabetical' },
 ]
 
-export function SortSelector() {
+type SortSelectorProps = {
+  sortByLabel?: string
+  sortOptions?: Array<{ value: string; label: string }>
+}
+
+export function SortSelector({ sortByLabel = 'Sort by:', sortOptions }: SortSelectorProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const currentSort = (searchParams.get('sort') as SortOption) || 'recent'
+  const effectiveSortOptions = sortOptions ?? DEFAULT_SORT_OPTIONS
 
-  const handleSortChange = (value: SortOption) => {
+  const handleSortChange = (value: string) => {
     const params = new URLSearchParams(searchParams.toString())
     params.set('sort', value)
 
@@ -34,14 +40,14 @@ export function SortSelector() {
   return (
     <div className="flex items-center gap-2">
       <label htmlFor="sort-select" className="text-sm text-muted-foreground whitespace-nowrap">
-        Sort by:
+        {sortByLabel}
       </label>
       <Select value={currentSort} onValueChange={handleSortChange}>
         <SelectTrigger id="sort-select" className="w-[180px]">
           <SelectValue />
         </SelectTrigger>
         <SelectContent>
-          {sortOptions.map((option) => (
+          {effectiveSortOptions.map((option) => (
             <SelectItem key={option.value} value={option.value}>
               {option.label}
             </SelectItem>

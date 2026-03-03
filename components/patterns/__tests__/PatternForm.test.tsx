@@ -23,8 +23,7 @@ jest.mock('@/lib/api/patterns', () => ({
 // can render a native <select> with id + value bound to the parent Select.
 jest.mock('@/components/ui/select', () => {
   const React = require('react')
-  type SelectCtx = { value: string; onValueChange: (v: string) => void }
-  const Ctx = React.createContext<SelectCtx>({ value: '', onValueChange: () => {} })
+  const Ctx = React.createContext({ value: '' as string, onValueChange: (() => {}) as (v: string) => void })
 
   return {
     Select: ({

@@ -110,7 +110,7 @@ export default async function PatternDetailPage({ params }: PageProps) {
         title={pattern.title}
         category={pattern.category}
       />
-      <Breadcrumb items={breadcrumbs} />
+      <Breadcrumb items={breadcrumbs} ariaLabel={labels.breadcrumbAriaLabel} />
 
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -141,6 +141,9 @@ export default async function PatternDetailPage({ params }: PageProps) {
                 <VotingButton
                   initialVoteCount={pattern.voteCount}
                   patternId={pattern.id}
+                  votesLabel={labels.votesLabel}
+                  voteAriaTemplate={labels.voteAriaTemplate}
+                  voteAnnouncementTemplate={labels.voteAnnouncementTemplate}
                 />
               </ErrorBoundary>
               <PatternActions

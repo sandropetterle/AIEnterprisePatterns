@@ -8,12 +8,13 @@ type BreadcrumbItem = {
 
 type BreadcrumbProps = {
   items: BreadcrumbItem[]
+  ariaLabel?: string
 }
 
-export function Breadcrumb({ items }: BreadcrumbProps) {
+export function Breadcrumb({ items, ariaLabel = 'Breadcrumb' }: BreadcrumbProps) {
   return (
     <nav
-      aria-label="Breadcrumb"
+      aria-label={ariaLabel}
       className="container mx-auto px-4 sm:px-6 lg:px-8 py-4"
     >
       <ol className="flex items-center flex-wrap gap-2 text-sm text-muted-foreground">

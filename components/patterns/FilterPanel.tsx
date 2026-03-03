@@ -10,13 +10,15 @@ import { X } from 'lucide-react'
 import { DateRangeFilter } from './DateRangeFilter'
 import { SavedSearches } from './SavedSearches'
 import { RecentlyViewedSidebar } from './RecentlyViewedSidebar'
+import type { CmsPatternListingLabels } from '@/lib/cms/types'
 
 type FilterPanelProps = {
   categories: string[]
   tags: string[]
+  labels?: CmsPatternListingLabels
 }
 
-export function FilterPanel({ categories, tags }: FilterPanelProps) {
+export function FilterPanel({ categories, tags, labels }: FilterPanelProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -106,7 +108,7 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
 
       {/* Header with clear button */}
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Filters</h3>
+        <h3 className="text-lg font-semibold">{labels?.filterSectionHeader ?? 'Filters'}</h3>
         {hasActiveFilters && (
           <Button
             variant="ghost"
@@ -114,14 +116,14 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
             onClick={handleClearFilters}
             className="h-auto p-0 text-sm text-muted-foreground hover:text-foreground"
           >
-            Clear all
+            {labels?.clearAllLabel ?? 'Clear all'}
           </Button>
         )}
       </div>
 
       {/* Category Filter */}
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Category</Label>
+        <Label className="text-sm font-medium">{labels?.categoryLabel ?? 'Category'}</Label>
         <div className="space-y-2">
           <button
             onClick={() => handleCategoryChange('all')}
@@ -132,7 +134,7 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
                 : 'hover:bg-muted'
             }`}
           >
-            All Categories
+            {labels?.allCategoriesLabel ?? 'All Categories'}
           </button>
           {categories.map((category) => (
             <button
@@ -152,16 +154,23 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
       </div>
 
       {/* Date Range Filter */}
-      <DateRangeFilter dateFrom={dateFrom} dateTo={dateTo} />
+      <DateRangeFilter
+        dateFrom={dateFrom}
+        dateTo={dateTo}
+        dateRangeHeader={labels?.dateRangeHeader}
+        clearDatesLabel={labels?.clearDatesLabel}
+        fromLabel={labels?.fromLabel}
+        toLabel={labels?.toLabel}
+      />
 
       {/* Tags Filter */}
       <div className="space-y-3">
-        <Label className="text-sm font-medium">Tags</Label>
+        <Label className="text-sm font-medium">{labels?.tagsLabel ?? 'Tags'}</Label>
 
         {/* AND/OR toggle — only shown when 2+ tags selected */}
         {selectedTags.length >= 2 && (
           <div className="flex items-center gap-2 text-xs">
-            <span className="text-muted-foreground">Match:</span>
+            <span className="text-muted-foreground">{labels?.tagModeLabel ?? 'Match:'}</span>
             <button
               onClick={() => handleTagModeChange('any')}
               aria-pressed={tagMode === 'any'}
@@ -171,7 +180,7 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
                   : 'border-input hover:bg-muted'
               }`}
             >
-              Any
+              {labels?.anyLabel ?? 'Any'}
             </button>
             <button
               onClick={() => handleTagModeChange('all')}
@@ -182,7 +191,7 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
                   : 'border-input hover:bg-muted'
               }`}
             >
-              All
+              {labels?.allLabel ?? 'All'}
             </button>
           </div>
         )}
@@ -209,7 +218,7 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
       {/* Active Filters Display */}
       {hasActiveFilters && (
         <div className="space-y-2 pt-4 border-t">
-          <Label className="text-sm font-medium">Active Filters</Label>
+          <Label className="text-sm font-medium">{labels?.activeFiltersLabel ?? 'Active Filters'}</Label>
           <div className="flex flex-wrap gap-2">
             {selectedCategory !== 'all' && (
               <Badge variant="secondary" className="gap-1">
@@ -240,10 +249,22 @@ export function FilterPanel({ categories, tags }: FilterPanelProps) {
       )}
 
       {/* Saved Searches */}
-      <SavedSearches />
+      <SavedSearches
+        savedSearchesHeader={labels?.savedSearchesHeader}
+        saveCurrentLabel={labels?.saveCurrentLabel}
+        saveDialogTitle={labels?.saveDialogTitle}
+        saveDialogDescription={labels?.saveDialogDescription}
+        searchNameLabel={labels?.searchNameLabel}
+        searchNamePlaceholder={labels?.searchNamePlaceholder}
+        cancelLabel={labels?.cancelLabel}
+        saveLabel={labels?.saveLabel}
+      />
 
       {/* Recently Viewed */}
-      <RecentlyViewedSidebar />
+      <RecentlyViewedSidebar
+        recentlyViewedHeader={labels?.recentlyViewedHeader}
+        clearLabel={labels?.clearLabel}
+      />
     </aside>
   )
 }
