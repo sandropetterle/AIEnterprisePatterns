@@ -377,12 +377,17 @@ test.describe('Advanced Search — Tag Mode Toggle', () => {
     const firstTag = page.getByRole('checkbox', { name: 'Clean Architecture' })
     await expect(firstTag).toBeVisible({ timeout: 5_000 })
     await firstTag.click()
-    await page.waitForURL(/tags=/, { timeout: 10_000 })
+    // Use toHaveURL (assertion-based polling) instead of waitForURL (navigation event)
+    // — more reliable with Next.js pushState soft-navigation across all browsers
+    await expect(page).toHaveURL(/tags=/, { timeout: 10_000 })
 
     // Select a second tag (CQRS) — toggles comma-separated tags list
     const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
     await expect(secondTag).toBeVisible({ timeout: 5_000 })
     await secondTag.click()
+    // Wait for URL to reflect both tags (comma = 2+ values) before checking toggle
+    // — FilterPanel only renders the Any/All toggle when selectedTags.length >= 2
+    await expect(page).toHaveURL(/tags=[^&]*,/, { timeout: 10_000 })
 
     // With 2+ tags the Any / All buttons should appear
     await expect(
@@ -403,11 +408,12 @@ test.describe('Advanced Search — Tag Mode Toggle', () => {
     const firstTag = page.getByRole('checkbox', { name: 'Clean Architecture' })
     await expect(firstTag).toBeVisible({ timeout: 5_000 })
     await firstTag.click()
-    await page.waitForURL(/tags=/, { timeout: 10_000 })
+    await expect(page).toHaveURL(/tags=/, { timeout: 10_000 })
 
     const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
     await expect(secondTag).toBeVisible({ timeout: 5_000 })
     await secondTag.click()
+    await expect(page).toHaveURL(/tags=[^&]*,/, { timeout: 10_000 })
 
     const allBtn = page.getByRole('button', { name: 'All', exact: true })
     await expect(allBtn).toBeVisible({ timeout: 5_000 })
