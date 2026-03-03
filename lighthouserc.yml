@@ -1,0 +1,38 @@
+# Lighthouse CI configuration for Phase 6.4 performance testing.
+#
+# CI usage (frontend-container-deploy.yml):
+#   1. npm run build  (with NEXT_PUBLIC_API_BASE_URL set)
+#   2. npm run start &
+#   3. Wait for http://localhost:3000
+#   4. npx lhci autorun
+#
+# Local usage:
+#   npm run build && npm run start &
+#   npx lhci autorun
+
+ci:
+  collect:
+    url:
+      - http://localhost:3000
+      - http://localhost:3000/patterns
+    numberOfRuns: 3
+
+  assert:
+    assertions:
+      largest-contentful-paint:
+        - error
+        - maxNumericValue: 2500
+      first-contentful-paint:
+        - error
+        - maxNumericValue: 1800
+      interactive:
+        - error
+        - maxNumericValue: 5000
+      categories:performance:
+        - error
+        - minScore: 0.80
+
+  upload:
+    # Posts results to a temporary public URL (no token required).
+    # Set LHCI_GITHUB_APP_TOKEN to also post a GitHub status check.
+    target: temporary-public-storage

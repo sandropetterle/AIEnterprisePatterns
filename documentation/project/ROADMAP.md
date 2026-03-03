@@ -23,7 +23,7 @@
 | Phase 6.1 | ✅ Complete | 2026-02-27 | UI/UX Polish (dark mode, skeleton loaders, animations, next/image) |
 | Phase 6.2 | ✅ Complete | 2026-02-27 | Related Patterns endpoint (backend + frontend, cached) |
 | Phase 6.3 | ✅ Complete | 2026-03-02 | Documentation Reuse & Storybook (API ref, CMS component ref, 38 stories, governance) |
-| **Phase 6.4** | 🔜 Next | TBD | Testing infrastructure (Lighthouse CI, visual regression, cross-browser) |
+| **Phase 6.4** | ✅ Complete | 2026-03-03 | Testing infrastructure (Lighthouse CI, Chromatic, Playwright cross-browser matrix) |
 | **Phase 6.5** | 🔜 Next | TBD | CMS Content Migration — page content (layout, home, about, docs, auth pages) |
 | **Phase 6.6** | 🔜 Next | TBD | CMS Content Migration — pattern UI labels (listing, detail, form) |
 | **Phase 6.7** | 🔜 Next | TBD | CMS Content Migration — tests & documentation |
@@ -90,17 +90,16 @@ Four-pillar documentation and reuse infrastructure:
 
 ---
 
+## Completed Phases (continued)
+
+### Phase 6.4 — Testing Infrastructure (2026-03-03)
+Lighthouse CI performance gates (LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 80), Chromatic visual regression against the 38-story Storybook catalog, Playwright E2E cross-browser matrix (Chromium, Firefox, WebKit). Deploy in `frontend-container-deploy.yml` now requires `lhci` + `chromatic` + `build-and-push` before proceeding.
+
+**Required GitHub Secrets to configure:** `LHCI_API_BASE_URL`, `LHCI_GITHUB_APP_TOKEN` (optional), `CHROMATIC_PROJECT_TOKEN`.
+
+---
+
 ## Active Phases
-
-### Phase 6.4 — Testing Infrastructure
-**Priority:** HIGH | **Dependencies:** Phase 6.3 complete ✅
-
-- Integrate Lighthouse CI into GitHub Actions (LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 80)
-- Visual regression testing via Chromatic (integrates with existing Storybook)
-- Playwright cross-browser matrix (Chromium, Firefox, WebKit)
-- Block deployments on performance or visual regression
-
-**Implementation plan:** [PHASE_TESTING_PLAN.md](PHASE_TESTING_PLAN.md)
 
 ### Phase 6.5 — CMS Content Migration: Page Content
 **Priority:** HIGH | **Dependencies:** Phase 6.4

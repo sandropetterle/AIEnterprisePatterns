@@ -87,10 +87,15 @@ jobs:
           path: ./coverage
 
   e2e-tests:
-    name: E2E Tests (Playwright)
+    name: E2E Tests (${{ matrix.browser }})
     runs-on: ubuntu-latest
     # Only run E2E tests on main branch or when manually triggered
     if: github.ref == 'refs/heads/main' || github.event_name == 'workflow_dispatch'
+    strategy:
+      matrix:
+        browser: [chromium, firefox, webkit]
+      # Run all browsers even if one fails — provides full cross-browser picture
+      fail-fast: false
 
     steps:
       - name: Checkout code
@@ -105,8 +110,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps chromium
+      - name: Install Playwright browser (${{ matrix.browser }})
+        run: npx playwright install --with-deps ${{ matrix.browser }}
 
       - name: Setup .NET for backend
         uses: actions/setup-dotnet@v4
@@ -158,8 +163,8 @@ jobs:
           AUTH_API_SCOPE_WRITE: ${{ secrets.AUTH_API_SCOPE_WRITE }}
           AUTH_TRUST_HOST: true
 
-      - name: Run E2E tests
-        run: npm run test:e2e
+      - name: Run E2E tests (${{ matrix.browser }})
+        run: npx playwright test --project=${{ matrix.browser }}
         env:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           NEXT_PUBLIC_API_BASE_URL: http://localhost:5255/api
@@ -178,19 +183,19 @@ jobs:
           # token created by direct injection). Leave unset for standard CI runs.
           # E2E_API_WRITES: true
 
-      - name: Upload Playwright report
+      - name: Upload Playwright report (${{ matrix.browser }})
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-report
+          name: playwright-report-${{ matrix.browser }}
           path: playwright-report/
           retention-days: 30
 
-      - name: Upload login diagnostic screenshots
+      - name: Upload login diagnostic screenshots (${{ matrix.browser }})
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: login-diagnostic-screenshots
+          name: login-diagnostic-screenshots-${{ matrix.browser }}
           path: e2e/.auth/*.png
           if-no-files-found: ignore
           retention-days: 7
