@@ -7,7 +7,15 @@ import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Clock, X } from 'lucide-react'
 
-export function RecentlyViewedSidebar() {
+type RecentlyViewedSidebarProps = {
+  recentlyViewedHeader?: string
+  clearLabel?: string
+}
+
+export function RecentlyViewedSidebar({
+  recentlyViewedHeader = 'Recently Viewed',
+  clearLabel = 'Clear',
+}: RecentlyViewedSidebarProps) {
   const { recentPatterns, clearRecentPatterns } = useRecentlyViewed()
 
   if (recentPatterns.length === 0) return null
@@ -17,7 +25,7 @@ export function RecentlyViewedSidebar() {
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium flex items-center gap-1.5">
           <Clock className="h-3.5 w-3.5" />
-          Recently Viewed
+          {recentlyViewedHeader}
         </Label>
         <Button
           variant="ghost"
@@ -27,7 +35,7 @@ export function RecentlyViewedSidebar() {
           aria-label="Clear recently viewed history"
         >
           <X className="h-3 w-3 mr-1" />
-          Clear
+          {clearLabel}
         </Button>
       </div>
       <ul className="space-y-2" aria-label="Recently viewed patterns">

@@ -13,7 +13,7 @@ jest.mock('@/components/ui/sheet', () => ({
 
 // Mock FilterPanel to avoid its dependencies
 jest.mock('../FilterPanel', () => ({
-  FilterPanel: ({ categories, tags }: { categories: string[]; tags: string[] }) => (
+  FilterPanel: ({ categories, tags }: { categories: string[]; tags: string[]; labels?: unknown }) => (
     <div data-testid="filter-panel" data-categories={categories.join(',')} data-tags={tags.join(',')} />
   ),
 }))

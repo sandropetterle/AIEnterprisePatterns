@@ -18,7 +18,27 @@ import {
 } from '@/components/ui/dialog'
 import { Bookmark, X, Trash2 } from 'lucide-react'
 
-export function SavedSearches() {
+type SavedSearchesProps = {
+  savedSearchesHeader?: string
+  saveCurrentLabel?: string
+  saveDialogTitle?: string
+  saveDialogDescription?: string
+  searchNameLabel?: string
+  searchNamePlaceholder?: string
+  cancelLabel?: string
+  saveLabel?: string
+}
+
+export function SavedSearches({
+  savedSearchesHeader = 'Saved Searches',
+  saveCurrentLabel = 'Save current',
+  saveDialogTitle = 'Save Search',
+  saveDialogDescription = 'Give this search a name to quickly recall it later.',
+  searchNameLabel = 'Search name',
+  searchNamePlaceholder = 'e.g. Architecture with CQRS',
+  cancelLabel = 'Cancel',
+  saveLabel = 'Save',
+}: SavedSearchesProps) {
   const searchParams = useSearchParams()
   const { savedSearches, saveSearch, deleteSearch, applySavedSearch } = useSavedSearches()
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -57,7 +77,7 @@ export function SavedSearches() {
       <div className="flex items-center justify-between">
         <Label className="text-sm font-medium flex items-center gap-1.5">
           <Bookmark className="h-3.5 w-3.5" />
-          Saved Searches
+          {savedSearchesHeader}
         </Label>
         {hasActiveFilters && (
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
@@ -67,36 +87,36 @@ export function SavedSearches() {
                 size="sm"
                 className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
               >
-                Save current
+                {saveCurrentLabel}
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-sm">
               <DialogHeader>
-                <DialogTitle>Save Search</DialogTitle>
+                <DialogTitle>{saveDialogTitle}</DialogTitle>
                 <DialogDescription>
-                  Give this search a name to quickly recall it later.
+                  {saveDialogDescription}
                 </DialogDescription>
               </DialogHeader>
               <div className="py-2">
                 <Label htmlFor="search-name" className="text-sm">
-                  Search name
+                  {searchNameLabel}
                 </Label>
                 <Input
                   id="search-name"
                   value={searchName}
                   onChange={(e) => setSearchName(e.target.value)}
                   onKeyDown={(e) => e.key === 'Enter' && handleSave()}
-                  placeholder="e.g. Architecture with CQRS"
+                  placeholder={searchNamePlaceholder}
                   className="mt-1.5"
                   autoFocus
                 />
               </div>
               <DialogFooter>
                 <Button variant="outline" onClick={() => setDialogOpen(false)}>
-                  Cancel
+                  {cancelLabel}
                 </Button>
                 <Button onClick={handleSave} disabled={!searchName.trim()}>
-                  Save
+                  {saveLabel}
                 </Button>
               </DialogFooter>
             </DialogContent>

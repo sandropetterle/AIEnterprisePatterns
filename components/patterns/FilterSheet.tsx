@@ -11,30 +11,32 @@ import {
   SheetTrigger,
 } from '@/components/ui/sheet'
 import { FilterPanel } from './FilterPanel'
+import type { CmsPatternListingLabels } from '@/lib/cms/types'
 
 type FilterSheetProps = {
   categories: string[]
   tags: string[]
+  labels?: CmsPatternListingLabels
 }
 
-export function FilterSheet({ categories, tags }: FilterSheetProps) {
+export function FilterSheet({ categories, tags, labels }: FilterSheetProps) {
   return (
     <Sheet>
       <SheetTrigger asChild>
         <Button variant="outline" size="sm" className="gap-2" aria-label="Open filters">
           <Filter className="h-4 w-4" aria-hidden="true" />
-          Filters
+          {labels?.filtersButtonLabel ?? 'Filters'}
         </Button>
       </SheetTrigger>
       <SheetContent side="left" className="w-80 overflow-y-auto" aria-label="Filter options">
         <SheetHeader>
-          <SheetTitle>Filter Patterns</SheetTitle>
+          <SheetTitle>{labels?.filterSheetTitle ?? 'Filter Patterns'}</SheetTitle>
           <SheetDescription>
-            Refine your search by category and tags
+            {labels?.filterSheetDescription ?? 'Refine your search by category and tags'}
           </SheetDescription>
         </SheetHeader>
         <div className="mt-6">
-          <FilterPanel categories={categories} tags={tags} />
+          <FilterPanel categories={categories} tags={tags} labels={labels} />
         </div>
       </SheetContent>
     </Sheet>

@@ -25,7 +25,7 @@
 | Phase 6.3 | ✅ Complete | 2026-03-02 | Documentation Reuse & Storybook (API ref, CMS component ref, 38 stories, governance) |
 | **Phase 6.4** | ✅ Complete | 2026-03-03 | Testing infrastructure (Lighthouse CI, Chromatic, Playwright cross-browser matrix) |
 | **Phase 6.5** | ✅ Complete | 2026-03-03 | CMS Content Migration — page content (Logo siteName, Header, CmsErrorPageProvider, error.tsx) |
-| **Phase 6.6** | 🔜 Next | TBD | CMS Content Migration — pattern UI labels (listing, detail, form) |
+| **Phase 6.6** | ✅ Complete | 2026-03-03 | CMS Content Migration — pattern UI labels (listing, detail, form) |
 | **Phase 6.7** | 🔜 Next | TBD | CMS Content Migration — tests & documentation |
 | Phase 7 | 📋 Planned | TBD | Community features, exports, performance, advanced content |
 | Phase 8 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
@@ -105,26 +105,28 @@ Global layout, home page, about, docs, auth pages — all CMS-driven with hardco
 - `app/layout.tsx`: fetches `getGlobal()` + `getErrorPage()` in parallel; wraps children in `CmsErrorPageProvider`; passes `siteName` to Header
 - All other page/component CMS wiring (home, about, docs, login, not-found) was already complete from Phase 5.5
 
+### Phase 6.6 — CMS Content Migration: Pattern UI Labels (2026-03-03)
+All pattern listing, detail, and form UI strings migrated to CMS-driven props with hardcoded fallbacks:
+- Prop-threading architecture: server pages fetch `CmsPatternListingLabels` / `CmsPatternDetailLabels` / `CmsPatternFormLabels` and pass as props; FilterPanel/FilterSheet accept a single `labels?` object (avoids prop explosion); leaf components use individual optional props defaulting to previous hardcoded strings
+- Components updated: SearchBar, SortSelector, DateRangeFilter, SavedSearches, RecentlyViewedSidebar, FilterPanel, FilterSheet, VotingButton, Breadcrumb, PatternForm
+- Fixed bug: CMS fallback `sortOptions` values were incorrect (`'newest'` → `'recent'`, etc.) — now match the backend `SortOption` type
+- Template placeholders: `{count}`, `{slug}`, `{max}` replaced at render time in VotingButton and PatternForm
+- 354/354 frontend tests passing; Decision 45 added to TECHNICAL_DECISIONS_LOG.md
+
 ---
 
 ## Active Phases
-
-### Phase 6.6 — CMS Content Migration: Pattern UI Labels
-**Priority:** HIGH | **Dependencies:** Phase 6.5
-
-- `pattern-listing-labels` → SearchBar, FilterPanel, SortSelector, EmptyState, Pagination
-- `pattern-detail-labels` → all detail sub-components
-- `pattern-form-labels` → PatternForm create/edit
-
-**Implementation plan:** [PHASE_CMS_CONTENT_PLAN.md](PHASE_CMS_CONTENT_PLAN.md) (covers 6.5–6.7)
 
 ### Phase 6.7 — CMS Content Migration: Tests & Documentation
 **Priority:** HIGH | **Dependencies:** Phase 6.6
 
 - Unit tests for new CMS query functions (mock `fetchStrapi`)
 - Fallback behavior tests (Strapi unavailable → hardcoded defaults render correctly)
-- Verify all 354+ frontend tests still pass after label prop threading
+- Verify all 354 frontend tests still pass and coverage ≥ 70%
 - Update TECHNICAL_DECISIONS_LOG.md with new decisions
+- Remove hardcoded fallback strings once CMS seed data is confirmed stable
+
+**Implementation plan:** [PHASE_CMS_CONTENT_PLAN.md](PHASE_CMS_CONTENT_PLAN.md) (covers 6.5–6.7)
 
 ---
 

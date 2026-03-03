@@ -11,9 +11,10 @@ import type { PatternListItem } from '@/lib/types/pattern'
 type SearchBarProps = {
   allPatterns?: PatternListItem[]
   allTags?: string[]
+  searchPlaceholder?: string
 }
 
-export function SearchBar({ allPatterns = [], allTags = [] }: SearchBarProps) {
+export function SearchBar({ allPatterns = [], allTags = [], searchPlaceholder = 'Search patterns...' }: SearchBarProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const [isPending, startTransition] = useTransition()
@@ -116,7 +117,7 @@ export function SearchBar({ allPatterns = [], allTags = [] }: SearchBarProps) {
         aria-controls={hasSuggestions ? listboxId : undefined}
         aria-activedescendant={activeOptionId}
         aria-autocomplete="list"
-        placeholder="Search patterns..."
+        placeholder={searchPlaceholder}
         value={searchValue}
         onChange={(e) => {
           setSearchValue(e.target.value)

@@ -166,9 +166,9 @@ export async function getPatternListingLabels(): Promise<CmsPatternListingLabels
     searchPlaceholder: 'Search patterns...',
     sortByLabel: 'Sort by:',
     sortOptions: [
-      { value: 'newest', label: 'Most Recent' },
-      { value: 'popular', label: 'Most Popular' },
-      { value: 'title', label: 'Title A-Z' },
+      { value: 'recent', label: 'Most Recent' },
+      { value: 'votes', label: 'Most Voted' },
+      { value: 'alphabetical', label: 'Alphabetical' },
     ],
     filterSectionHeader: 'Filters',
     clearAllLabel: 'Clear all',

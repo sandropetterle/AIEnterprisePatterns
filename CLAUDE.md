@@ -13,7 +13,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
 - **CMS:** Strapi 5 (headless, `cms/` directory), MySQL (production), Azure Blob Storage (media)
-- **Current Phase:** 6.5 (complete); Phase 6.6 next
+- **Current Phase:** 6.6 (complete); Phase 6.7 next
 
 ## Development Commands
 
@@ -165,7 +165,7 @@ Base: `http://localhost:5255/api` | Full reference: `documentation/api/`
 
 ## Testing
 
-- **Frontend:** `npm test` (Jest + React Testing Library); 350/350 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
+- **Frontend:** `npm test` (Jest + React Testing Library); 354/354 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
 - **Backend:** `dotnet test` (xUnit + Moq); 105/105 tests passing (~85% testable coverage)
 - **E2E:** Playwright cross-browser matrix — Chromium, Firefox, WebKit (CI runs all three in parallel via `strategy.matrix`)
 - **Performance:** Lighthouse CI (`@lhci/cli`) — LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80 — gates deploy in `frontend-container-deploy.yml`

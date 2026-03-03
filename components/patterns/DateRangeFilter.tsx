@@ -9,9 +9,20 @@ import { X } from 'lucide-react'
 type DateRangeFilterProps = {
   dateFrom?: string
   dateTo?: string
+  dateRangeHeader?: string
+  clearDatesLabel?: string
+  fromLabel?: string
+  toLabel?: string
 }
 
-export function DateRangeFilter({ dateFrom, dateTo }: DateRangeFilterProps) {
+export function DateRangeFilter({
+  dateFrom,
+  dateTo,
+  dateRangeHeader = 'Date Range',
+  clearDatesLabel = 'Clear dates',
+  fromLabel = 'From',
+  toLabel = 'To',
+}: DateRangeFilterProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -42,7 +53,7 @@ export function DateRangeFilter({ dateFrom, dateTo }: DateRangeFilterProps) {
   return (
     <div className="space-y-3">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium">Date Range</Label>
+        <Label className="text-sm font-medium">{dateRangeHeader}</Label>
         {hasActiveDates && (
           <Button
             variant="ghost"
@@ -51,14 +62,14 @@ export function DateRangeFilter({ dateFrom, dateTo }: DateRangeFilterProps) {
             className="h-auto p-0 text-xs text-muted-foreground hover:text-foreground"
           >
             <X className="h-3 w-3 mr-1" />
-            Clear dates
+            {clearDatesLabel}
           </Button>
         )}
       </div>
       <div className="space-y-2">
         <div>
           <Label htmlFor="date-from" className="text-xs text-muted-foreground">
-            From
+            {fromLabel}
           </Label>
           <input
             id="date-from"
@@ -70,7 +81,7 @@ export function DateRangeFilter({ dateFrom, dateTo }: DateRangeFilterProps) {
         </div>
         <div>
           <Label htmlFor="date-to" className="text-xs text-muted-foreground">
-            To
+            {toLabel}
           </Label>
           <input
             id="date-to"

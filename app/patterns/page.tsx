@@ -152,19 +152,26 @@ export default async function PatternsPage(props: {
                 <div className="h-10 bg-muted animate-pulse rounded" />
               }
             >
-              <SearchBar allPatterns={result.patterns} allTags={allTags} />
+              <SearchBar
+                allPatterns={result.patterns}
+                allTags={allTags}
+                searchPlaceholder={labels.searchPlaceholder}
+              />
             </Suspense>
           </div>
           <div className="flex gap-2">
             <div className="lg:hidden">
-              <FilterSheet categories={allCategories} tags={allTags} />
+              <FilterSheet categories={allCategories} tags={allTags} labels={labels} />
             </div>
             <Suspense
               fallback={
                 <div className="h-10 w-[200px] bg-muted animate-pulse rounded" />
               }
             >
-              <SortSelector />
+              <SortSelector
+                sortByLabel={labels.sortByLabel}
+                sortOptions={labels.sortOptions}
+              />
             </Suspense>
           </div>
         </div>
@@ -178,7 +185,7 @@ export default async function PatternsPage(props: {
                 <div className="w-64 h-96 bg-muted animate-pulse rounded" />
               }
             >
-              <FilterPanel categories={allCategories} tags={allTags} />
+              <FilterPanel categories={allCategories} tags={allTags} labels={labels} />
             </Suspense>
           </div>
 

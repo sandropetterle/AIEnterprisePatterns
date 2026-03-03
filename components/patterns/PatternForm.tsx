@@ -215,7 +215,7 @@ export function PatternForm({ mode, initialData, labels: l }: PatternFormProps) 
             />
             {slugPreview && (
               <p className="text-xs text-muted-foreground">
-                Slug preview: {slugPreview}
+                {(l?.slugPreviewTemplate ?? 'Slug preview: {slug}').replace('{slug}', slugPreview)}
               </p>
             )}
             {errors.title && (
@@ -331,7 +331,9 @@ export function PatternForm({ mode, initialData, labels: l }: PatternFormProps) 
               </div>
             )}
             <p className="text-xs text-muted-foreground">
-              {tags.length}/{MAX_TAGS} tags
+              {(l?.tagCountTemplate ?? '{count}/{max} tags')
+                .replace('{count}', String(tags.length))
+                .replace('{max}', String(MAX_TAGS))}
             </p>
             {errors.tags && (
               <p className="text-sm text-destructive" role="alert">{errors.tags}</p>
