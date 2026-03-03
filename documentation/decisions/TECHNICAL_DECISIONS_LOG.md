@@ -4,7 +4,7 @@
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**45 active decisions | 0 archived**
+**47 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,78 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 47: Use `expect(page).toHaveURL()` for Playwright Soft-Navigation Assertions
+
+**Date:** 2026-03-03
+**Title:** Assert URL Changes with `toHaveURL` Not `waitForURL` for Next.js App Router Navigation
+**Category:** Testing / E2E
+
+### Problem
+
+E2E tests for filter interactions (tag selection, category filter) used `page.waitForURL(pattern, { timeout })` to wait for URL updates after clicking filter checkboxes. Next.js App Router uses `history.pushState` for client-side navigation, which does not fire the Playwright navigation `load` event that `waitForURL` awaits by default. This caused consistent `TimeoutError` failures in WebKit (which is stricter about navigation event semantics) and intermittent failures in Chromium.
+
+A secondary issue: when matching comma-separated values in query params, WebKit URL-encodes `,` as `%2C` while Chromium preserves the literal comma. A regex like `/tags=[^&]*,/` matched Chromium's `tags=A,B` but never matched WebKit's `tags=A%2CB`.
+
+### Decision
+
+1. Replace all `page.waitForURL(pattern)` calls in `e2e/critical-flows.spec.ts` with `expect(page).toHaveURL(pattern)` for soft-navigation URL checks. `toHaveURL` uses Playwright's assertion retry loop and polls the current URL — it is not tied to navigation lifecycle events.
+
+2. Write regex patterns for comma-separated query params as `/param=[^&]*(%2C|,)/i` to accept both literal commas (Chromium) and percent-encoded commas (WebKit).
+
+3. Add an explicit URL sync assertion after the second tag click to ensure `FilterPanel` has re-rendered with `selectedTags.length >= 2` before asserting on elements that only appear in that state.
+
+### Rationale
+
+- `toHaveURL` is the idiomatic Playwright approach for soft-navigation — it is documented as the preferred way to check URL state without coupling to navigation lifecycle events.
+- WebKit's stricter navigation event model is the root cause of the browser-specific failures; the fix is browser-agnostic.
+- The explicit URL sync before element assertions eliminates the race condition between the URL update and the conditional render of the Any/All toggle.
+
+### Alternatives Evaluated
+
+- **Increase `waitForURL` timeout** — rejected: the URL was already in the final state; the timeout was never the bottleneck. Increasing it would hide the real failure.
+- **Add `waitUntil: 'commit'` to `waitForURL`** — partially effective but not documented as stable across browsers; `toHaveURL` is the canonical solution.
+
+---
+
+## Decision 46: Parallelize Independent Server Component Data Fetches for LCP
+
+**Date:** 2026-03-03
+**Title:** Use Promise.all for Independent Server-Side Fetches to Eliminate Waterfall Latency
+**Category:** Performance / Frontend Architecture
+
+### Problem
+
+`app/patterns/page.tsx` made two sequential `getPatterns` API calls: the first fetched the paginated result for the current page; the second fetched all 100 patterns to populate filter panel category and tag options. Because each was `await`-ed independently, the total server response time was `T1 + T2` (typically 1–2s in CI where requests cross the internet to Azure). This was the primary driver of LCP exceeding the 2500ms threshold.
+
+### Decision
+
+Replace sequential awaits with `Promise.all` so all independent server-side fetches start in parallel:
+
+```ts
+const [fetchedResult, allPatterns] = await Promise.all([
+  getPatterns({ page, pageSize: 9, ...filters }),
+  getPatterns({ pageSize: 100 }),           // for filter panel options
+])
+```
+
+The CMS `getPatternListingLabels()` call had already been started as a parallel promise earlier in the function; `await labelsPromise` runs after `Promise.all` and typically resolves immediately (CMS falls back fast in CI).
+
+Additionally added `warmupRuns: 1` to `lighthouserc.yml` to eliminate the cold-start outlier (first Lighthouse run ~40% slower due to Node.js JIT and Next.js fetch-cache warming).
+
+### Rationale
+
+- Halves effective server response time: `max(T1, T2)` instead of `T1 + T2`.
+- All three fetches (paginated result, all patterns, CMS labels) are fully independent — no data dependency between them.
+- No error-handling regression: both `getPatterns` calls remain inside the existing `try/catch`; if either fails, the catch returns empty state (same behaviour as before).
+- `warmupRuns: 1` removes a systematic measurement bias in CI without changing the LCP threshold, preserving the real performance gate.
+
+### Alternatives Evaluated
+
+- **Raise the LCP threshold** — rejected: masking CI environment variance while the actual performance issue (sequential fetches) remained.
+- **Cache the "all patterns" result** — considered but redundant: ISR (120s revalidation) already caches server responses; parallelisation is both simpler and more impactful.
 
 ---
 

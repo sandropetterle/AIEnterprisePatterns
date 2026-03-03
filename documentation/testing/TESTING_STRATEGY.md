@@ -351,7 +351,7 @@ Phase 6.4 (Testing Infrastructure) added Lighthouse CI, Chromatic visual regress
 **Lighthouse CI:**
 - ✅ `lhci` job added to `frontend-container-deploy.yml` — runs after `run-tests`, parallel with Docker build
 - Thresholds: LCP < 2500ms, FCP < 1800ms, TTI < 5000ms, Performance ≥ 0.80
-- Tests `/` and `/patterns` (3 runs each) against the built Next.js app
+- Tests `/` and `/patterns` (3 runs each, plus 1 warmup run to eliminate cold-start outliers) against the built Next.js app
 - Results uploaded to temporary-public-storage; optional GitHub status check via `LHCI_GITHUB_APP_TOKEN`
 
 **Chromatic:**
@@ -371,8 +371,71 @@ New `CmsErrorPageProvider` context provider allows `app/error.tsx` (which must b
 - ✅ 354/354 tests passing (4 new: CmsErrorPageProvider context provider)
 - Coverage: 71.70% functions / 75.84% statements / 76.77% branches / 75.97% lines
 
-### Next Phase: Phase 6.6
-- CMS Content Migration — pattern UI labels (listing, detail, form components)
+### Phase 6.6 Complete — as of 2026-03-03
+
+Phase 6.6 (CMS Content Migration — Pattern UI Labels) wired CMS label Single Types into 13 components across the listing, detail, and form pages. No new Jest/xUnit tests added (coverage maintained); E2E tests expanded to 42 across all browsers.
+
+**Frontend (Jest + React Testing Library):**
+- ✅ 354/354 tests passing (unchanged from Phase 6.5)
+- Coverage: 71.70% functions / 75.84% statements / 76.77% branches / 75.97% lines
+
+**E2E (Playwright — Chromium + Firefox + WebKit):**
+- ✅ 42 tests across all three browsers (up from 20 in Phase 6.4; Auth + API write tests added in Phase 6.1–6.5)
+- 3 tests skipped when `E2E_API_WRITES` is unset (API write tests require real Entra access token)
+
+**Lighthouse CI — `warmupRuns: 1` added:**
+- One unmeasured warm-up request per URL now precedes the 3 measured runs. Eliminates the cold-start outlier (first run ~40% slower due to Node.js JIT and fetch-cache priming) that was inflating the measured median above the 2500ms LCP threshold.
+
+**webkit date input pattern:**
+
+`page.fill()` on `type="date"` inputs in webkit can be intercepted by the native date-picker widget, preventing React's synthetic `onChange` from firing. Server-rendered headings also appear before React hydration completes, causing a race when tests interact immediately after a visibility check.
+
+Use the `fillDateInput()` helper in `e2e/critical-flows.spec.ts`:
+
+```ts
+async function fillDateInput(page: Page, selector: string, value: string) {
+  await page.locator(selector).evaluate((el, val: string) => {
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!.call(el, val)
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    el.dispatchEvent(new Event('change', { bubbles: true }))
+  }, value)
+}
+```
+
+In `beforeEach`, wait for the specific input element rather than a parent heading:
+```ts
+// Heading may be in server HTML before React hydrates — wait for the input itself
+await expect(page.locator('#date-from')).toBeVisible({ timeout: 10_000 })
+```
+
+**Next.js soft navigation — `toHaveURL` vs `waitForURL`:**
+
+Next.js App Router uses `history.pushState` for client-side navigation (filter changes, search param updates). Playwright's `page.waitForURL()` defaults to `waitUntil: 'load'`, which expects a full navigation lifecycle event — `pushState` never fires one. This causes consistent WebKit test timeouts even though the URL has already changed.
+
+Use `expect(page).toHaveURL()` instead — it polls the current URL via assertion retries and is not tied to navigation events:
+
+```ts
+// ❌ Unreliable with Next.js pushState (especially WebKit)
+await page.waitForURL(/tags=/, { timeout: 10_000 })
+
+// ✅ Reliable across all browsers
+await expect(page).toHaveURL(/tags=/, { timeout: 10_000 })
+```
+
+**WebKit URL-encodes commas in query strings:**
+
+When matching comma-separated query param values in URL assertions, WebKit encodes `,` as `%2C` while Chromium keeps a literal comma. Regex patterns must handle both:
+
+```ts
+// ❌ Fails in WebKit — comma is %2C not ,
+await expect(page).toHaveURL(/tags=[^&]*,/, { timeout: 10_000 })
+
+// ✅ Handles both encodings
+await expect(page).toHaveURL(/tags=[^&]*(%2C|,)/i, { timeout: 10_000 })
+```
+
+### Next Phase: Phase 6.7
+- CMS Content Migration — Tests & Documentation
 
 See [../project/PHASE_CMS_CONTENT_PLAN.md](../project/PHASE_CMS_CONTENT_PLAN.md) for the implementation plan.
 
