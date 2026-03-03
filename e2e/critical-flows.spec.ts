@@ -10,7 +10,24 @@
  *   - Frontend running on http://localhost:3000
  */
 
-import { test, expect } from '@playwright/test'
+import { test, expect, type Page } from '@playwright/test'
+
+/**
+ * Set a date input value in a way that reliably triggers React's synthetic
+ * onChange across all browsers, including webkit.
+ *
+ * webkit's native date-picker widget can intercept page.fill() and prevent
+ * the synthetic change event from firing. Using the native HTMLInputElement
+ * value setter + manual event dispatch bypasses that and correctly signals
+ * React that the controlled value changed.
+ */
+async function fillDateInput(page: Page, selector: string, value: string) {
+  await page.locator(selector).evaluate((el, val: string) => {
+    Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!.call(el, val)
+    el.dispatchEvent(new Event('input', { bubbles: true }))
+    el.dispatchEvent(new Event('change', { bubbles: true }))
+  }, value)
+}
 
 // ---------------------------------------------------------------------------
 // Home Page
@@ -302,14 +319,15 @@ test.describe('Advanced Search — Date Range Filter', () => {
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/patterns')
-    // Wait for the FilterPanel heading to confirm the panel is rendered.
-    await expect(
-      page.getByRole('heading', { name: 'Filters' })
-    ).toBeVisible({ timeout: 10_000 })
+    // Wait for #date-from to be visible — stronger signal than the heading alone.
+    // The heading appears in server-rendered HTML before React hydrates, but
+    // #date-from visible confirms FilterPanel is mounted with event handlers
+    // attached. This prevents a race where page.fill() runs before onChange is wired.
+    await expect(page.locator('#date-from')).toBeVisible({ timeout: 10_000 })
   })
 
   test('setting a From date updates the URL with dateFrom parameter', async ({ page }) => {
-    await page.fill('#date-from', '2024-01-01')
+    await fillDateInput(page, '#date-from', '2024-01-01')
     await page.waitForURL(/dateFrom=2024-01-01/, { timeout: 10_000 })
     expect(page.url()).toContain('dateFrom=2024-01-01')
   })
@@ -319,11 +337,9 @@ test.describe('Advanced Search — Date Range Filter', () => {
     // Without a valid min, Chromium silently rejects fill() on type="date" inputs
     // and the React onChange never fires.
     await page.goto('/patterns?dateFrom=2024-01-01')
-    await expect(
-      page.getByRole('heading', { name: 'Filters' })
-    ).toBeVisible({ timeout: 10_000 })
+    await expect(page.locator('#date-to')).toBeVisible({ timeout: 10_000 })
 
-    await page.fill('#date-to', '2024-12-31')
+    await fillDateInput(page, '#date-to', '2024-12-31')
     await page.waitForURL(/dateTo=2024-12-31/, { timeout: 10_000 })
     expect(page.url()).toContain('dateTo=2024-12-31')
   })

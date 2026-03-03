@@ -53,7 +53,7 @@ public class PatternRepository : IPatternRepository
             query = query.Where(p =>
                 p.Title.ToLower().Contains(searchLower) ||
                 p.ShortDescription.ToLower().Contains(searchLower) ||
-                p.FullContent.ToLower().Contains(searchLower) ||
+                (p.FullContent ?? string.Empty).ToLower().Contains(searchLower) ||
                 p.Tags.Any(t => t.Name.ToLower().Contains(searchLower)));
         }
 
