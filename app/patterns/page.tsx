@@ -75,9 +75,8 @@ export default async function PatternsPage(props: {
   const dateTo = searchParams.dateTo
   const tagMode = searchParams.tagMode as 'any' | 'all' | undefined
 
-  // Fetch patterns from API with server-side filtering, sorting, and pagination
-  // Handle API unavailable during build (e.g., Docker build)
-  // Fetch CMS labels + API data in parallel
+  // Fetch CMS labels, paginated patterns, and all patterns (for filter options) in parallel.
+  // Handle API unavailable during build (e.g., Docker build) — falls back to empty state.
   const labelsPromise = getPatternListingLabels()
 
   let result: Awaited<ReturnType<typeof getPatterns>> = {
@@ -92,20 +91,23 @@ export default async function PatternsPage(props: {
   let allTags: string[] = []
 
   try {
-    result = await getPatterns({
-      page,
-      pageSize: 9,
-      category: category as PatternCategory | undefined,
-      tags,
-      search: searchQuery,
-      sortBy,
-      dateFrom,
-      dateTo,
-      tagMode,
-    })
+    const [fetchedResult, allPatterns] = await Promise.all([
+      getPatterns({
+        page,
+        pageSize: 9,
+        category: category as PatternCategory | undefined,
+        tags,
+        search: searchQuery,
+        sortBy,
+        dateFrom,
+        dateTo,
+        tagMode,
+      }),
+      // Fetch all patterns for filter panel category/tag options in parallel
+      getPatterns({ pageSize: 100 }),
+    ])
 
-    // Get all patterns for filter options and suggestions
-    const allPatterns = await getPatterns({ pageSize: 100 })
+    result = fetchedResult
     allCategories = getAllCategories(allPatterns.patterns)
     allTags = getAllTags(allPatterns.patterns)
   } catch (error) {

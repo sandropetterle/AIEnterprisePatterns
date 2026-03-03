@@ -16,6 +16,9 @@ ci:
       - http://localhost:3000
       - http://localhost:3000/patterns
     numberOfRuns: 3
+    # One warm-up request per URL before the measured runs, eliminating
+    # cold-start outliers (first run is ~40% slower due to Node.js JIT/cache).
+    warmupRuns: 1
 
   assert:
     assertions:
