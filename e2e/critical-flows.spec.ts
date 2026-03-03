@@ -385,9 +385,10 @@ test.describe('Advanced Search — Tag Mode Toggle', () => {
     const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
     await expect(secondTag).toBeVisible({ timeout: 5_000 })
     await secondTag.click()
-    // Wait for URL to reflect both tags (comma = 2+ values) before checking toggle
+    // Wait for URL to reflect both tags before checking toggle
+    // — comma may be URL-encoded as %2C (WebKit encodes it; Chromium uses literal comma)
     // — FilterPanel only renders the Any/All toggle when selectedTags.length >= 2
-    await expect(page).toHaveURL(/tags=[^&]*,/, { timeout: 10_000 })
+    await expect(page).toHaveURL(/tags=[^&]*(%2C|,)/i, { timeout: 10_000 })
 
     // With 2+ tags the Any / All buttons should appear
     await expect(
@@ -413,7 +414,7 @@ test.describe('Advanced Search — Tag Mode Toggle', () => {
     const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
     await expect(secondTag).toBeVisible({ timeout: 5_000 })
     await secondTag.click()
-    await expect(page).toHaveURL(/tags=[^&]*,/, { timeout: 10_000 })
+    await expect(page).toHaveURL(/tags=[^&]*(%2C|,)/i, { timeout: 10_000 })
 
     const allBtn = page.getByRole('button', { name: 'All', exact: true })
     await expect(allBtn).toBeVisible({ timeout: 5_000 })
