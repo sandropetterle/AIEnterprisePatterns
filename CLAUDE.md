@@ -37,6 +37,16 @@ dotnet ef migrations add MigrationName --project src/AIEnterprisePatterns.Data -
 
 Swagger (dev only): http://localhost:5255/swagger
 
+### Docker / CMS (from project root)
+```bash
+docker compose up -d                    # Start SQL Server only (default)
+docker compose --profile cms up -d     # Also start MySQL + Strapi (CMS profile)
+docker compose --profile cms down      # Stop CMS containers when not needed
+docker compose down                    # Stop all containers
+```
+
+> MySQL and Strapi are `cms`-profiled — they don't start with plain `docker compose up`. Start them only when working on CMS content. WSL2 is capped at 2.5 GB via `~/.wslconfig`; container limits: SQL Server 1 GB, MySQL 512 MB, Strapi 512 MB.
+
 ## Architecture
 
 ### Backend

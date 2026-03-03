@@ -109,7 +109,7 @@ Three stages, applied per page/component:
 ## Verification Checklist
 
 1. All pages render CMS content **identical to current hardcoded content** (seed data matches)
-2. Stop Strapi (`docker compose stop strapi`) → frontend still renders with fallback content, no errors
+2. Stop Strapi (`docker compose --profile cms stop strapi`) → frontend still renders with fallback content, no errors
 3. Edit hero heading in Strapi admin → refresh frontend → new heading appears within 5-minute revalidation window
 4. `npm run build` succeeds with `STRAPI_URL` pointing to production CMS
 5. `npm run test:ci` — all four coverage metrics ≥ 70%

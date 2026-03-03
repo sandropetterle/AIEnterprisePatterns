@@ -82,11 +82,15 @@
       "Bash(npx next lint)",
       "Bash(wc -l /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/documentation/test_results/*.md)",
       "Bash(wc -l /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/deployment/*.md /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/deployment/scripts/README_MONITORING.md)",
-      "Bash(npm run build-storybook)"
+      "Bash(npm run build-storybook)",
+      "Bash(sort -t: -k3 -V)",
+      "Bash(git stash)",
+      "Bash(git stash pop)"
     ],
     "additionalDirectories": [
       "C:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\cms\\src\\components\\shared",
-      "\\tmp"
+      "\\tmp",
+      "C:\\Users\\sandr"
     ]
   }
 }

@@ -3,6 +3,7 @@ services:
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     container_name: aipatterns-sqlserver
+    mem_limit: 1g
     environment:
       - ACCEPT_EULA=Y
       - SA_PASSWORD=YourStrong@Passw0rd
@@ -16,6 +17,8 @@ services:
   mysql:
     image: mysql:8.0
     container_name: aipatterns-mysql
+    mem_limit: 512m
+    command: --innodb-buffer-pool-size=64M --innodb-log-file-size=16M --max-connections=20
     environment:
       MYSQL_ROOT_PASSWORD: strapiPassword123
       MYSQL_DATABASE: strapi_cms
@@ -30,6 +33,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    profiles:
+      - cms
 
   strapi:
     build:
@@ -37,6 +42,7 @@ services:
       dockerfile: Dockerfile
       target: dev
     container_name: aipatterns-strapi
+    mem_limit: 512m
     environment:
       DATABASE_CLIENT: mysql
       DATABASE_HOST: mysql
@@ -51,6 +57,7 @@ services:
       TRANSFER_TOKEN_SALT: "localDevTransferTokenSalt"
       JWT_SECRET: "localDevJwtSecret"
       NODE_ENV: development
+      NODE_OPTIONS: "--max-old-space-size=384"
     ports:
       - "1337:1337"
     volumes:
@@ -61,6 +68,8 @@ services:
       mysql:
         condition: service_healthy
     command: ["npm", "run", "develop"]
+    profiles:
+      - cms
 
 volumes:
   sqlserver-data:
