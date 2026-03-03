@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-03
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**41 active decisions | 0 archived**
+**43 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,98 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 43: Phase 6.4 — Testing Infrastructure (Lighthouse CI, Chromatic, Cross-Browser Playwright)
+
+**Date:** 2026-03-03
+**Title:** Add Lighthouse CI Performance Gates, Chromatic Visual Regression, and Playwright Cross-Browser Matrix
+**Category:** Testing / CI/CD / Quality
+
+### Decision
+
+Implement three additional testing layers to block deployments on quality regressions:
+
+1. **Lighthouse CI (`@lhci/cli`)** — performance assertion gate in `frontend-container-deploy.yml`
+2. **Chromatic** — visual regression testing against the existing 38 Storybook stories
+3. **Playwright cross-browser matrix** — run all E2E tests against Chromium, Firefox, and WebKit in `test.yml`
+
+### Why
+
+Phase 6.3 established a comprehensive Storybook catalog (38 stories). Chromatic directly integrates with Storybook — no additional story authoring needed. The existing E2E suite covers critical user flows; extending to Firefox and WebKit proves that the ARIA-based selectors and browser-agnostic test strategies work beyond Chromium. Lighthouse CI catches performance regressions before they reach production users.
+
+### Architecture
+
+**Lighthouse CI job** (in `frontend-container-deploy.yml`):
+- Runs in parallel with `build-and-push` after `run-tests`
+- Builds Next.js with production API URL (`LHCI_API_BASE_URL` secret)
+- Starts Next.js server, runs `npx lhci autorun` against `/` and `/patterns`
+- Thresholds: LCP < 2500 ms, FCP < 1800 ms, TTI < 5000 ms, Performance ≥ 0.80
+- Results uploaded to `temporary-public-storage`; optional GitHub status check via `LHCI_GITHUB_APP_TOKEN`
+
+**Chromatic job** (in `frontend-container-deploy.yml`):
+- Runs in parallel with `build-and-push` and `lhci` after `run-tests`
+- Uses `fetch-depth: 0` so Chromatic can identify baseline commits
+- `--exit-zero-on-changes` set initially to allow baseline approval in dashboard
+- `continue-on-error: true` until `CHROMATIC_PROJECT_TOKEN` is configured; remove both flags to harden into a gate
+
+**Playwright matrix** (in `test.yml`):
+- Converts single `e2e-tests` job to a `strategy.matrix` with `browser: [chromium, firefox, webkit]`
+- `fail-fast: false` — all three browsers run even if one fails, providing full cross-browser visibility
+- Each browser job installs its own browser via `npx playwright install --with-deps ${{ matrix.browser }}`
+- Each browser uploads its own report artifact (`playwright-report-{browser}`)
+- `playwright.config.ts` updated to enable all three browser projects
+
+**Deploy gate**:
+- `deploy` job now requires `needs: [build-and-push, lhci, chromatic]`
+- Once Chromatic token is configured and `continue-on-error` removed, all three block deployment
+
+### Alternatives Evaluated
+
+| Alternative | Rejected Because |
+|-------------|-----------------|
+| Shared build artifact for E2E matrix | Complex artifact passing between jobs; each job needs running processes (backend+frontend) that can't be shared — simple per-browser setup is more reliable |
+| Percy for visual regression | Requires separate Storybook integration; Chromatic has native Storybook support and simpler setup |
+| Single "all browsers" Playwright job | Sequential browser runs in one job are slower and harder to parallelize; matrix approach shows per-browser failure clearly |
+| Running LHCI against production URL | Coupling deploy gate to production availability; build+start approach is self-contained |
+
+### Required GitHub Secrets
+
+| Secret | Used By | Notes |
+|--------|---------|-------|
+| `LHCI_API_BASE_URL` | `lhci` job — Next.js build | Production backend URL; omit to test UI shell only |
+| `LHCI_GITHUB_APP_TOKEN` | `lhci` job — GitHub status check | Optional; Lighthouse runs without it |
+| `CHROMATIC_PROJECT_TOKEN` | `chromatic` job | Required; from https://www.chromatic.com |
+
+---
+
+## Decision 42: Phase 6.3 — Documentation Reuse & Storybook UI Catalog
+
+**Date:** 2026-03-02
+**Title:** Four-Pillar Documentation and Component Reuse Infrastructure
+**Category:** Documentation / Developer Experience / Testing
+
+### Decision
+
+Implement four interconnected documentation layers as Phase 6.3:
+
+1. **API Reference** (`documentation/api/`) — structured endpoint documentation with request/response examples
+2. **CMS Component Reference** (`documentation/cms-components/`) — field tables, dependency diagram, and "Used By" maps for all 26 Strapi components
+3. **Storybook UI Catalog** — 38 stories colocated with components, `@storybook/nextjs` with a11y and themes addons
+4. **Governance** — `GOVERNANCE.md`, `DOCUMENTATION_INDEX.md`, and `CLAUDE.md` updates to enforce single-source-of-truth
+
+### Why
+
+Prior to 6.3, documentation was fragmented across ad-hoc files with no enforcement of where content belongs. The CMS component model (26 components across 4 namespaces) had no machine-readable reference. API endpoints were scattered in architecture docs rather than a dedicated reference. Without Storybook, component development required running the full Next.js app.
+
+### Architecture
+
+- Storybook stories are **colocated** (`*.stories.tsx` alongside component files) — easier to find and maintain
+- Shared fixtures in `.storybook/fixtures.ts` — single source for mock data across stories
+- `next-auth/react` mock in `.storybook/mocks/` — stories for authenticated components work without Entra
+- CMS dependency diagram (Mermaid, diagram #14) embedded in `COMPONENT_INDEX.md`
+- Governance rules specify exactly which folder owns each content type — eliminates duplication decisions
 
 ---
 

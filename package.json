@@ -20,7 +20,8 @@
     "test:e2e:headed": "playwright test --headed",
     "test:e2e:debug": "playwright test --debug",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "chromatic": "chromatic --project-token=$CHROMATIC_PROJECT_TOKEN"
   },
   "repository": {
     "type": "git",
@@ -62,6 +63,7 @@
     "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
+    "@lhci/cli": "^0.15.1",
     "@playwright/test": "^1.58.2",
     "@storybook/addon-a11y": "^10.2.14",
     "@storybook/addon-themes": "^10.2.14",
@@ -76,6 +78,7 @@
     "@types/react": "^19.2.13",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.24",
+    "chromatic": "^15.2.0",
     "eslint": "^9.39.2",
     "eslint-config-next": "^16.1.6",
     "jest": "^30.2.0",
