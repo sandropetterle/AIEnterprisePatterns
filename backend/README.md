@@ -51,7 +51,11 @@ Update `appsettings.json` with your SQL Server connection string. The app will u
 ### Docker SQL Server (local)
 
 ```bash
-docker-compose up -d
+# Start SQL Server only (default profile — no CMS containers)
+docker compose up -d sqlserver
+
+# CMS containers (MySQL + Strapi) require the cms profile:
+docker compose --profile cms up -d
 ```
 
 ## EF Core Migrations

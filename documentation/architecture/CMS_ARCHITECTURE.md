@@ -60,8 +60,11 @@ For the full component schema reference (field tables, dependency map, reuse gui
 ## 4. Local Development
 
 ```bash
-# Start Strapi + MySQL locally
-docker compose up mysql strapi
+# Start Strapi + MySQL locally (requires --profile cms; they don't start by default)
+docker compose --profile cms up -d
+
+# Stop CMS containers when not in use
+docker compose --profile cms down
 
 # Access admin panel
 http://localhost:1337/admin
@@ -71,6 +74,8 @@ http://localhost:1337/admin
 STRAPI_API_TOKEN=<full-access-token> npx tsx cms/data/seed.ts
 # Note: use full-access token for seeding (read-only token can't PUT); revoke after seeding
 ```
+
+> **Note:** MySQL and Strapi are assigned the `cms` profile to avoid running them by default — they each consume ~512 MB RAM. Only start them when actively working on CMS content. SQLite is used for the backend API in development; SQL Server (`docker compose up -d`) is separate and only needed if testing against SQL Server locally.
 
 ---
 

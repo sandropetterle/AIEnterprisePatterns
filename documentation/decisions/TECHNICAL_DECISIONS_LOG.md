@@ -4,7 +4,7 @@
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**47 active decisions | 0 archived**
+**48 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,29 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 48: Docker Compose Profiles and WSL2 Memory Cap for Local CMS Containers
+
+**Date:** 2026-03-03
+**Category:** Infrastructure / Developer Experience
+
+**Decision:** Assign MySQL and Strapi to a `cms` Docker Compose profile so they do not start by default. Cap WSL2 at 2.5 GB via `~/.wslconfig`. Apply per-container memory limits and MySQL/Node.js tuning in `docker-compose.yml`.
+
+**Why:** MySQL (8.0) and Strapi (Node.js dev server) together consumed ~1–1.5 GB RAM even when idle. WSL2 by default claims up to 50% of system RAM and does not release it, leaving the host with limited memory during normal development work when the CMS is not needed.
+
+**Configuration applied:**
+- `~/.wslconfig`: `memory=2560MB`, `swap=1GB`
+- `docker-compose.yml`: `mem_limit` — sqlserver 1 GB, mysql 512 MB, strapi 512 MB
+- MySQL: `--innodb-buffer-pool-size=64M --innodb-log-file-size=16M --max-connections=20`
+- Strapi: `NODE_OPTIONS=--max-old-space-size=384`
+- CMS profile: `docker compose --profile cms up -d` to start MySQL + Strapi; plain `docker compose up -d` starts SQL Server only
+
+**Alternatives evaluated:**
+- Reducing buffer pool inside running containers (no persistence across restarts; harder to manage)
+- Running MySQL/Strapi natively without Docker (lose isolation and healthcheck dependency chain)
+- Increasing WSL2 swap instead of capping RAM (swap is slow; doesn't free host RAM for Windows)
 
 ---
 
