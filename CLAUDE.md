@@ -11,9 +11,9 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Backend:** ASP.NET Core 8, Entity Framework Core 8, FluentValidation, API Versioning, Rate Limiting
 - **Database:** SQLite (development), Azure SQL (production)
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
-- **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend)
+- **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
 - **CMS:** Strapi 5 (headless, `cms/` directory), MySQL (production), Azure Blob Storage (media)
-- **Current Phase:** 6.3 (complete); Phase 6.4 next
+- **Current Phase:** 6.5 (complete); Phase 6.6 next
 
 ## Development Commands
 
@@ -167,10 +167,13 @@ Base: `http://localhost:5255/api` | Full reference: `documentation/api/`
 
 - **Frontend:** `npm test` (Jest + React Testing Library); 350/350 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
 - **Backend:** `dotnet test` (xUnit + Moq); 105/105 tests passing (~85% testable coverage)
+- **E2E:** Playwright cross-browser matrix — Chromium, Firefox, WebKit (CI runs all three in parallel via `strategy.matrix`)
+- **Performance:** Lighthouse CI (`@lhci/cli`) — LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80 — gates deploy in `frontend-container-deploy.yml`
+- **Visual regression:** Chromatic — 38 Storybook stories published on every deploy; unreviewed changes block deploy once baseline is hardened (`continue-on-error: true` + `--exit-zero-on-changes` until baseline accepted)
 - **Auth test strategy:** next-auth/react mocked globally in jest.setup.ts (unauthenticated default); per-test overrides via `(useSession as jest.Mock).mockReturnValue(...)`
 - **Radix UI in tests:** Mock `@/components/ui/dropdown-menu` inline in test files (portals don't render in jsdom)
 - **Backend auth tests:** TestAuthHandler (header-driven: `X-Test-Roles`) replaces JwtBearer in WebApplicationFactory
-- **CI/CD:** Tests must pass before deployment
+- **CI/CD deploy gate:** `run-tests` → (`build-and-push` + `lhci` + `chromatic`) in parallel → `deploy` (all three must pass)
 
 ### Coverage Verification Rule (MANDATORY)
 
@@ -208,7 +211,7 @@ Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 
 **Key docs:** `documentation/decisions/TECHNICAL_DECISIONS_LOG.md`, `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
-**Diagrams:** All 13 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
+**Diagrams:** All 14 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
 
 **Storybook:** Stories are colocated with their components (`*.stories.tsx`). Config in `.storybook/`. Shared fixtures in `.storybook/fixtures.ts`. Mock for `next-auth/react` in `.storybook/mocks/next-auth-react.tsx`.
 
@@ -222,7 +225,7 @@ This is not optional — it preserves architectural knowledge across sessions.
 
 ## Important Notes
 
-- **CMS project:** `cms/` (Strapi 5) — content model, Dockerfile, seed script. Plan: `documentation/project/PHASE_CMS_IMPLEMENTATION_PLAN.md`
+- **CMS project:** `cms/` (Strapi 5) — content model, Dockerfile, seed script. Architecture: `documentation/architecture/CMS_ARCHITECTURE.md`
 - **CMS provisioning:** `deployment/scripts/provision-cms.ps1` (Azure MySQL + Container App + Blob Storage)
 - **Infrastructure project** is empty (placeholder for future services)
 - **DELETE endpoint** exists in controller but frontend doesn't wire it up yet

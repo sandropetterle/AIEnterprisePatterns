@@ -1,6 +1,6 @@
 # Testing Strategy
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-03
 **Audience:** QA Engineers, Developers
 **Purpose:** Define the testing approach, tools, coverage targets, and quality standards for the AI Enterprise Patterns Library.
 
@@ -35,17 +35,18 @@ This document outlines the testing strategy for the AI Enterprise Patterns Libra
 ### 1.3 End-to-End (E2E) Tests
 - Simulate real user flows across the full stack (UI to database) to validate system behavior.
 - **Critical Flows:** Browse patterns, view details, voting, search/filter, authentication (Phase 5+)
-- **Cross-Browser:** Run on Chromium, Firefox, WebKit
+- **Cross-Browser:** Chromium, Firefox, WebKit — parallel matrix in CI (`strategy.matrix` in `test.yml`)
 
-### 1.4 Visual Regression Tests (Phase 6+)
+### 1.4 Visual Regression Tests (Phase 6.4 ✅)
 - **Purpose:** Detect unintended UI changes across commits
-- **Tool:** Percy or Chromatic
-- **Scope:** All major pages, responsive breakpoints, dark mode (if implemented)
+- **Tool:** Chromatic (integrates with existing 38 Storybook stories)
+- **Scope:** All 38 component stories; unreviewed visual changes block the deploy job
+- **Config:** `--exit-zero-on-changes` + `continue-on-error: true` until baseline is accepted, then removed to harden the gate
 
-### 1.5 Performance Tests (Phase 6+)
-- **Lighthouse CI:** Automated performance budgets (LCP < 2.5s, TTI < 5s, FCP < 1.8s)
+### 1.5 Performance Tests (Phase 6.4 ✅)
+- **Lighthouse CI (`@lhci/cli`):** LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80 — configured in `lighthouserc.yml`; tests `/` and `/patterns` with 3 runs each
 - **API Performance:** Response time < 500ms for standard queries
-- **Load Testing:** k6 or Apache JMeter for stress testing
+- **Load Testing:** k6 or Apache JMeter for stress testing (Phase 7+)
 
 ### 1.6 Accessibility Tests (Phase 5+)
 - **Automated:** axe-core integration with Jest and Playwright
@@ -63,9 +64,9 @@ This document outlines the testing strategy for the AI Enterprise Patterns Libra
 
 ### 2.1 Frontend
 - **Unit/Integration:** Jest, React Testing Library
-- **E2E:** Playwright (selected for cross-browser support and MCP integration)
-- **Visual Regression:** Percy or Chromatic (Phase 6+)
-- **Performance:** Lighthouse CI (Phase 6+)
+- **E2E:** Playwright — cross-browser matrix (Chromium, Firefox, WebKit); `playwright.config.ts` enables all three projects
+- **Visual Regression:** Chromatic (Phase 6.4 ✅) — publishes Storybook to Chromatic on every deploy
+- **Performance:** Lighthouse CI / `@lhci/cli` (Phase 6.4 ✅) — `lighthouserc.yml` at project root
 - **Accessibility:** axe-core, @axe-core/playwright (Phase 5+)
 
 ### 2.2 Backend
@@ -266,10 +267,11 @@ Tests run automatically in GitHub Actions on:
 ### 7.1 Quality Gates (Enforced in CI/CD)
 - ✅ All unit tests must pass (100% pass rate required)
 - ✅ All integration tests must pass (100% pass rate required)
-- ✅ All E2E tests must pass (100% pass rate required)
-- ✅ Code coverage ≥ 80% for core business logic (Core, Data, Services layers)
+- ✅ All E2E tests must pass on all three browsers (Chromium, Firefox, WebKit)
+- ✅ Code coverage ≥ 70% all four metrics (stmt/branch/fn/line — enforced via `jest.config.mjs`)
 - ✅ No critical accessibility violations (axe-core failures block merge)
-- ✅ Performance budgets met (Lighthouse scores: Performance > 90, Accessibility > 95)
+- ✅ Lighthouse CI thresholds: LCP < 2500ms, FCP < 1800ms, TTI < 5000ms, Performance ≥ 0.80
+- ✅ Chromatic: no unreviewed visual changes (once baseline is accepted and `continue-on-error` removed)
 - ⚠️ No high-severity security vulnerabilities (npm audit, Snyk, or similar)
 
 ### 7.2 Reporting
@@ -290,8 +292,11 @@ Tests run automatically in GitHub Actions on:
 
 ### Phase 5+
 - ✅ Accessibility testing (axe-core) - **Implemented in Phase 5.4**
-- 🔜 Performance testing (Lighthouse CI) - **Planned for Phase 6.4**
-- 🔜 Visual regression testing (Chromatic) - **Planned for Phase 6.4**
+
+### Phase 6.4
+- ✅ Performance testing (Lighthouse CI) - **Implemented in Phase 6.4**
+- ✅ Visual regression testing (Chromatic) - **Implemented in Phase 6.4**
+- ✅ Playwright cross-browser matrix (Chromium / Firefox / WebKit) - **Implemented in Phase 6.4**
 
 ### Phase 7+
 - Mutation testing for critical modules (Stryker for frontend, Stryker.NET for backend)
@@ -318,11 +323,12 @@ Phase 6.3 (Documentation Reuse & Storybook) added 38 Storybook stories but no ne
 - Api/Integration: PatternsController (47+ tests incl. related endpoint + auth scenarios)
 
 **Frontend (Jest + React Testing Library):**
-- ✅ 350/350 tests passing
-- Coverage: 71.42% functions / 75.83% statements / 76.4% branches / 75.95% lines (CI gate: 70% all metrics)
+- ✅ 354/354 tests passing
+- Coverage: 71.70% functions / 75.84% statements / 76.77% branches / 75.97% lines (CI gate: 70% all metrics)
 - New in Phase 6.1: ThemeProvider (5 tests), ThemeToggle (6 tests)
 - New in Phase 6.2: `getRelatedPatterns` (4 tests); PatternContent img/code renderers + `isOptimizable` (5 new tests)
 - Deleted in Phase 6.2: 50 obsolete client-side filterAndSort + relatedPatterns tests
+- New in Phase 6.5: CmsErrorPageProvider context + useCmsErrorPage hook (4 tests)
 
 **E2E (Playwright — Chromium):**
 - ✅ 20/20 tests passing (`e2e/critical-flows.spec.ts`)
@@ -331,14 +337,44 @@ Phase 6.3 (Documentation Reuse & Storybook) added 38 Storybook stories but no ne
 - Network mocking: `page.addInitScript` to override `window.fetch` for vote endpoint (see Decision 12)
 
 **CI/CD Gates (`.github/workflows/test.yml`):**
-- ✅ Backend tests → Frontend tests → E2E tests must all pass before deployment
+- ✅ Backend tests → Frontend tests → E2E (Chromium) must all pass before deployment
 
-### Next Phase: Phase 6.4
-- Lighthouse CI (LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 80)
-- Visual regression testing (Chromatic — integrates with existing Storybook)
-- Playwright cross-browser matrix (Chromium / Firefox / WebKit)
+### Phase 6.4 Complete — as of 2026-03-03
 
-See [../project/PHASE_TESTING_PLAN.md](../project/PHASE_TESTING_PLAN.md) for the full implementation plan.
+Phase 6.4 (Testing Infrastructure) added Lighthouse CI, Chromatic visual regression, and cross-browser Playwright. No new Jest/xUnit tests — counts unchanged from Phase 6.3.
+
+**E2E (Playwright — Chromium + Firefox + WebKit):**
+- ✅ All 20 critical-flow tests now run on three browsers in parallel (`strategy.matrix` in `test.yml`)
+- Each browser installs via `npx playwright install --with-deps ${{ matrix.browser }}`
+- `fail-fast: false` — all three browsers report independently; per-browser Playwright HTML reports uploaded as artifacts
+
+**Lighthouse CI:**
+- ✅ `lhci` job added to `frontend-container-deploy.yml` — runs after `run-tests`, parallel with Docker build
+- Thresholds: LCP < 2500ms, FCP < 1800ms, TTI < 5000ms, Performance ≥ 0.80
+- Tests `/` and `/patterns` (3 runs each) against the built Next.js app
+- Results uploaded to temporary-public-storage; optional GitHub status check via `LHCI_GITHUB_APP_TOKEN`
+
+**Chromatic:**
+- ✅ `chromatic` job added to `frontend-container-deploy.yml` — publishes all 38 Storybook stories
+- Uses `fetch-depth: 0` for baseline tracking; `continue-on-error: true` + `--exit-zero-on-changes` until baseline accepted
+- Remove both flags after baseline approval to make visual regression a hard deploy gate
+
+**Updated deploy gate (`.github/workflows/frontend-container-deploy.yml`):**
+- `run-tests` → (`build-and-push` + `lhci` + `chromatic`) in parallel → `deploy`
+
+### Phase 6.5 Complete — as of 2026-03-03
+
+Phase 6.5 (CMS Content Migration — Page Content) completed the CMS wiring for all page content.
+New `CmsErrorPageProvider` context provider allows `app/error.tsx` (which must be `'use client'`) to receive CMS error page labels injected at root layout.
+
+**Frontend (Jest + React Testing Library):**
+- ✅ 354/354 tests passing (4 new: CmsErrorPageProvider context provider)
+- Coverage: 71.70% functions / 75.84% statements / 76.77% branches / 75.97% lines
+
+### Next Phase: Phase 6.6
+- CMS Content Migration — pattern UI labels (listing, detail, form components)
+
+See [../project/PHASE_CMS_CONTENT_PLAN.md](../project/PHASE_CMS_CONTENT_PLAN.md) for the implementation plan.
 
 ### Maintenance
 - Update tests as features are added/modified

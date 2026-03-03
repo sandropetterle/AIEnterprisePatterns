@@ -5,8 +5,9 @@ import { Header } from '@/components/layout/Header'
 import { Footer } from '@/components/layout/Footer'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
+import { CmsErrorPageProvider } from '@/components/providers/CmsErrorPageProvider'
 import { Toaster } from 'sonner'
-import { getGlobal } from '@/lib/cms/queries'
+import { getGlobal, getErrorPage } from '@/lib/cms/queries'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -54,7 +55,7 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode
 }>) {
-  const global = await getGlobal()
+  const [global, errorPage] = await Promise.all([getGlobal(), getErrorPage()])
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -69,25 +70,28 @@ export default async function RootLayout({
       <body className={inter.className}>
         <ThemeProvider>
           <SessionProvider>
-            <a
-              href="#main-content"
-              className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:ring-2 focus:ring-ring"
-            >
-              {global.skipToContentLabel ?? 'Skip to main content'}
-            </a>
-            <div className="flex min-h-screen flex-col">
-              <Header
-                navLinks={global.navigation}
-                mobileMenuTitle={global.mobileMenuTitle}
-                signInLabel={global.signInLabel}
-                signOutLabel={global.signOutLabel}
-                userMenuLabel={global.userMenuLabel}
-                newPatternButtonLabel={global.newPatternButtonLabel}
-              />
-              <main id="main-content" className="flex-1">{children}</main>
-              <Footer footerConfig={global.footer} />
-              <Toaster position="bottom-right" />
-            </div>
+            <CmsErrorPageProvider labels={errorPage}>
+              <a
+                href="#main-content"
+                className="sr-only focus:not-sr-only focus:fixed focus:top-4 focus:left-4 focus:z-50 focus:px-4 focus:py-2 focus:bg-primary focus:text-primary-foreground focus:rounded-md focus:ring-2 focus:ring-ring"
+              >
+                {global.skipToContentLabel ?? 'Skip to main content'}
+              </a>
+              <div className="flex min-h-screen flex-col">
+                <Header
+                  navLinks={global.navigation}
+                  mobileMenuTitle={global.mobileMenuTitle}
+                  signInLabel={global.signInLabel}
+                  signOutLabel={global.signOutLabel}
+                  userMenuLabel={global.userMenuLabel}
+                  newPatternButtonLabel={global.newPatternButtonLabel}
+                  siteName={global.siteName}
+                />
+                <main id="main-content" className="flex-1">{children}</main>
+                <Footer footerConfig={global.footer} />
+                <Toaster position="bottom-right" />
+              </div>
+            </CmsErrorPageProvider>
           </SessionProvider>
         </ThemeProvider>
       </body>

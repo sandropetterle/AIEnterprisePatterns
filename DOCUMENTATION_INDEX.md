@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-02 (Storybook catalog added to .storybook/)
+**Last Updated:** 2026-03-03 (Phase 6.5 complete — CMS page content migration, CmsErrorPageProvider)
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -39,7 +39,7 @@
 - `components/patterns/details/*.stories.tsx` — VotingButton, Breadcrumb, PatternContent, PatternActions, RelatedPatternsSection (5 stories)
 - `lib/cms/components.stories.tsx` — all 14 CMS block renderers + 3 composite page layouts
 
-**Commands:** `npm run storybook` (dev at http://localhost:6006) · `npm run build-storybook`
+**Commands:** `npm run storybook` (dev at http://localhost:6006) · `npm run build-storybook` · `npm run chromatic` (publish to Chromatic for visual regression baseline/review)
 
 ---
 
@@ -102,7 +102,7 @@
 
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
-| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 41 active architectural decisions (newest first) | Architect, Senior Devs | Current |
+| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 44 active architectural decisions (newest first) | Architect, Senior Devs | Current |
 | [DECISIONS_ARCHIVE.md](documentation/decisions/DECISIONS_ARCHIVE.md) | Compacted/superseded decisions (full text) | Architect | Current |
 | [DECISION_TEMPLATE.md](documentation/decisions/DECISION_TEMPLATE.md) | Standard format for new decision entries | All devs | Current |
 
@@ -129,8 +129,7 @@
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
 | [ROADMAP.md](documentation/project/ROADMAP.md) | Phase plans, status summary table, deliverables, upcoming phases | PM, Architect, all | Current |
-| [PHASE_TESTING_PLAN.md](documentation/project/PHASE_TESTING_PLAN.md) | Phase 6.4 implementation plan — Lighthouse CI, Chromatic, cross-browser Playwright | Developers, DevOps | Active (Phase 6.4) |
-| [PHASE_CMS_CONTENT_PLAN.md](documentation/project/PHASE_CMS_CONTENT_PLAN.md) | Phases 6.5–6.7 implementation plan — CMS content migration, files-to-modify table, test strategy | Frontend devs, Architect | Active (Phases 6.5–6.7) |
+| [PHASE_CMS_CONTENT_PLAN.md](documentation/project/PHASE_CMS_CONTENT_PLAN.md) | Phases 6.6–6.7 implementation plan — CMS content migration, files-to-modify table, test strategy | Frontend devs, Architect | Active (Phases 6.6–6.7) |
 
 ---
 

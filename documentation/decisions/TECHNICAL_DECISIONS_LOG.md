@@ -4,7 +4,7 @@
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**43 active decisions | 0 archived**
+**44 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,51 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 44: Phase 6.5 — CMS Error Page Labels via Root Layout Context
+
+**Date:** 2026-03-03
+**Title:** Inject CMS Error Page Content via CmsErrorPageProvider Context (Root Layout → error.tsx)
+**Category:** Frontend / CMS Integration / Error Handling
+
+### Problem
+
+`app/error.tsx` is the global Next.js error boundary and **must** be a Client Component (Next.js requirement for error boundaries). This makes it impossible to call server-side CMS query functions (`getErrorPage()`) directly inside it. The file previously displayed fully hardcoded strings ("Something went wrong", "Try again", "Go home").
+
+### Decision
+
+Inject CMS error page labels at the root layout (server component) and make them available to `error.tsx` via a React Context:
+
+1. **`components/providers/CmsErrorPageProvider.tsx`** — new client context provider:
+   - `CmsErrorPageContext` with defaults for all four label fields
+   - `useCmsErrorPage()` hook consumed by `error.tsx`
+   - `CmsErrorPageProvider` wraps children, merging CMS labels with defaults
+
+2. **`app/layout.tsx`** — fetches `getErrorPage()` in parallel with `getGlobal()` using `Promise.all`; wraps children in `CmsErrorPageProvider`; also passes `global.siteName` to `Header`
+
+3. **`app/error.tsx`** — uses `useCmsErrorPage()` instead of hardcoded strings; context default values (`createContext(DEFAULT)`) ensure the component renders correctly even if rendered outside the provider tree
+
+4. **`components/shared/Logo.tsx`** — added optional `siteName` prop (default: `'AI Enterprise Patterns'`); `Header.tsx` receives and threads it through
+
+### Why Context Over Alternatives
+
+| Alternative | Rejected Because |
+|-------------|-----------------|
+| Server component wrapper around error.tsx | Next.js error boundaries must be Client Components — cannot be wrapped in a server fetch |
+| Client-side `useEffect` fetch inside error.tsx | Fetches during error state are unreliable; adds latency; CMS unavailability worsens the user experience when something is already broken |
+| Hardcoded strings forever | Violates the CMS-first strategy established in Phase 5.5; content editors cannot update error messages |
+| `global.d.ts` window property injection | Anti-pattern; bypasses React's data flow model |
+
+### Fallback Strategy
+
+`createContext(DEFAULT)` ensures that if `error.tsx` is somehow rendered outside the provider tree (e.g., in tests or `global-error.tsx`), it still displays sensible hardcoded defaults without throwing. This makes the error boundary itself fail-safe.
+
+### Tests
+
+- 4 new tests added for `CmsErrorPageProvider`: default labels, CMS labels, partial override, outside-provider default
+- Test count: 350 → 354; all four coverage metrics remain ≥ 70%
 
 ---
 
