@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-03-03
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -24,7 +24,7 @@
 | Phase 6.2 | ✅ Complete | 2026-02-27 | Related Patterns endpoint (backend + frontend, cached) |
 | Phase 6.3 | ✅ Complete | 2026-03-02 | Documentation Reuse & Storybook (API ref, CMS component ref, 38 stories, governance) |
 | **Phase 6.4** | ✅ Complete | 2026-03-03 | Testing infrastructure (Lighthouse CI, Chromatic, Playwright cross-browser matrix) |
-| **Phase 6.5** | 🔜 Next | TBD | CMS Content Migration — page content (layout, home, about, docs, auth pages) |
+| **Phase 6.5** | ✅ Complete | 2026-03-03 | CMS Content Migration — page content (Logo siteName, Header, CmsErrorPageProvider, error.tsx) |
 | **Phase 6.6** | 🔜 Next | TBD | CMS Content Migration — pattern UI labels (listing, detail, form) |
 | **Phase 6.7** | 🔜 Next | TBD | CMS Content Migration — tests & documentation |
 | Phase 7 | 📋 Planned | TBD | Community features, exports, performance, advanced content |
@@ -97,18 +97,17 @@ Lighthouse CI performance gates (LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance �
 
 **Required GitHub Secrets to configure:** `LHCI_API_BASE_URL`, `LHCI_GITHUB_APP_TOKEN` (optional), `CHROMATIC_PROJECT_TOKEN`.
 
+### Phase 6.5 — CMS Content Migration: Page Content (2026-03-03)
+Global layout, home page, about, docs, auth pages — all CMS-driven with hardcoded fallbacks for build safety:
+- `Logo.tsx`: optional `siteName` prop (from `global.siteName`)
+- `Header.tsx`: threads `siteName` to Logo
+- New `CmsErrorPageProvider` context — fetched at root layout, injected via client context so `error.tsx` (must be `'use client'`) can access CMS labels
+- `app/layout.tsx`: fetches `getGlobal()` + `getErrorPage()` in parallel; wraps children in `CmsErrorPageProvider`; passes `siteName` to Header
+- All other page/component CMS wiring (home, about, docs, login, not-found) was already complete from Phase 5.5
+
 ---
 
 ## Active Phases
-
-### Phase 6.5 — CMS Content Migration: Page Content
-**Priority:** HIGH | **Dependencies:** Phase 6.4
-
-- Global layout: nav, footer, site metadata, skip-link from CMS
-- Home page: Dynamic Zone (hero, stats, featured patterns, CTA banner)
-- About page: Dynamic Zone (mission, feature grid, tech stack, open source CTA)
-- Docs page: Dynamic Zone (quick nav, doc sections, API reference, contributing, support)
-- Auth pages: login (labels as props), error, not-found from CMS
 
 ### Phase 6.6 — CMS Content Migration: Pattern UI Labels
 **Priority:** HIGH | **Dependencies:** Phase 6.5
@@ -124,7 +123,7 @@ Lighthouse CI performance gates (LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance �
 
 - Unit tests for new CMS query functions (mock `fetchStrapi`)
 - Fallback behavior tests (Strapi unavailable → hardcoded defaults render correctly)
-- Verify all 350+ frontend tests still pass after label prop threading
+- Verify all 354+ frontend tests still pass after label prop threading
 - Update TECHNICAL_DECISIONS_LOG.md with new decisions
 
 ---
@@ -156,5 +155,5 @@ Sub-phases:
 
 - Phase timelines may be adjusted based on business needs and user feedback
 - Technical decisions for each phase are recorded in [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md)
-- Active phase implementation plans: [PHASE_TESTING_PLAN.md](PHASE_TESTING_PLAN.md) (Phase 6.4), [PHASE_CMS_CONTENT_PLAN.md](PHASE_CMS_CONTENT_PLAN.md) (Phases 6.5–6.7)
+- Active phase implementation plans: [PHASE_CMS_CONTENT_PLAN.md](PHASE_CMS_CONTENT_PLAN.md) (Phases 6.6–6.7)
 - Test results per phase are in [../test_results/](../test_results/)

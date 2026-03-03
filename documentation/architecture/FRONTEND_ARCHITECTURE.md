@@ -28,9 +28,9 @@
 ```
 app/                              ← Next.js App Router pages
 ├── page.tsx                      ← Home page (Server Component)
-├── layout.tsx                    ← Root layout (ThemeProvider, SessionProvider, Header, Footer)
+├── layout.tsx                    ← Root layout (ThemeProvider, SessionProvider, CmsErrorPageProvider, Header, Footer)
 ├── loading.tsx                   ← Global loading skeleton
-├── error.tsx                     ← Global error boundary
+├── error.tsx                     ← Global error boundary (Client Component; uses useCmsErrorPage() context)
 ├── not-found.tsx                 ← 404 page
 ├── patterns/
 │   ├── page.tsx                  ← Patterns listing (Server Component)
@@ -64,7 +64,8 @@ components/
 │   └── SkeletonCard.tsx          ← Loading placeholder matching PatternCard
 ├── providers/
 │   ├── ThemeProvider.tsx         ← Dark mode: system/light/dark toggle
-│   └── SessionProvider.tsx       ← Auth.js SessionProvider wrapper
+│   ├── SessionProvider.tsx       ← Auth.js SessionProvider wrapper
+│   └── CmsErrorPageProvider.tsx  ← Error page labels from CMS; useCmsErrorPage() hook
 └── ui/                           ← shadcn/ui primitives
 
 lib/
@@ -95,6 +96,7 @@ flowchart TD
         direction LR
         ThemeProv["🌗 ThemeProvider<br/>system · light · dark"]
         SessionProv["🔐 SessionProvider<br/>Auth.js"]
+        ErrorPageProv["⚠️ CmsErrorPageProvider<br/>error page labels"]
     end
 
     %% ── Layout Shell ─────────────────────────────────────────────────────────
