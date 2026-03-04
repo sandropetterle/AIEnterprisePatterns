@@ -90,7 +90,8 @@
     "additionalDirectories": [
       "C:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\cms\\src\\components\\shared",
       "\\tmp",
-      "C:\\Users\\sandr"
+      "C:\\Users\\sandr",
+      "c:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\lib\\cms"
     ]
   }
 }
