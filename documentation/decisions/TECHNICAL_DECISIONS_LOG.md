@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-03-04
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**48 active decisions | 0 archived**
+**49 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,32 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 49: CMS Query Test Strategy — Mock `global.fetch` Instead of Named Exports
+
+**Date:** 2026-03-04
+**Category:** Testing
+
+**Decision:** Unit tests for `lib/cms/queries.ts` mock `global.fetch` (the same pattern used in `lib/api/__tests__/client.test.ts`) rather than attempting to mock `fetchStrapi` directly.
+
+**Why:** `fetchStrapi` is a named export from `lib/cms/client.ts`. SWC (the Jest transform used by Next.js) compiles ES module named exports to `Object.defineProperty` with `configurable: false`. This makes three standard mocking approaches non-viable:
+- `jest.spyOn(cmsClient, 'fetchStrapi')` → throws "Cannot redefine property"
+- `jest.mock('../client')` auto-mock → `jest.isMockFunction(fetchStrapi)` returns `false` (SWC doesn't auto-create jest.fn() for async named exports)
+- `jest.mock('../client', factory)` with a factory → the test file receives the mocked module, but `queries.ts` (which imports `./client` from a different relative path) still binds to the real `fetchStrapi` at module resolution time
+
+Mocking `global.fetch` bypasses the non-configurable export problem entirely because `global.fetch` is a plain property of `globalThis`, always writable. It also tests the full pipeline: `getXxx()` → `safeFetch()` → `fetchStrapi()` → `fetch()`, exercising the Strapi 5 response unwrapping (`json.data`) and `CmsUnavailableError` creation on network/HTTP errors.
+
+**Test coverage:** 36 tests across 10 query functions. Each function tests: happy path (returns Strapi data), network error fallback, HTTP error fallback (where applicable), and ISR revalidation TTL value.
+
+**ISR TTL values confirmed:** GLOBAL=600s, PAGE=300s, STATIC=3600s, LABELS=3600s.
+
+**Alternatives evaluated:**
+- `jest.spyOn` — fails with non-configurable export (see above)
+- `jest.mock` auto-mock — doesn't create jest.fn() for SWC-compiled async functions
+- Manual `__mocks__/client.ts` file — would work but adds maintenance overhead; `global.fetch` mock is simpler and consistent with existing test patterns
+- `jest.mock` factory with `globalThis` shared state — factory runs before variable declarations (SWC hoisting), making state sharing unreliable even with `globalThis`
 
 ---
 

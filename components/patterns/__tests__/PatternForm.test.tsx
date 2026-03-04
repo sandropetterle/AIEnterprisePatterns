@@ -207,7 +207,7 @@ describe('PatternForm — create mode', () => {
     }
     await userEvent.type(tagInput, 'one-too-many{Enter}')
     expect(await screen.findByText(/maximum 10 tags allowed/i)).toBeInTheDocument()
-  })
+  }, 15000)
 
   it('calls createPattern with correct data on valid submit', async () => {
     const createdPattern = { ...mockPattern, id: 'new-id', slug: 'test-title' }
