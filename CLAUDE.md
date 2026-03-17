@@ -13,7 +13,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
 - **CMS:** Strapi 5 (headless, `cms/` directory), MySQL (production), Azure Blob Storage (media)
-- **Current Phase:** 6.7 (complete); Phase 6 complete; Phase 7 next
+- **Current Phase:** 6.8 (complete); Phase 6 complete; Phase 7 next
 
 ## Development Commands
 
@@ -52,15 +52,15 @@ docker compose down                    # Stop all containers
 ### Backend
 ```
 Api/ (Controllers, DTOs, Middleware, Validators)
+  ↓ Infrastructure/ (AddInfrastructure: AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter)
   ↓ Core/ (Entities, Services, Interfaces, Enums)
   ↓ Data/ (Repositories, DbContext, Migrations)
-Infrastructure/ (empty placeholder)
 ```
 - **UnitOfWork**: Registered but unused; PatternService calls `repository.SaveAsync()` directly
-- **Rate Limiting**: `fixed` (100/min), `api` (50/min), `vote` (10/min per IP)
+- **Rate Limiting**: `fixed` (100/min), `api` (50/min), `vote` (10/min per IP) — registered via `AddInfrastructure()`
 - **PatternMapper**: Dedicated mapper class for DTO transformations
-- **Memory Caching**: IMemoryCache for featured/trending patterns
-- **TimeProvider**: TimeProvider.System injected for testable time
+- **Memory Caching**: IMemoryCache for featured/trending patterns — registered via `AddInfrastructure()`
+- **TimeProvider**: TimeProvider.System injected for testable time — registered via `AddInfrastructure()`
 - **Value Objects**: Slug with GeneratedRegex validation
 
 ### Frontend
@@ -169,7 +169,7 @@ Base: `http://localhost:5255/api` | Full reference: `documentation/api/`
 - **Primary:** Azure Container Apps (scale-to-zero, ~$5-12/month)
 - **Frontend:** https://ca-aipatterns-web-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io
 - **Backend:** https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io
-- **Reference:** `deployment/DEPLOYMENT_SUMMARY.txt`, `deployment/CONTAINER_APPS_GUIDE.md`
+- **Reference:** `deployment/CONTAINER_APPS_GUIDE.md`, `infrastructure/README.md` (Bicep IaC)
 - **Backend port:** 5255 local, 8080 in Docker (non-root user `appuser`)
 - **Health checks:** CI/CD verifies content ("Healthy" for backend, "next-size-adjust" for frontend)
 
@@ -237,7 +237,7 @@ This is not optional — it preserves architectural knowledge across sessions.
 
 - **CMS project:** `cms/` (Strapi 5) — content model, Dockerfile, seed script. Architecture: `documentation/architecture/CMS_ARCHITECTURE.md`
 - **CMS provisioning:** `deployment/scripts/provision-cms.ps1` (Azure MySQL + Container App + Blob Storage)
-- **Infrastructure project** is empty (placeholder for future services)
+- **Infrastructure project** — `AddInfrastructure()` extension registers AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter (extracted from Program.cs in Phase 6.8)
 - **DELETE endpoint** exists in controller but frontend doesn't wire it up yet
 - **Vote endpoint** has race condition risk (uses `SaveAsync()` instead of `ExecuteUpdateAsync`)
 - **Swagger** is development-only, gated behind `IsDevelopment()` check

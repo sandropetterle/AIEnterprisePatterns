@@ -1,6 +1,8 @@
 # Azure Container Apps Deployment Guide
 ## Consumption-Based, Scale-to-Zero Architecture
 
+> **Infrastructure is now managed via Bicep IaC.** For provisioning or modifying Azure resources, use [`infrastructure/deploy.ps1`](../infrastructure/deploy.ps1) instead of the PowerShell scripts described below. See [`infrastructure/README.md`](../infrastructure/README.md) for the current workflow. This guide remains as a detailed configuration reference.
+
 This guide covers deploying the AI Enterprise Patterns application using **Azure Container Apps** - a consumption-based service that scales to zero when not in use, reducing costs from **$19-24/month to $0-5/month**.
 
 ---

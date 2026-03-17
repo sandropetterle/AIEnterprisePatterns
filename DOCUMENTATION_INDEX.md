@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-03 (Phase 6.5 complete — CMS page content migration, CmsErrorPageProvider)
+**Last Updated:** 2026-03-17 (Phase 6.8 complete — Bicep IaC, script cleanup, AddInfrastructure())
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -102,7 +102,7 @@
 
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
-| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 44 active architectural decisions (newest first) | Architect, Senior Devs | Current |
+| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 50 active architectural decisions (newest first) | Architect, Senior Devs | Current |
 | [DECISIONS_ARCHIVE.md](documentation/decisions/DECISIONS_ARCHIVE.md) | Compacted/superseded decisions (full text) | Architect | Current |
 | [DECISION_TEMPLATE.md](documentation/decisions/DECISION_TEMPLATE.md) | Standard format for new decision entries | All devs | Current |
 
@@ -129,7 +129,7 @@
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
 | [ROADMAP.md](documentation/project/ROADMAP.md) | Phase plans, status summary table, deliverables, upcoming phases | PM, Architect, all | Current |
-| [PHASE_CMS_CONTENT_PLAN.md](documentation/project/PHASE_CMS_CONTENT_PLAN.md) | Phases 6.6–6.7 implementation plan — CMS content migration, files-to-modify table, test strategy | Frontend devs, Architect | Active (Phases 6.6–6.7) |
+| [PHASE_INFRASTRUCTURE_PLAN.md](documentation/project/PHASE_INFRASTRUCTURE_PLAN.md) | Phase 6.8 implementation plan — Bicep IaC, script consolidation, Infrastructure .NET project | DevOps, Architect | Complete (Phase 6.8) |
 
 ---
 
@@ -142,6 +142,7 @@
 | [AUTH_SETUP_GUIDE.md](documentation/operations/AUTH_SETUP_GUIDE.md) | Step-by-step Azure Entra External ID configuration | DevOps, Infra | Current |
 | [DISASTER_RECOVERY.md](documentation/operations/DISASTER_RECOVERY.md) | DR procedures, backup strategy, RTO/RPO (4h/24h) | SRE, DevOps | Current |
 | [INCIDENT_RESPONSE.md](documentation/operations/INCIDENT_RESPONSE.md) | Incident procedures, severity levels, communication templates | SRE, Security | Current |
+| [INFRASTRUCTURE_MANAGEMENT.md](documentation/operations/INFRASTRUCTURE_MANAGEMENT.md) | Bicep IaC — resource inventory, deploy workflow, secrets management, script inventory | DevOps, Infra, Architect | Current |
 | [MONITORING_GUIDE.md](documentation/operations/MONITORING_GUIDE.md) | Alert thresholds (single source of truth), dashboards, App Insights | SRE, DevOps | Current |
 | [RUNBOOK.md](documentation/operations/RUNBOOK.md) | Common ops tasks, troubleshooting, deployment rollback | SRE, On-Call | Current |
 

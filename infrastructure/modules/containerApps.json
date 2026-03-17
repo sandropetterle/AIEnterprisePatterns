@@ -1,0 +1,407 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "4100294323678692798"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for all resources"
+      }
+    },
+    "caeId": {
+      "type": "string",
+      "metadata": {
+        "description": "Container Apps Environment resource ID"
+      }
+    },
+    "acrLoginServer": {
+      "type": "string",
+      "metadata": {
+        "description": "ACR login server hostname (e.g. craipatternssp54426.azurecr.io)"
+      }
+    },
+    "acrResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "ACR resource ID (for AcrPull role assignment)"
+      }
+    },
+    "kvName": {
+      "type": "string",
+      "metadata": {
+        "description": "Key Vault name (for secret references in API app)"
+      }
+    },
+    "appInsightsConnectionString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "Application Insights connection string"
+      }
+    },
+    "apiImage": {
+      "type": "string",
+      "defaultValue": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
+      "metadata": {
+        "description": "API container image (including tag). Set to placeholder on first deploy."
+      }
+    },
+    "webImage": {
+      "type": "string",
+      "defaultValue": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
+      "metadata": {
+        "description": "Web container image (including tag). Set to placeholder on first deploy."
+      }
+    },
+    "cmsImage": {
+      "type": "string",
+      "defaultValue": "mcr.microsoft.com/azuredocs/containerapps-helloworld:latest",
+      "metadata": {
+        "description": "CMS container image (including tag). Set to placeholder on first deploy."
+      }
+    }
+  },
+  "variables": {
+    "acrPullRoleId": "7f951dda-4ed3-4680-a7ca-43fe172d538d"
+  },
+  "resources": [
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2023-05-01",
+      "name": "ca-aipatterns-api-prod",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "managedEnvironmentId": "[parameters('caeId')]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": true,
+            "targetPort": 8080,
+            "transport": "http"
+          },
+          "registries": [
+            {
+              "server": "[parameters('acrLoginServer')]",
+              "identity": "system"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "appinsights-connection-string",
+              "value": "[parameters('appInsightsConnectionString')]"
+            },
+            {
+              "name": "sql-connection-string",
+              "keyVaultUrl": "[format('https://{0}{1}/secrets/sql-connection-string', parameters('kvName'), environment().suffixes.keyvaultDns)]",
+              "identity": "system"
+            },
+            {
+              "name": "auth-authority",
+              "keyVaultUrl": "[format('https://{0}{1}/secrets/auth-authority', parameters('kvName'), environment().suffixes.keyvaultDns)]",
+              "identity": "system"
+            },
+            {
+              "name": "auth-audience",
+              "keyVaultUrl": "[format('https://{0}{1}/secrets/auth-audience', parameters('kvName'), environment().suffixes.keyvaultDns)]",
+              "identity": "system"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "api",
+              "image": "[parameters('apiImage')]",
+              "resources": {
+                "cpu": "[json('0.5')]",
+                "memory": "1Gi"
+              },
+              "env": [
+                {
+                  "name": "ASPNETCORE_ENVIRONMENT",
+                  "value": "Production"
+                },
+                {
+                  "name": "ASPNETCORE_URLS",
+                  "value": "http://+:8080"
+                },
+                {
+                  "name": "ApplicationInsights__ConnectionString",
+                  "secretRef": "appinsights-connection-string"
+                },
+                {
+                  "name": "ConnectionStrings__DefaultConnection",
+                  "secretRef": "sql-connection-string"
+                },
+                {
+                  "name": "Authentication__Authority",
+                  "secretRef": "auth-authority"
+                },
+                {
+                  "name": "Authentication__Audience",
+                  "secretRef": "auth-audience"
+                },
+                {
+                  "name": "Authentication__RequireHttpsMetadata",
+                  "value": "true"
+                }
+              ]
+            }
+          ],
+          "scale": {
+            "minReplicas": 0,
+            "maxReplicas": 5
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.App/containerApps', 'ca-aipatterns-api-prod'), parameters('acrResourceId'), variables('acrPullRoleId'))]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', 'ca-aipatterns-api-prod'), '2023-05-01', 'full').identity.principalId]",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('acrPullRoleId'))]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', 'ca-aipatterns-api-prod')]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2023-05-01",
+      "name": "ca-aipatterns-web-prod",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "managedEnvironmentId": "[parameters('caeId')]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": true,
+            "targetPort": 3000,
+            "transport": "http"
+          },
+          "registries": [
+            {
+              "server": "[parameters('acrLoginServer')]",
+              "identity": "system"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "auth-secret",
+              "keyVaultUrl": "[format('https://{0}{1}/secrets/auth-secret', parameters('kvName'), environment().suffixes.keyvaultDns)]",
+              "identity": "system"
+            },
+            {
+              "name": "auth-entra-client-secret",
+              "keyVaultUrl": "[format('https://{0}{1}/secrets/auth-entra-client-secret', parameters('kvName'), environment().suffixes.keyvaultDns)]",
+              "identity": "system"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "web",
+              "image": "[parameters('webImage')]",
+              "resources": {
+                "cpu": "[json('0.5')]",
+                "memory": "1Gi"
+              },
+              "env": [
+                {
+                  "name": "NODE_ENV",
+                  "value": "production"
+                },
+                {
+                  "name": "NEXT_PUBLIC_API_BASE_URL",
+                  "value": "https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/api"
+                },
+                {
+                  "name": "AUTH_TRUST_HOST",
+                  "value": "true"
+                },
+                {
+                  "name": "AUTH_SECRET",
+                  "secretRef": "auth-secret"
+                },
+                {
+                  "name": "AUTH_ENTRA_CLIENT_SECRET",
+                  "secretRef": "auth-entra-client-secret"
+                }
+              ]
+            }
+          ],
+          "scale": {
+            "minReplicas": 0,
+            "maxReplicas": 5
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.App/containerApps', 'ca-aipatterns-web-prod'), parameters('acrResourceId'), variables('acrPullRoleId'))]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', 'ca-aipatterns-web-prod'), '2023-05-01', 'full').identity.principalId]",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('acrPullRoleId'))]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', 'ca-aipatterns-web-prod')]"
+      ]
+    },
+    {
+      "type": "Microsoft.App/containerApps",
+      "apiVersion": "2023-05-01",
+      "name": "ca-aipatterns-cms-prod",
+      "location": "[parameters('location')]",
+      "identity": {
+        "type": "SystemAssigned"
+      },
+      "properties": {
+        "managedEnvironmentId": "[parameters('caeId')]",
+        "configuration": {
+          "activeRevisionsMode": "Single",
+          "ingress": {
+            "external": true,
+            "targetPort": 1337,
+            "transport": "http"
+          },
+          "registries": [
+            {
+              "server": "[parameters('acrLoginServer')]",
+              "identity": "system"
+            }
+          ],
+          "secrets": [
+            {
+              "name": "strapi-app-keys",
+              "keyVaultUrl": "[format('https://{0}{1}/secrets/strapi-app-keys', parameters('kvName'), environment().suffixes.keyvaultDns)]",
+              "identity": "system"
+            },
+            {
+              "name": "strapi-admin-jwt-secret",
+              "keyVaultUrl": "[format('https://{0}{1}/secrets/strapi-admin-jwt-secret', parameters('kvName'), environment().suffixes.keyvaultDns)]",
+              "identity": "system"
+            },
+            {
+              "name": "database-password",
+              "keyVaultUrl": "[format('https://{0}{1}/secrets/mysql-admin-password', parameters('kvName'), environment().suffixes.keyvaultDns)]",
+              "identity": "system"
+            }
+          ]
+        },
+        "template": {
+          "containers": [
+            {
+              "name": "cms",
+              "image": "[parameters('cmsImage')]",
+              "resources": {
+                "cpu": "[json('0.25')]",
+                "memory": "0.5Gi"
+              },
+              "env": [
+                {
+                  "name": "NODE_ENV",
+                  "value": "production"
+                },
+                {
+                  "name": "DATABASE_CLIENT",
+                  "value": "mysql2"
+                },
+                {
+                  "name": "DATABASE_HOST",
+                  "value": "mysql-aipatterns-cms.mysql.database.azure.com"
+                },
+                {
+                  "name": "DATABASE_PORT",
+                  "value": "3306"
+                },
+                {
+                  "name": "DATABASE_NAME",
+                  "value": "strapi_cms"
+                },
+                {
+                  "name": "DATABASE_USERNAME",
+                  "value": "mysqladmin"
+                },
+                {
+                  "name": "DATABASE_PASSWORD",
+                  "secretRef": "database-password"
+                },
+                {
+                  "name": "DATABASE_SSL",
+                  "value": "true"
+                },
+                {
+                  "name": "APP_KEYS",
+                  "secretRef": "strapi-app-keys"
+                },
+                {
+                  "name": "ADMIN_JWT_SECRET",
+                  "secretRef": "strapi-admin-jwt-secret"
+                }
+              ]
+            }
+          ],
+          "scale": {
+            "minReplicas": 0,
+            "maxReplicas": 2
+          }
+        }
+      }
+    },
+    {
+      "type": "Microsoft.Authorization/roleAssignments",
+      "apiVersion": "2022-04-01",
+      "name": "[guid(resourceId('Microsoft.App/containerApps', 'ca-aipatterns-cms-prod'), parameters('acrResourceId'), variables('acrPullRoleId'))]",
+      "properties": {
+        "principalId": "[reference(resourceId('Microsoft.App/containerApps', 'ca-aipatterns-cms-prod'), '2023-05-01', 'full').identity.principalId]",
+        "roleDefinitionId": "[subscriptionResourceId('Microsoft.Authorization/roleDefinitions', variables('acrPullRoleId'))]",
+        "principalType": "ServicePrincipal"
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.App/containerApps', 'ca-aipatterns-cms-prod')]"
+      ]
+    }
+  ],
+  "outputs": {
+    "apiPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "API Container App managed identity principal ID (for KV Secrets User role)"
+      },
+      "value": "[reference(resourceId('Microsoft.App/containerApps', 'ca-aipatterns-api-prod'), '2023-05-01', 'full').identity.principalId]"
+    },
+    "webPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "Web Container App managed identity principal ID"
+      },
+      "value": "[reference(resourceId('Microsoft.App/containerApps', 'ca-aipatterns-web-prod'), '2023-05-01', 'full').identity.principalId]"
+    },
+    "cmsPrincipalId": {
+      "type": "string",
+      "metadata": {
+        "description": "CMS Container App managed identity principal ID"
+      },
+      "value": "[reference(resourceId('Microsoft.App/containerApps', 'ca-aipatterns-cms-prod'), '2023-05-01', 'full').identity.principalId]"
+    }
+  }
+}

@@ -6,9 +6,11 @@ This guide explains how to set up GitHub Secrets for automated CI/CD deployment 
 
 GitHub Actions workflows use **Azure Federated Identity (OIDC)** for authentication, which is more secure than storing passwords or service principal secrets. This method uses short-lived tokens instead of long-lived credentials.
 
+> **Infrastructure provisioning:** Azure resources are now provisioned declaratively using Bicep IaC. See `infrastructure/README.md` for prerequisites, validation, and deployment instructions. The legacy PowerShell setup scripts (`azure-setup.ps1`, `azure-container-apps-setup.ps1`, and related one-time fix scripts) have been removed — they are replaced by `infrastructure/main.bicep` and its modules.
+
 ## 📋 Prerequisites
 
-1. Azure resources created (run `azure-setup.ps1` first)
+1. Azure resources provisioned via Bicep IaC (`infrastructure/deploy.ps1`) — see `infrastructure/README.md`
 2. GitHub repository: [sandropetterle/AIEnterprisePatterns](https://github.com/sandropetterle/AIEnterprisePatterns)
 3. Azure CLI installed and logged in
 4. Owner or Contributor role on Azure subscription
@@ -60,7 +62,7 @@ Write-Host "✓ Contributor role assigned"
 
 ### Step 3: Configure Federated Credentials
 
-This allows GitHub Actions to authenticate using OIDC tokens.
+This allows GitHub Actions to authenticate using OIDC tokens. You can also run the canonical OIDC setup script: `deployment/setup-github-oidc.ps1`.
 
 ```powershell
 # Create federated credential for main branch
@@ -248,9 +250,9 @@ az role assignment create `
 
 ### Error: "Resource group not found"
 
-**Problem:** Trying to deploy before running `azure-setup.ps1`.
+**Problem:** Trying to deploy before provisioning Azure infrastructure.
 
-**Solution:** Run the infrastructure setup script first.
+**Solution:** Provision infrastructure first using `infrastructure/deploy.ps1` (Bicep IaC). See `infrastructure/README.md`.
 
 ## 🔒 Security Best Practices
 
@@ -312,5 +314,5 @@ az ad app federated-credential create --id $APP_ID --parameters '{
 
 ---
 
-**Last Updated:** 2026-02-10
-**Phase:** 4 - Azure Deployment
+**Last Updated:** 2026-03-17
+**Phase:** 6.8 - Infrastructure as Code (Bicep IaC)

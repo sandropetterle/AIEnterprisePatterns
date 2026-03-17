@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-03-17
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -26,8 +26,9 @@
 | **Phase 6.4** | ✅ Complete | 2026-03-03 | Testing infrastructure (Lighthouse CI, Chromatic, Playwright cross-browser matrix) |
 | **Phase 6.5** | ✅ Complete | 2026-03-03 | CMS Content Migration — page content (Logo siteName, Header, CmsErrorPageProvider, error.tsx) |
 | **Phase 6.6** | ✅ Complete | 2026-03-03 | CMS Content Migration — pattern UI labels (listing, detail, form) |
-| **Phase 6.7** | 🔜 Next | TBD | CMS Content Migration — tests & documentation |
-| Phase 7 | 📋 Planned | TBD | Community features, exports, performance, advanced content |
+| **Phase 6.7** | ✅ Complete | 2026-03-04 | CMS Content Migration — tests & documentation |
+| **Phase 6.8** | ✅ Complete | 2026-03-17 | Infrastructure as Code & Management (Bicep IaC, script cleanup, Infrastructure .NET project) |
+| **Phase 7** | 🔜 Next | TBD | Community features, exports, performance, advanced content |
 | Phase 8 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
 
 ---
@@ -115,18 +116,22 @@ All pattern listing, detail, and form UI strings migrated to CMS-driven props wi
 
 ---
 
+### Phase 6.7 — CMS Content Migration: Tests & Documentation (2026-03-04)
+36 unit tests for all 10 CMS query functions (`lib/cms/__tests__/queries.test.ts`), mocking `global.fetch` to bypass SWC's non-configurable ES module exports. 390/390 frontend tests passing; all 4 coverage metrics ≥ 70%. Decision 49 added (CMS query test strategy).
+
+---
+
 ## Active Phases
 
-### Phase 6.7 — CMS Content Migration: Tests & Documentation
-**Priority:** HIGH | **Dependencies:** Phase 6.6
+### Phase 6.8 — Infrastructure as Code & Management (2026-03-17) ✅
 
-- Unit tests for new CMS query functions (mock `fetchStrapi`)
-- Fallback behavior tests (Strapi unavailable → hardcoded defaults render correctly)
-- Verify all 354 frontend tests still pass and coverage ≥ 70%
-- Update TECHNICAL_DECISIONS_LOG.md with new decisions
-- Remove hardcoded fallback strings once CMS seed data is confirmed stable
+Four tracks completed:
+1. **Security cleanup** — deleted 3 plaintext credential files (`sql-credentials.txt`, `github-secrets-values.txt`, `DEPLOYMENT_SUMMARY.txt`) from disk (never tracked in git)
+2. **Script consolidation** — deleted 7 legacy/redundant deployment scripts; renamed `setup-github-secrets-fixed.ps1` → `setup-github-oidc.ps1`; updated `github-secrets-setup.md`
+3. **Bicep IaC** — `infrastructure/` with `main.bicep` + 7 modules (monitoring, acr, keyvault, sql, cms, containerAppsEnvironment, containerApps); `deploy.ps1`; `infrastructure/README.md`; `validate-infrastructure` CI job added to `test.yml`
+4. **Infrastructure .NET project** — `AddInfrastructure()` extension in `AIEnterprisePatterns.Infrastructure` extracts AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter from `Program.cs`; 105/105 backend tests pass
 
-**Implementation plan:** [PHASE_CMS_CONTENT_PLAN.md](PHASE_CMS_CONTENT_PLAN.md) (covers 6.5–6.7)
+**Implementation plan:** [PHASE_INFRASTRUCTURE_PLAN.md](PHASE_INFRASTRUCTURE_PLAN.md)
 
 ---
 
@@ -157,5 +162,5 @@ Sub-phases:
 
 - Phase timelines may be adjusted based on business needs and user feedback
 - Technical decisions for each phase are recorded in [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md)
-- Active phase implementation plans: [PHASE_CMS_CONTENT_PLAN.md](PHASE_CMS_CONTENT_PLAN.md) (Phases 6.6–6.7)
+- Active phase implementation plans: [PHASE_INFRASTRUCTURE_PLAN.md](PHASE_INFRASTRUCTURE_PLAN.md) (Phase 6.8)
 - Test results per phase are in [../test_results/](../test_results/)

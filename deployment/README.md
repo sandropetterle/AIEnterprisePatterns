@@ -1,6 +1,6 @@
 # Azure Deployment Guide
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-17
 **Audience:** Infrastructure Engineers, DevOps
 **Purpose:** Entry point for deploying the AI Enterprise Patterns application to Azure using Container Apps (the recommended approach).
 
@@ -41,11 +41,17 @@ az account set --subscription "YOUR_SUBSCRIPTION_ID"
 
 ### 2. Provision Infrastructure
 
-```powershell
-# Creates: Container Apps environment, ACR, Azure SQL, Key Vault, Application Insights
-.\scripts\provision-container-apps.ps1
+All Azure resources are managed via Bicep IaC. See [infrastructure/README.md](../infrastructure/README.md) for the full workflow.
 
-# For CMS infrastructure (Azure MySQL, CMS Container App, Blob Storage)
+```powershell
+# Install Bicep (one-time)
+az bicep install
+
+# Preview changes (what-if), then deploy
+.\infrastructure\deploy.ps1
+
+# For CMS infrastructure (MySQL, CMS Container App, Blob Storage) — managed by cms.bicep module
+# or reprovisioned manually:
 .\scripts\provision-cms.ps1
 ```
 
@@ -93,7 +99,8 @@ Push to `main` branch — GitHub Actions workflows deploy automatically:
 
 | Guide | Purpose |
 |-------|---------|
-| [CONTAINER_APPS_GUIDE.md](CONTAINER_APPS_GUIDE.md) | Full Container Apps setup and configuration reference |
+| [../infrastructure/README.md](../infrastructure/README.md) | Bicep IaC — validate, what-if, deploy (authoritative provisioning guide) |
+| [CONTAINER_APPS_GUIDE.md](CONTAINER_APPS_GUIDE.md) | Full Container Apps configuration reference (historical setup detail) |
 | [COST_ANALYSIS.md](COST_ANALYSIS.md) | Cost breakdown: Container Apps vs App Services |
 | [database-migration.md](database-migration.md) | Apply EF Core migrations to Azure SQL |
 | [github-secrets-setup.md](github-secrets-setup.md) | Configure GitHub OIDC secrets for CI/CD |

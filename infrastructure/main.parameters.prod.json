@@ -1,0 +1,28 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentParameters.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "location": {
+      "value": "centralus"
+    },
+    "environment": {
+      "value": "prod"
+    },
+    "sqlAdminPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/rg-aipatterns-prod/providers/Microsoft.KeyVault/vaults/kv-aipatterns-0754755"
+        },
+        "secretName": "sql-admin-password"
+      }
+    },
+    "mysqlAdminPassword": {
+      "reference": {
+        "keyVault": {
+          "id": "/subscriptions/__SUBSCRIPTION_ID__/resourceGroups/rg-aipatterns-prod/providers/Microsoft.KeyVault/vaults/kv-aipatterns-0754755"
+        },
+        "secretName": "mysql-admin-password"
+      }
+    }
+  }
+}
