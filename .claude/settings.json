@@ -85,7 +85,13 @@
       "Bash(npm run build-storybook)",
       "Bash(sort -t: -k3 -V)",
       "Bash(git stash)",
-      "Bash(git stash pop)"
+      "Bash(git stash pop)",
+      "Bash(git -C /c/Users/sandr/Documents/Projects/AIEnterprisePatterns log --oneline --all -- \"deployment/sql-credentials.txt\" \"deployment/github-secrets-values.txt\")",
+      "Bash(git -C /c/Users/sandr/Documents/Projects/AIEnterprisePatterns log --oneline --all -- deployment/github-secrets-values.txt)",
+      "Bash(rm azure-setup.ps1 add-environment-cred.ps1 fix-creds.ps1 fix-federated-credential.ps1 setup-github-secrets.ps1 setup-github-secrets-simple.ps1 azure-container-apps-setup.ps1)",
+      "Bash(mv setup-github-secrets-fixed.ps1 setup-github-oidc.ps1)",
+      "Bash(az bicep:*)",
+      "Bash(az --version)"
     ],
     "additionalDirectories": [
       "C:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\cms\\src\\components\\shared",

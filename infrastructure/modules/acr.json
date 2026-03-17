@@ -1,0 +1,49 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "483969533298151102"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for all resources"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.ContainerRegistry/registries",
+      "apiVersion": "2023-01-01-preview",
+      "name": "craipatternssp54426",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Basic"
+      },
+      "properties": {
+        "adminUserEnabled": false
+      }
+    }
+  ],
+  "outputs": {
+    "acrLoginServer": {
+      "type": "string",
+      "metadata": {
+        "description": "ACR login server hostname (e.g. craipatternssp54426.azurecr.io)"
+      },
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', 'craipatternssp54426'), '2023-01-01-preview').loginServer]"
+    },
+    "acrResourceId": {
+      "type": "string",
+      "metadata": {
+        "description": "ACR resource ID (for managed identity pull role assignment)"
+      },
+      "value": "[resourceId('Microsoft.ContainerRegistry/registries', 'craipatternssp54426')]"
+    }
+  }
+}

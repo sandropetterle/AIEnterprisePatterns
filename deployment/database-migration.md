@@ -4,7 +4,7 @@ This guide explains how to migrate the database schema and seed data to Azure SQ
 
 ## 📋 Prerequisites
 
-1. Azure infrastructure created (run `azure-setup.ps1`)
+1. Azure infrastructure provisioned via Bicep IaC (`infrastructure/deploy.ps1`) — see [infrastructure/README.md](../infrastructure/README.md)
 2. SQL connection string available from Azure
 3. .NET SDK 8.0 installed
 4. Firewall rule configured to allow your IP

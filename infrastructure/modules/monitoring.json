@@ -1,0 +1,211 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "15296361859579819371"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for all resources"
+      }
+    },
+    "environment": {
+      "type": "string",
+      "defaultValue": "prod",
+      "metadata": {
+        "description": "Environment name suffix (e.g. prod)"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.OperationalInsights/workspaces",
+      "apiVersion": "2022-10-01",
+      "name": "[format('log-aipatterns-{0}', parameters('environment'))]",
+      "location": "[parameters('location')]",
+      "properties": {
+        "sku": {
+          "name": "PerGB2018"
+        },
+        "retentionInDays": 30
+      }
+    },
+    {
+      "type": "Microsoft.Insights/components",
+      "apiVersion": "2020-02-02",
+      "name": "[format('appi-aipatterns-{0}', parameters('environment'))]",
+      "location": "[parameters('location')]",
+      "kind": "web",
+      "properties": {
+        "Application_Type": "web",
+        "WorkspaceResourceId": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-aipatterns-{0}', parameters('environment')))]",
+        "IngestionMode": "LogAnalytics",
+        "RetentionInDays": 30
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-aipatterns-{0}', parameters('environment')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('alert-aipatterns-error-rate-{0}', parameters('environment'))]",
+      "location": "global",
+      "properties": {
+        "description": "Alert when server error rate exceeds 5%",
+        "severity": 2,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT15M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "HighErrorRate",
+              "metricName": "requests/failed",
+              "operator": "GreaterThan",
+              "threshold": 10,
+              "timeAggregation": "Count",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "autoMitigate": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('alert-aipatterns-response-time-{0}', parameters('environment'))]",
+      "location": "global",
+      "properties": {
+        "description": "Alert when average response time exceeds 3 seconds",
+        "severity": 2,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT15M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "SlowResponseTime",
+              "metricName": "requests/duration",
+              "operator": "GreaterThan",
+              "threshold": 3000,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "autoMitigate": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('alert-aipatterns-availability-{0}', parameters('environment'))]",
+      "location": "global",
+      "properties": {
+        "description": "Alert when availability drops below 95%",
+        "severity": 1,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT15M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "LowAvailability",
+              "metricName": "availabilityResults/availabilityPercentage",
+              "operator": "LessThan",
+              "threshold": 95,
+              "timeAggregation": "Average",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "autoMitigate": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Insights/metricAlerts",
+      "apiVersion": "2018-03-01",
+      "name": "[format('alert-aipatterns-exception-spike-{0}', parameters('environment'))]",
+      "location": "global",
+      "properties": {
+        "description": "Alert on sharp increase in exception rate",
+        "severity": 2,
+        "enabled": true,
+        "scopes": [
+          "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
+        ],
+        "evaluationFrequency": "PT5M",
+        "windowSize": "PT15M",
+        "criteria": {
+          "odata.type": "Microsoft.Azure.Monitor.SingleResourceMultipleMetricCriteria",
+          "allOf": [
+            {
+              "name": "ExceptionSpike",
+              "metricName": "exceptions/count",
+              "operator": "GreaterThan",
+              "threshold": 20,
+              "timeAggregation": "Count",
+              "criterionType": "StaticThresholdCriterion"
+            }
+          ]
+        },
+        "autoMitigate": true
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
+      ]
+    }
+  ],
+  "outputs": {
+    "logAnalyticsId": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics workspace resource ID (for Container Apps Environment)"
+      },
+      "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-aipatterns-{0}', parameters('environment')))]"
+    },
+    "logAnalyticsCustomerId": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics workspace customer ID (for Container Apps Environment)"
+      },
+      "value": "[reference(resourceId('Microsoft.OperationalInsights/workspaces', format('log-aipatterns-{0}', parameters('environment'))), '2022-10-01').customerId]"
+    },
+    "appInsightsConnectionString": {
+      "type": "string",
+      "metadata": {
+        "description": "Application Insights connection string (passed to Container Apps as env var)"
+      },
+      "value": "[reference(resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment'))), '2020-02-02').ConnectionString]"
+    }
+  }
+}

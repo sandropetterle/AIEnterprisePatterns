@@ -1,0 +1,57 @@
+{
+  "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "metadata": {
+    "_generator": {
+      "name": "bicep",
+      "version": "0.41.2.15936",
+      "templateHash": "17656408886097553745"
+    }
+  },
+  "parameters": {
+    "location": {
+      "type": "string",
+      "metadata": {
+        "description": "Azure region for all resources"
+      }
+    },
+    "logAnalyticsCustomerId": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics workspace customer ID"
+      }
+    },
+    "logAnalyticsId": {
+      "type": "string",
+      "metadata": {
+        "description": "Log Analytics workspace resource ID"
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.App/managedEnvironments",
+      "apiVersion": "2023-05-01",
+      "name": "cae-aipatterns-prod",
+      "location": "[parameters('location')]",
+      "properties": {
+        "appLogsConfiguration": {
+          "destination": "log-analytics",
+          "logAnalyticsConfiguration": {
+            "customerId": "[parameters('logAnalyticsCustomerId')]",
+            "sharedKey": "[listKeys(parameters('logAnalyticsId'), '2022-10-01').primarySharedKey]"
+          }
+        }
+      }
+    }
+  ],
+  "outputs": {
+    "caeId": {
+      "type": "string",
+      "metadata": {
+        "description": "Container Apps Environment resource ID"
+      },
+      "value": "[resourceId('Microsoft.App/managedEnvironments', 'cae-aipatterns-prod')]"
+    }
+  }
+}

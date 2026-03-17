@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-03-04
+**Last Updated:** 2026-03-17
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**49 active decisions | 0 archived**
+**50 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,37 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 50: Adopt Azure Bicep for Declarative Infrastructure as Code
+
+**Date:** 2026-03-17
+**Category:** Infrastructure
+
+**Decision:** Manage all Azure infrastructure via declarative Bicep templates in `infrastructure/` with CI validation on every PR (`az bicep build`), always deploying with `--mode Incremental`. Concurrently, extracted cross-cutting service registrations (AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter) from `Program.cs` into `AddInfrastructure()` in the `AIEnterprisePatterns.Infrastructure` project.
+
+**Why:** The previous approach was entirely imperative (PowerShell scripts). This meant:
+- No drift detection — manual changes to Azure were invisible until next deploy
+- No what-if preview — impossible to audit changes before applying
+- No CI validation — broken infrastructure config was only caught at deploy time
+- Messy `deployment/` folder — 7+ redundant/superseded scripts and plaintext credential files on disk
+
+Bicep provides: drift detection via what-if, CI validation via local compile (`az bicep build` needs no Azure login), readable declarative syntax vs verbose ARM JSON, and a clear module structure that mirrors the resource hierarchy.
+
+The `AddInfrastructure()` refactor moves 5 cross-cutting concerns out of the composition root into the Infrastructure layer, aligning with Clean Architecture: infrastructure configuration belongs in the Infrastructure project, not in the API startup file.
+
+**Alternatives evaluated:**
+- **Terraform**: Requires external state file management (S3/Azure Blob backend), separate CLI binary, HCL learning curve. Bicep is native to Azure, requires no state file, and integrates directly with ARM.
+- **ARM JSON**: Identical capability to Bicep but verbose, non-readable, no comments, no type safety. Bicep compiles to ARM JSON — it's strictly better.
+- **Keep PowerShell scripts**: No validation, no drift detection, no what-if. Scripts had already accumulated cruft (7 one-time fix scripts, redundant variants). Not sustainable as infrastructure grows.
+- **Pulumi**: General-purpose IaC with TypeScript/Python. Powerful but adds state management complexity similar to Terraform. Overkill for a single-environment deployment.
+
+**Key implementation details:**
+- `deploy.ps1` enforces `--mode Incremental` to prevent accidental resource deletion
+- Image tags are **not** managed by Bicep — CI updates them via `az containerapp update --image`
+- Secrets are **never** in Bicep or parameter files — Key Vault references only
+- Role assignments for KV Secrets User are in `main.bicep` (not `keyvault.bicep`) to avoid circular module dependencies
 
 ---
 

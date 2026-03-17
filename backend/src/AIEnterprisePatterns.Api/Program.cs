@@ -3,24 +3,18 @@ using AIEnterprisePatterns.Core.Interfaces;
 using AIEnterprisePatterns.Core.Services;
 using AIEnterprisePatterns.Data;
 using AIEnterprisePatterns.Data.Repositories;
+using AIEnterprisePatterns.Infrastructure;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Threading.RateLimiting;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Application Insights - Monitoring and telemetry
-builder.Services.AddApplicationInsightsTelemetry(options =>
-{
-    options.ConnectionString = builder.Configuration["ApplicationInsights:ConnectionString"];
-    options.EnableAdaptiveSampling = true;
-    options.EnableQuickPulseMetricStream = true;
-});
+// Infrastructure: AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter
+builder.Services.AddInfrastructure(builder.Configuration);
 
 // Controllers and Swagger
 builder.Services.AddControllers()
@@ -124,8 +118,6 @@ builder.Services.AddScoped<IPatternRepository, PatternRepository>();
 builder.Services.AddScoped<ITagRepository, TagRepository>();
 builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
 builder.Services.AddScoped<IPatternService, PatternService>();
-builder.Services.AddMemoryCache();
-builder.Services.AddSingleton(TimeProvider.System);
 
 // Authorization policies — always registered so [Authorize(Policy = "...")] resolves
 // correctly even when no OIDC provider is configured (e.g., integration tests, local dev).
@@ -157,44 +149,6 @@ if (!string.IsNullOrEmpty(authAuthority))
             };
         });
 }
-
-// Health checks
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<ApplicationDbContext>();
-
-// Rate limiting - Protect against abuse
-builder.Services.AddRateLimiter(options =>
-{
-    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-
-    // Fixed window rate limiter: 100 requests per minute per IP
-    options.AddFixedWindowLimiter("fixed", config =>
-    {
-        config.Window = TimeSpan.FromMinutes(1);
-        config.PermitLimit = 100;
-        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        config.QueueLimit = 10;
-    });
-
-    // Sliding window for API endpoints: 50 requests per minute
-    options.AddSlidingWindowLimiter("api", config =>
-    {
-        config.Window = TimeSpan.FromMinutes(1);
-        config.SegmentsPerWindow = 4;
-        config.PermitLimit = 50;
-        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        config.QueueLimit = 5;
-    });
-
-    // Strict rate limiter for vote endpoint: 10 votes per minute per IP
-    options.AddFixedWindowLimiter("vote", config =>
-    {
-        config.Window = TimeSpan.FromMinutes(1);
-        config.PermitLimit = 10;
-        config.QueueProcessingOrder = QueueProcessingOrder.OldestFirst;
-        config.QueueLimit = 2;
-    });
-});
 
 var app = builder.Build();
 

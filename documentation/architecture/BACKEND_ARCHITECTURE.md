@@ -1,6 +1,6 @@
 # Backend Architecture
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-17
 **Audience:** Backend Developers, Solutions Architects
 **Purpose:** Describe the ASP.NET Core 8 backend structure, Clean Architecture layers, patterns used, and the full API reference.
 
@@ -9,15 +9,15 @@
 ## 1. Clean Architecture Layers
 
 ```
-AIEnterprisePatterns.Api          ← HTTP layer: Controllers, DTOs, Middleware, Validators, Filters
+AIEnterprisePatterns.Api            ← HTTP layer: Controllers, DTOs, Middleware, Validators, Filters
         ↓ depends on
-AIEnterprisePatterns.Core         ← Domain layer: Entities, Services, Interfaces, Enums, Value Objects
+AIEnterprisePatterns.Infrastructure ← Cross-cutting: AppInsights, Caching, HealthChecks, RateLimiter
         ↓ depends on
-AIEnterprisePatterns.Data         ← Persistence layer: Repositories, DbContext, Migrations
-        (Infrastructure)          ← Empty placeholder for future services
+AIEnterprisePatterns.Core           ← Domain layer: Entities, Services, Interfaces, Enums, Value Objects
+AIEnterprisePatterns.Data           ← Persistence layer: Repositories, DbContext, Migrations
 ```
 
-**Dependency rule:** Outer layers depend on inner layers. `Api` → `Core` → `Data`. No reverse dependencies.
+**Dependency rule:** Outer layers depend on inner layers. No reverse dependencies. `Api` also directly references `Core` and `Data` for composition-root decisions (DbContext config, CORS, Auth) that stay in `Program.cs`.
 
 ```mermaid
 flowchart TD
@@ -27,7 +27,16 @@ flowchart TD
         A1["🎮 Controllers<br/>PatternsController · AuthController"]
         A2["📋 DTOs<br/>Request · Response models"]
         A3["✅ Validators<br/>FluentValidation"]
-        A4["🔒 Middleware<br/>Error handling · Rate Limiting"]
+        A4["🔒 Middleware<br/>Error handling"]
+    end
+
+    %% ── Infrastructure Layer ─────────────────────────────────────────────────
+    subgraph Infra["🔧  .Infrastructure — Cross-cutting Layer"]
+        direction TB
+        I1["📊 AddApplicationInsightsTelemetry()"]
+        I2["💾 AddMemoryCache() · TimeProvider.System"]
+        I3["❤️ AddHealthChecks() + DbContextCheck"]
+        I4["🚦 AddRateLimiter() — fixed · api · vote"]
     end
 
     %% ── Core Layer ───────────────────────────────────────────────────────────
@@ -47,24 +56,24 @@ flowchart TD
         D3["🔄 Migrations<br/>EF Core code-first"]
     end
 
-    %% ── Infrastructure (placeholder) ─────────────────────────────────────────
-    Infra(["🔧 .Infrastructure<br/>(empty — future services)"])
-
-    %% ── Dependency Direction — outer layers depend on inner, never reversed ──
+    %% ── Dependency Direction ─────────────────────────────────────────────────
+    API -->|"AddInfrastructure()"| Infra
     API -->|"depends on"| Core
+    API -->|"depends on"| Data
+    Infra -->|"DbContextCheck"| Data
+    Infra -->|"depends on"| Core
     Core -->|"depends on"| Data
-    Data -.->|"future"| Infra
 
     %% ── Styles ───────────────────────────────────────────────────────────────
     classDef api   fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E3A8A,font-weight:bold
+    classDef infra fill:#F3F4F6,stroke:#374151,stroke-width:2px,color:#111827,font-weight:bold
     classDef core  fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#064E3B,font-weight:bold
     classDef data  fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F,font-weight:bold
-    classDef infra fill:#F3F4F6,stroke:#9CA3AF,stroke-width:2px,color:#6B7280,stroke-dasharray:5 5
 
     class A1,A2,A3,A4 api
+    class I1,I2,I3,I4 infra
     class C1,C2,C3,C4 core
     class D1,D2,D3 data
-    class Infra infra
 ```
 
 ---
