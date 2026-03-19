@@ -103,7 +103,7 @@
 
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
-| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 54 active architectural decisions (newest first) | Architect, Senior Devs | Current |
+| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 60 active architectural decisions (newest first) | Architect, Senior Devs | Current |
 | [DECISIONS_ARCHIVE.md](documentation/decisions/DECISIONS_ARCHIVE.md) | Compacted/superseded decisions (full text) | Architect | Current |
 | [DECISION_TEMPLATE.md](documentation/decisions/DECISION_TEMPLATE.md) | Standard format for new decision entries | All devs | Current |
 
@@ -139,7 +139,7 @@
 | [PHASE_7_5_IAC_SECURITY_PLAN.md](documentation/project/PHASE_7_5_IAC_SECURITY_PLAN.md) | Phase 7.5 implementation plan — resource tagging, parameterization, KV purge protection, SQL diagnostics, alert action groups | DevOps, Infra, Security | Ready for implementation |
 | [PHASE_7_6_CICD_PLAN.md](documentation/project/PHASE_7_6_CICD_PLAN.md) | Phase 7.6 implementation plan — SHA pinning, concurrency controls, rollback fix, Dependabot, test summary | DevOps, Security | Ready for implementation |
 | [PHASE_7_7_DOCKER_PLAN.md](documentation/project/PHASE_7_7_DOCKER_PLAN.md) | Phase 7.7 implementation plan — base image SHA pinning, Alpine migration, CMS npm ci, compose cleanup | DevOps, Security | Ready for implementation |
-| [PHASE_7_8_TESTING_PLAN.md](documentation/project/PHASE_7_8_TESTING_PLAN.md) | Phase 7.8 implementation plan — test result docs, backend CI coverage, E2E auth strategy documentation | QA, DevOps | Ready for implementation |
+| [PHASE_7_8_TESTING_PLAN.md](documentation/project/PHASE_7_8_TESTING_PLAN.md) | Phase 7.8 implementation plan — test result docs, backend CI coverage, E2E auth strategy documentation | QA, DevOps | Complete (Phase 7.8) |
 | [PHASE_7_9_DOCUMENTATION_PLAN.md](documentation/project/PHASE_7_9_DOCUMENTATION_PLAN.md) | Phase 7.9 implementation plan — archive stale test results, operations IaC cross-refs, CMS phase status, auth guide header | All contributors | Ready for implementation |
 | [PHASE_7_10_PRODUCTION_READINESS_PLAN.md](documentation/project/PHASE_7_10_PRODUCTION_READINESS_PLAN.md) | Phase 7.10 implementation plan — alert action groups, SEO (robots/sitemap), health probes, business telemetry, a11y CI | DevOps, SRE, Architect | Ready for implementation |
 
@@ -176,7 +176,7 @@
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [COMPREHENSIVE_TEST_RESULTS.md](documentation/test_results/COMPREHENSIVE_TEST_RESULTS.md) | Rolling summary of all test results (exempt from retention) | Current |
+| [COMPREHENSIVE_TEST_RESULTS.md](documentation/test_results/COMPREHENSIVE_TEST_RESULTS.md) | Pre-Phase 4 test snapshot (archived — use phase7_8_testing_baseline.md for current metrics) | Archived (Pre-Phase 4 snapshot) |
 | [phase4_5_coverage_report.md](documentation/test_results/phase4_5_coverage_report.md) | Phase 4.5 code coverage report | Historical |
 | [phase4_5_e2e_test_results.md](documentation/test_results/phase4_5_e2e_test_results.md) | Phase 4.5 E2E test results | Historical |
 | [phase4_5_frontend_test_results.md](documentation/test_results/phase4_5_frontend_test_results.md) | Phase 4.5 frontend test results | Historical |
@@ -184,6 +184,8 @@
 | [phase4_5_week2_completion.md](documentation/test_results/phase4_5_week2_completion.md) | Phase 4.5 week 2 completion report | Historical |
 | [phase4_5_week3_test_results.md](documentation/test_results/phase4_5_week3_test_results.md) | Phase 4.5 week 3 test results | Historical |
 | [phase5_1_auth_test_results.md](documentation/test_results/phase5_1_auth_test_results.md) | Phase 5.1 auth test results | Historical |
+| [phase6_test_results.md](documentation/test_results/phase6_test_results.md) | Phases 6.3–6.8 testing additions (Lighthouse CI, Chromatic, cross-browser E2E, auth E2E) | Current |
+| [phase7_8_testing_baseline.md](documentation/test_results/phase7_8_testing_baseline.md) | Phase 7.8 testing baseline — all six test layers, CI architecture, metrics snapshot | Current |
 
 ---
 

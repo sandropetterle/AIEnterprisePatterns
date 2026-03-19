@@ -1,5 +1,9 @@
 # Comprehensive Test Results - AI Enterprise Patterns Library
 
+> **Archived:** 2026-03-19 (Phase 7.9). This file is a Pre-Phase 4 snapshot and no longer reflects current test metrics.
+> For current baselines, see [`phase7_8_testing_baseline.md`](phase7_8_testing_baseline.md) (Phase 7.8 Track 1).
+> For Phase 6 additions, see [`phase6_test_results.md`](phase6_test_results.md).
+
 **Date:** 2026-02-10
 **Phase:** Pre-Phase 4 Validation
 **Tested By:** Claude Code with API Testing
@@ -12,7 +16,7 @@
 
 ## Executive Summary
 
-**Overall Status:** ⚠️ PASSING WITH ISSUES
+**Overall Status:** ARCHIVED — see current baselines above
 
 ### Test Statistics
 - **Total Test Categories:** 8
