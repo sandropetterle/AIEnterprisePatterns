@@ -8,7 +8,7 @@
 
 ## Overview
 
-This guide explains how to execute the comprehensive test plan from [COMPREHENSIVE_TEST_PLAN.md](MANUAL_TEST_PLAN.md) and record results systematically.
+This guide explains how to execute the comprehensive test plan from [MANUAL_TEST_PLAN.md](MANUAL_TEST_PLAN.md) and record results systematically.
 
 ---
 
@@ -65,7 +65,7 @@ cp documentation/test_results/MANUAL_TEST_RESULTS_TEMPLATE.md \
 
 ### Step 2: Execute Test Suites
 
-Work through each test suite in [COMPREHENSIVE_TEST_PLAN.md](MANUAL_TEST_PLAN.md):
+Work through each test suite in [MANUAL_TEST_PLAN.md](MANUAL_TEST_PLAN.md):
 
 1. **Home Page Tests** (Suite 1)
 2. **Patterns Listing Tests** (Suite 2)
@@ -289,7 +289,7 @@ After testing, create a summary report:
 
 ## Reference Links
 
-- [COMPREHENSIVE_TEST_PLAN.md](MANUAL_TEST_PLAN.md) - Full test scenarios
+- [MANUAL_TEST_PLAN.md](MANUAL_TEST_PLAN.md) - Full test scenarios
 - [TESTING_STRATEGY.md](../TESTING_STRATEGY.md) - Overall testing approach
 - [Backend API Docs](http://localhost:5255/swagger) - Swagger UI (dev only)
 
