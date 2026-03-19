@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-03-19 (Phase 7.2)
+**Last Updated:** 2026-03-19 (Phase 7.7)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**55 active decisions | 0 archived**
+**59 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,71 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 59: Phase 7.7 — Docker & Container Security Hardening
+
+**Date:** 2026-03-19
+**Category:** Security / Infrastructure / Performance
+
+**Decision:** Four implementation tracks for Docker and container security hardening: (1) SHA pinning — all 7 `FROM` lines across 3 Dockerfiles pinned to immutable digest references (`@sha256:<64-char-hex>`), keeping the mutable tag as a human-readable comment; (2) Backend Alpine migration — `aspnet:8.0` (Debian) replaced with `aspnet:8.0-alpine`, eliminating the `apt-get install curl` layer (~150 MB → ~90 MB, ~63% smaller), switching `groupadd`/`useradd` to Alpine's `addgroup -S`/`adduser -S`, and replacing `curl -f` healthcheck with BusyBox `wget -qO-` (pre-installed in Alpine); (3) Compose cleanup — removed deprecated `version: '3.8'` field from `docker-compose.yml`; (4) CMS .dockerignore hardening — added `.git/`, IDE dirs (`.vscode/`, `.idea/`), OS files (`.DS_Store`, `Thumbs.db`), and `*.md` exclusions. Track 3 (`npm ci` in CMS Dockerfile) deferred: `cms/package-lock.json` is gitignored by Strapi convention — `npm ci` without a committed lockfile fails; would require removing `package-lock.json` from `cms/.gitignore` as a prerequisite.
+
+**Why:** SHA pinning eliminates supply-chain risk where a re-published mutable tag silently introduces a compromised upstream image. Alpine runtime removes an unnecessary `apt-get` layer (attack surface reduction + 63% image size reduction). Compose `version:` field emits deprecation warnings in Compose v2. `.dockerignore` gaps caused unnecessary build context transfer. `npm ci` (reproducibility) blocked by gitignored lockfile — deferred.
+
+**Alternatives evaluated:**
+- Distroless base for backend — rejected; no shell available for healthcheck debugging in production incidents
+- Chainguard images — rejected; over-engineering at current scale, no material benefit over SHA-pinned official Microsoft images
+- Committing `cms/package-lock.json` to enable `npm ci` — deferred; requires explicit decision to change Strapi project convention; not blocking Phase 7.7
+
+---
+
+## Decision 58: Phase 7.3 — Frontend Code Quality & Security Hardening
+
+**Date:** 2026-03-19
+**Category:** Security / Code Quality
+
+**Decision:** Five implementation tracks for frontend code quality and security hardening: (1) CMS HTML sanitization — install `isomorphic-dompurify` and wrap all 3 `dangerouslySetInnerHTML` calls in `lib/cms/components.tsx` (RichTextRenderer, DocSectionRenderer, ContributingRenderer) with `sanitizeCmsHtml()` from new `lib/cms/sanitize.ts`; (2) CSP hardening — add `base-uri 'self'` and `object-src 'none'` directives to `next.config.mjs`, narrow `img-src` from `https:` (any HTTPS origin) to the specific CMS media hostname `https://staipatternsmedia.blob.core.windows.net`; (3) 429 rate-limit handling — add `response.status === 429` case to `handleApiError()` in `lib/api/error.ts` with user-friendly message; (4) ESLint security plugin — install `eslint-plugin-security` and enable 4 rules (`detect-eval-with-expression`, `detect-unsafe-regex`, `detect-non-literal-regexp`, `detect-possible-timing-attacks`) with `detect-object-injection` off due to false positives; (5) source maps verification — confirmed no `.map` files present in `.next/static/` production output; no config change needed.
+
+**Why:** Defense-in-depth: even admin-only CMS content should be sanitized (a compromised CMS account or Strapi vulnerability could inject XSS). CSP gaps (`base-uri`, `object-src` missing; wide `img-src`) were identified by OWASP CSP Cheat Sheet. 429 errors displayed as generic errors rather than actionable user messages. No static analysis for `eval()` or unsafe regex patterns.
+
+**Alternatives evaluated:**
+- `DOMPurify` directly (browser-only) — rejected; `isomorphic-dompurify` wraps it with JSDOM for server component compatibility
+- `unsafe-eval` removal from CSP — tested; retained with comment since Next.js 16 build tooling may require it; documented as accepted risk per plan
+- `moduleNameMapper` for isomorphic-dompurify in Jest — rejected; mocking the module at test level is cleaner than fighting nested ESM node_modules in transform config
+
+---
+
+## Decision 57: Phase 7.5 — IaC & Azure Security Hardening
+
+**Date:** 2026-03-19
+**Category:** Infrastructure / Security
+
+**Decision:** Four implementation tracks for Bicep IaC and Azure security hardening: (1) Governance & parameterization — add `var tags = { project, environment, managedBy: 'bicep' }` propagated to every resource in all 7 modules; convert hardcoded `var` resource names to `param` with production defaults (acrName, kvName, sqlServerName, mysqlServerName, storageAccountName), enabling future staging environment overrides; parameterize `NEXT_PUBLIC_API_BASE_URL` in containerApps.bicep; add `@allowed(['centralus','eastus','eastus2','westus2'])` on location, `@allowed(['prod','staging','dev'])` on environment, and `@minLength(12)` on both password params; (2) Monitoring & observability — add conditional `Microsoft.Insights/actionGroups` resource (only created when `alertEmail` param is non-empty, keeping template deployable without email config); wire `actionGroupId` into all 4 metric alert `actions` arrays; add conditional `Microsoft.Insights/diagnosticSettings` on SQL database (only when `logAnalyticsId` param provided, creating an explicit dependency edge from sql → monitoring); lower exception spike threshold from 20 → 10; (3) Key Vault & secrets hardening — enable `enablePurgeProtection: true` (irreversible one-way setting, intentional) and raise `softDeleteRetentionInDays` from 7 → 90; move App Insights connection string from inline `value: appInsightsConnectionString` secret to `keyVaultUrl` + `identity: 'system'` KV reference, removing the `appInsightsConnectionString` param from both containerApps.bicep and main.bicep; add post-deploy step to deploy.ps1 and infrastructure/README.md to store the connection string in KV; (4) Documentation — Decision 57, ACR cleanup commands in infrastructure/README.md.
+
+**Why:** The Phase 7.5 audit found the IaC foundation solid overall (RBAC KV, managed identities, admin-disabled ACR, TLS 1.2, CI validation all present) with 10 MEDIUM findings that were hardening improvements rather than critical vulnerabilities. The 4 highest-value items: (a) absence of resource tags made cost attribution and environment filtering impossible in Azure Portal; (b) hardcoded resource names prevented staging environment reuse of the same templates; (c) alert action groups not configured meant all 4 metric alerts fired silently with no notification path; (d) App Insights connection string visible in ARM deployment history is a security hygiene issue — KV references eliminate it from the history.
+
+**Alternatives evaluated:**
+- Tags as module-level `var` vs passed from main.bicep — chose passed-from-main so the `environment` tag reflects the actual param value, not a hardcoded string per module
+- Always-on action group (no conditional) — rejected; would require an email param with no default, breaking existing deployments; conditional resource keeps the template deployable in CI validation without alert config
+- `enablePurgeProtection` opt-in via param — rejected; purge protection is a one-way security control, not a preference; always enabling it is the correct security posture and the plan explicitly accepts this is irreversible
+
+## Decision 56: Phase 7.4 — Backend Code Quality & Security Hardening
+
+**Date:** 2026-03-19
+**Category:** Security / Code Quality
+
+**Decision:** Five implementation tracks for backend code quality and security hardening: (1) CORS/HSTS/DB provider — wrap `localhost:3000` in `IsDevelopment()` guard so production CORS only allows configured `FrontendUrl`/`FrontendUrls`; add `Strict-Transport-Security: max-age=31536000; includeSubDomains` in non-development environments; simplify DB provider selection to connection-string-based (`null/empty` → SQLite, non-empty → SQL Server), removing fragile `Contains("localhost,1433")` check; (2) vote race condition — replace load-modify-save with `ExecuteUpdateAsync` atomic SQL `UPDATE` for relational providers, with InMemory fallback for tests; (3) exception middleware — add `catch (OperationCanceledException) when (context.RequestAborted.IsCancellationRequested)` before the general catch, logging at `Information` rather than `Error` to reduce noise from normal client disconnects; (4) validation cleanup — remove redundant `Enum.TryParse` + `BadRequest` in `CreatePattern`/`UpdatePattern` (FluentValidation already rejects invalid categories before the action executes), replace with `Enum.Parse` (safe after validation); add `Must(!IsNullOrWhiteSpace)` to tag validators to reject whitespace-only strings; (5) template cleanup — fix `launchSettings.json` `launchUrl` from `"weatherforecast"` to `"swagger"` in all three profiles.
+
+**Why:** The Phase 7.4 audit found the backend in strong shape with no critical vulnerabilities. The 4 MEDIUM findings were all hardening opportunities: CORS unconditionally exposed `localhost:3000` in production (attack surface expansion), HSTS absence allowed SSL stripping on repeat visits, the vote endpoint had a classic lost-update race condition under load, and client disconnects logged as Error created alert noise masking real failures. The 4 LOW findings were code quality improvements with no security impact.
+
+**Alternatives evaluated:**
+- HSTS `preload` directive — deferred; requires stable production domain + HSTS preload list submission application; `includeSubDomains` without preload is the correct incremental step
+- `TransactionScope` for vote atomicity — rejected; `ExecuteUpdateAsync` generates a single `UPDATE` statement with no round-trips, superior to read-then-write-in-transaction
+- Remove `OperationCanceledException` catch entirely — rejected; we still want `LogInformation` confirmation for observability; the `when` guard correctly scopes to client-initiated cancellations only
+- Keep `Enum.TryParse` in controller as defense-in-depth — rejected; FluentValidationAutoValidation runs before action methods, making the controller check unreachable dead code
+
+**Accepted risks:** Unused `UnitOfWork` injection (`PatternService` calls `repository.SaveAsync()` directly; removing requires larger architectural refactor with no security benefit); exception details in server logs (generic message returned to clients — intentional for server-side debugging); no CSP/Permissions-Policy on API (not applicable to JSON APIs).
 
 ---
 

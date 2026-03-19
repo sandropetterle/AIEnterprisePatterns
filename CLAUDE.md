@@ -13,7 +13,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
 - **CMS:** Strapi 5 (headless, `cms/` directory), MySQL (production), Azure Blob Storage (media)
-- **Current Phase:** 7 (Quality & Hardening Evaluation — all 10 areas evaluated; 7.1 + 7.2 implemented); Phase 6 complete
+- **Current Phase:** 7 (Quality & Hardening Evaluation — all 10 areas evaluated; 7.1 + 7.2 + 7.3 + 7.4 + 7.6 + 7.7 implemented); Phase 6 complete
 
 ## Development Commands
 
@@ -239,6 +239,8 @@ This is not optional — it preserves architectural knowledge across sessions.
 - **CMS provisioning:** `deployment/scripts/provision-cms.ps1` (Azure MySQL + Container App + Blob Storage)
 - **Infrastructure project** — `AddInfrastructure()` extension registers AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter (extracted from Program.cs in Phase 6.8)
 - **DELETE endpoint** exists in controller but frontend doesn't wire it up yet
-- **Vote endpoint** has race condition risk (uses `SaveAsync()` instead of `ExecuteUpdateAsync`)
+- **Vote endpoint** uses atomic `ExecuteUpdateAsync` for relational providers (SQLite/SQL Server), with InMemory fallback for tests
 - **Swagger** is development-only, gated behind `IsDevelopment()` check
 - **Container security:** Non-root user in Docker requires port 8080 (ports <1024 need root)
+- **Docker base images:** All 3 Dockerfiles use SHA-pinned `FROM` lines (`@sha256:<digest>`) for supply chain security; Dependabot Docker ecosystem keeps pins current
+- **Backend runtime:** `aspnet:8.0-alpine` (not Debian) — ~90 MB image, no `curl`/`apt-get` layer; healthcheck uses BusyBox `wget -qO-`
