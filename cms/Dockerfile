@@ -1,11 +1,11 @@
 # ── Stage 1: Dependencies ────────────────────────────────────────────────────
-FROM node:20-alpine AS deps
+FROM node:20-alpine@sha256:b88333c42c23fbd91596ebd7fd10de239cedab9617de04142dde7315e3bc0afa AS deps
 
 WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm install
+RUN npm ci
 
 # ── Stage 2: Dev (used by docker-compose for local development) ──────────────
 FROM deps AS dev
@@ -35,7 +35,7 @@ ENV JWT_SECRET=${JWT_SECRET}
 RUN npm run build
 
 # ── Stage 4: Production ─────────────────────────────────────────────────────
-FROM node:20-alpine AS production
+FROM node:20-alpine@sha256:b88333c42c23fbd91596ebd7fd10de239cedab9617de04142dde7315e3bc0afa AS production
 
 WORKDIR /app
 
