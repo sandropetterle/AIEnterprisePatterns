@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-03-19 (Phase 7.2)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**54 active decisions | 0 archived**
+**55 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,23 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 55: Phase 7.2 — Backend Dependency Hardening
+
+**Date:** 2026-03-19
+**Category:** Security / Dependencies
+
+**Decision:** Five implementation tracks for backend dependency hardening: (1) patch CVE-2024-43483 — upgrade `Microsoft.Extensions.Caching.Memory` 8.0.0 → 8.0.1 in the Core.Tests project (DoS via hash flooding, test-only); (2) update all production packages to latest .NET 8.x servicing: `Asp.Versioning.Mvc/ApiExplorer` 8.1.0→8.1.1, `FluentValidation.AspNetCore` 11.3.0→11.3.1, `JwtBearer` 8.0.0→8.0.25, `EF Core Design` 8.0.0→8.0.25, `Swashbuckle.AspNetCore` 6.5.0→6.9.0, all 4 EF Core packages 8.0.0→8.0.25, `ApplicationInsights.AspNetCore` 2.22.0→2.23.0, `HealthChecks.EntityFrameworkCore` 8.0.0→8.0.25; (3) update test infrastructure: `FluentAssertions` 8.8.0→8.9.0, `Microsoft.NET.Test.Sdk` 17.8.0→17.14.1, `xunit` 2.5.3→2.9.3, `xunit.runner.visualstudio` 2.5.3→2.8.2, `Mvc.Testing` and `EF InMemory` 8.0.0→8.0.25; (4) add NuGet vulnerability gate (`dotnet list package --vulnerable --include-transitive` with grep-based gating) to both CI workflows; (5) enhance `.github/dependabot.yml` NuGet entry with groups and ignore rules.
+
+**Why:** The Phase 7.2 audit found 1 HIGH CVE (CVE-2024-43483), 19 outdated packages (all within .NET 8 LTS), no CI vulnerability scanning, and incomplete Dependabot config for NuGet. All package updates stay within .NET 8.x — no TFM change needed. The `dotnet list package --vulnerable` command always exits 0, so grep-based gating is required to block CI on detected vulnerabilities. Swashbuckle 6.9.0 is a 4-minor jump but dev-only (gated behind `IsDevelopment()`), zero production risk. Not updating: Moq 4.20.72 (already latest 4.x; no 5.x due to SponsorLink controversy), coverlet.collector 6.0.4 (8.x aligned with .NET 10), xunit 3.x (major API rewrite, evaluate separately).
+
+**Alternatives evaluated:**
+- Skip Swashbuckle update (stay at 6.5.0) — dev-only tooling, no risk; updating to 6.9.0 gets 4 minor version improvements with no breaking API changes observed
+- Update coverlet to 8.x — rejected, 8.x is a major version change aligned with .NET 10; staying on 6.x until .NET 10 migration
+- Add `--exit-code` flag to `dotnet list package --vulnerable` — this flag does not exist; grep-based approach is the only supported pattern
+- Future: Replace Swashbuckle with `Microsoft.AspNetCore.OpenApi` — deferred to .NET 9/10 migration (Swashbuckle deprecated for .NET 9+)
 
 ---
 
