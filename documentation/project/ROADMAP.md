@@ -147,11 +147,11 @@ Systematic 10-area audit to ensure enterprise best-in-class standards before add
 |------|-------|--------|--------|
 | 7.1 | Dependency Audit — Frontend | Light | ✅ Complete — overrides, dep updates, CMS updates, npm audit CI gate, Dependabot |
 | 7.2 | Dependency Audit — Backend | Light | ✅ Complete — CVE-2024-43483 patched, .NET 8.x servicing updates, NuGet audit CI gate, Dependabot groups |
-| 7.3 | Frontend Code Quality & Security | Medium | Evaluated — [implementation plan ready](PHASE_7_3_FRONTEND_CODE_PLAN.md) |
-| 7.4 | Backend Code Quality & Security | Medium | Evaluated — [implementation plan ready](PHASE_7_4_BACKEND_CODE_PLAN.md) |
-| 7.5 | Infrastructure as Code & Azure Security | Medium | Evaluated — [implementation plan ready](PHASE_7_5_IAC_SECURITY_PLAN.md) |
-| 7.6 | CI/CD Pipeline Quality | Medium | Evaluated — [implementation plan ready](PHASE_7_6_CICD_PLAN.md) |
-| 7.7 | Docker & Container Security | Light | Evaluated — [implementation plan ready](PHASE_7_7_DOCKER_PLAN.md) |
+| 7.3 | Frontend Code Quality & Security | Medium | ✅ Complete — CMS HTML sanitization (isomorphic-dompurify), CSP base-uri/object-src/narrowed img-src, 429 rate-limit UX, eslint-plugin-security, source maps verified |
+| 7.4 | Backend Code Quality & Security | Medium | ✅ Complete — CORS/HSTS hardening, atomic vote, exception middleware, validation cleanup |
+| 7.5 | Infrastructure as Code & Azure Security | Medium | ✅ Complete — resource tags, parameterized names, KV purge protection + 90-day soft-delete, SQL diagnostics, alert action group, App Insights to KV |
+| 7.6 | CI/CD Pipeline Quality | Medium | ✅ Complete — SHA pinning, permissions, concurrency, rollback bug fix, Dependabot Docker, e2e gate |
+| 7.7 | Docker & Container Security | Light | ✅ Complete — SHA pinning (all 3 Dockerfiles), Alpine backend (~63% smaller, no curl), compose cleanup, .dockerignore hardening |
 | 7.8 | Testing Coverage & Quality | Medium | Evaluated — [implementation plan ready](PHASE_7_8_TESTING_PLAN.md) |
 | 7.9 | Documentation Completeness & Accuracy | Light | Evaluated — [implementation plan ready](PHASE_7_9_DOCUMENTATION_PLAN.md) |
 | 7.10 | Production Readiness & Observability | Medium | Evaluated — [implementation plan ready](PHASE_7_10_PRODUCTION_READINESS_PLAN.md) |
