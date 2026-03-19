@@ -152,8 +152,8 @@ Systematic 10-area audit to ensure enterprise best-in-class standards before add
 | 7.5 | Infrastructure as Code & Azure Security | Medium | ✅ Complete — resource tags, parameterized names, KV purge protection + 90-day soft-delete, SQL diagnostics, alert action group, App Insights to KV |
 | 7.6 | CI/CD Pipeline Quality | Medium | ✅ Complete — SHA pinning, permissions, concurrency, rollback bug fix, Dependabot Docker, e2e gate |
 | 7.7 | Docker & Container Security | Light | ✅ Complete — SHA pinning (all 3 Dockerfiles), Alpine backend (~63% smaller, no curl), compose cleanup, .dockerignore hardening |
-| 7.8 | Testing Coverage & Quality | Medium | Evaluated — [implementation plan ready](PHASE_7_8_TESTING_PLAN.md) |
-| 7.9 | Documentation Completeness & Accuracy | Light | Evaluated — [implementation plan ready](PHASE_7_9_DOCUMENTATION_PLAN.md) |
+| 7.8 | Testing Coverage & Quality | Medium | ✅ Complete — test result docs (phase6 + 7.8 baseline), E2E auth strategy documented, Decision 60 |
+| 7.9 | Documentation Completeness & Accuracy | Light | ✅ Complete — archived stale test results, IaC cross-refs in 4 ops docs, CMS phase status, auth guide header, dead links, Decision 61 |
 | 7.10 | Production Readiness & Observability | Medium | Evaluated — [implementation plan ready](PHASE_7_10_PRODUCTION_READINESS_PLAN.md) |
 
 **Implementation plan:** [PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md)
