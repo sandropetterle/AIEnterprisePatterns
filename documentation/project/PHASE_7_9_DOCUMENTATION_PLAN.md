@@ -8,7 +8,7 @@
 
 ## Context
 
-Phase 7.9 audits all project documentation for completeness, accuracy, currency, and governance compliance. The documentation foundation is **strong** — `DOCUMENTATION_INDEX.md` is current, the Technical Decisions Log is healthy (52 decisions), API docs are complete (4 files, all endpoints with examples), CMS component docs are comprehensive (26 components with dependency map), all 14 Mermaid diagrams are embedded with consistent color palette, and `GOVERNANCE.md` is authoritative (10 sections). Four MEDIUM findings and two LOW accepted risks were identified. Three lightweight tracks address the MEDIUM findings. This is a **docs-only phase** with no code changes.
+Phase 7.9 audits all project documentation for completeness, accuracy, currency, and governance compliance. The documentation foundation is **strong** — `DOCUMENTATION_INDEX.md` is current, the Technical Decisions Log is healthy (52 decisions), API docs are complete (4 files, all endpoints with examples), CMS component docs are comprehensive (26 components with dependency map), all 15 Mermaid diagrams are embedded with consistent color palette, and `GOVERNANCE.md` is authoritative (10 sections). Four MEDIUM findings and two LOW accepted risks were identified. Three lightweight tracks address the MEDIUM findings. This is a **docs-only phase** with no code changes.
 
 **Audit findings:** 4 MEDIUM, 2 LOW (accepted). ~65 minutes total effort.
 
@@ -194,7 +194,7 @@ Fix 8 dead links across 2 files — search-and-replace `COMPREHENSIVE_TEST_PLAN.
 - `TECHNICAL_DECISIONS_LOG.md` — 52 decisions, no gaps
 - API docs — complete (4 files, all endpoints with examples)
 - CMS component docs — comprehensive (26 components, dependency map)
-- 14 Mermaid diagrams — all embedded, consistent color palette
+- 15 Mermaid diagrams — all embedded, consistent color palette
 - `GOVERNANCE.md` — authoritative (10 sections)
 - Architecture docs — mostly current (`BACKEND_ARCHITECTURE.md` updated for 6.8)
 

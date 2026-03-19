@@ -1,6 +1,6 @@
 # System Overview
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-19
 **Audience:** Solutions Architect, all developers, new contributors
 **Purpose:** High-level overview of the AI Enterprise Patterns Library system — what it is, what it does, and how its major components interact.
 
@@ -203,6 +203,7 @@ The most significant architectural choices are recorded in [TECHNICAL_DECISIONS_
 - **Deployment:** Azure Container Apps (scale-to-zero, ~$5-12/month) — Decision 22
 - **Related Patterns:** Server-side API endpoint replaces client-side computation — Decision 41
 - **Dark Mode:** ThemeProvider with system preference detection — Decision 40
+- **Quality & Hardening (Phase 7):** 10-area systematic audit — Decisions 52-62 (see [QUALITY_HARDENING.md](QUALITY_HARDENING.md))
 
 ---
 
@@ -215,6 +216,8 @@ The most significant architectural choices are recorded in [TECHNICAL_DECISIONS_
 | Strapi CMS content model, webhooks, gotchas | [CMS_ARCHITECTURE.md](CMS_ARCHITECTURE.md) |
 | Entity model, seeding, enum mapping | [DATA_MODEL.md](DATA_MODEL.md) |
 | Auth, CORS, CSP, rate limiting, security headers | [SECURITY_OVERVIEW.md](SECURITY_OVERVIEW.md) |
+| Phase 7 quality & hardening evaluation | [QUALITY_HARDENING.md](QUALITY_HARDENING.md) |
+| Bicep IaC, resource inventory, deploy workflow | [../operations/INFRASTRUCTURE_MANAGEMENT.md](../operations/INFRASTRUCTURE_MANAGEMENT.md) |
 | Feature requirements by page | [../requirements/FUNCTIONAL_REQUIREMENTS.md](../requirements/FUNCTIONAL_REQUIREMENTS.md) |
 | Phase roadmap and status | [../project/ROADMAP.md](../project/ROADMAP.md) |
 | Azure deployment guide | [../../deployment/README.md](../../deployment/README.md) |

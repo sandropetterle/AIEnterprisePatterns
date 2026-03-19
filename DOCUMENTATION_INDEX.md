@@ -130,18 +130,17 @@
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
 | [ROADMAP.md](documentation/project/ROADMAP.md) | Phase plans, status summary table, deliverables, upcoming phases | PM, Architect, all | Current |
-| [PHASE_INFRASTRUCTURE_PLAN.md](documentation/project/PHASE_INFRASTRUCTURE_PLAN.md) | Phase 6.8 implementation plan — Bicep IaC, script consolidation, Infrastructure .NET project | DevOps, Architect | Complete (Phase 6.8) |
-| [PHASE_QUALITY_HARDENING_PLAN.md](documentation/project/PHASE_QUALITY_HARDENING_PLAN.md) | Phase 7 evaluation plan — 10-area quality & security audit | Architect, Security, All | Active (Phase 7) |
-| [PHASE_7_1_FRONTEND_DEPS_PLAN.md](documentation/project/PHASE_7_1_FRONTEND_DEPS_PLAN.md) | Phase 7.1 implementation plan — npm audit fixes, dependency updates, Dependabot, CI audit gate | DevOps, Frontend devs | Ready for implementation |
-| [PHASE_7_2_BACKEND_DEPS_PLAN.md](documentation/project/PHASE_7_2_BACKEND_DEPS_PLAN.md) | Phase 7.2 implementation plan — CVE patch, NuGet updates, CI vulnerability gate, Dependabot | DevOps, Backend devs | Ready for implementation |
-| [PHASE_7_3_FRONTEND_CODE_PLAN.md](documentation/project/PHASE_7_3_FRONTEND_CODE_PLAN.md) | Phase 7.3 implementation plan — CMS HTML sanitization, CSP hardening, 429 handling, ESLint security, source maps | Security, Frontend devs | Ready for implementation |
-| [PHASE_7_4_BACKEND_CODE_PLAN.md](documentation/project/PHASE_7_4_BACKEND_CODE_PLAN.md) | Phase 7.4 implementation plan — CORS/HSTS hardening, vote race condition, exception middleware, validation cleanup | Security, Backend devs | Ready for implementation |
-| [PHASE_7_5_IAC_SECURITY_PLAN.md](documentation/project/PHASE_7_5_IAC_SECURITY_PLAN.md) | Phase 7.5 implementation plan — resource tagging, parameterization, KV purge protection, SQL diagnostics, alert action groups | DevOps, Infra, Security | Ready for implementation |
-| [PHASE_7_6_CICD_PLAN.md](documentation/project/PHASE_7_6_CICD_PLAN.md) | Phase 7.6 implementation plan — SHA pinning, concurrency controls, rollback fix, Dependabot, test summary | DevOps, Security | Ready for implementation |
-| [PHASE_7_7_DOCKER_PLAN.md](documentation/project/PHASE_7_7_DOCKER_PLAN.md) | Phase 7.7 implementation plan — base image SHA pinning, Alpine migration, CMS npm ci, compose cleanup | DevOps, Security | Ready for implementation |
-| [PHASE_7_8_TESTING_PLAN.md](documentation/project/PHASE_7_8_TESTING_PLAN.md) | Phase 7.8 implementation plan — test result docs, backend CI coverage, E2E auth strategy documentation | QA, DevOps | Complete (Phase 7.8) |
-| [PHASE_7_9_DOCUMENTATION_PLAN.md](documentation/project/PHASE_7_9_DOCUMENTATION_PLAN.md) | Phase 7.9 implementation plan — archive stale test results, operations IaC cross-refs, CMS phase status, auth guide header | All contributors | Ready for implementation |
-| [PHASE_7_10_PRODUCTION_READINESS_PLAN.md](documentation/project/PHASE_7_10_PRODUCTION_READINESS_PLAN.md) | Phase 7.10 implementation plan — alert action groups, SEO (robots/sitemap), health probes, business telemetry, a11y CI | DevOps, SRE, Architect | Ready for implementation |
+| [PHASE_QUALITY_HARDENING_PLAN.md](documentation/project/PHASE_QUALITY_HARDENING_PLAN.md) | Phase 7 evaluation plan — 10-area quality & security audit | Architect, Security, All | Complete (Phase 7) |
+| [PHASE_7_1_FRONTEND_DEPS_PLAN.md](documentation/project/PHASE_7_1_FRONTEND_DEPS_PLAN.md) | Phase 7.1 — npm audit fixes, dependency updates, Dependabot, CI audit gate | DevOps, Frontend devs | Complete |
+| [PHASE_7_2_BACKEND_DEPS_PLAN.md](documentation/project/PHASE_7_2_BACKEND_DEPS_PLAN.md) | Phase 7.2 — CVE patch, NuGet updates, CI vulnerability gate, Dependabot | DevOps, Backend devs | Complete |
+| [PHASE_7_3_FRONTEND_CODE_PLAN.md](documentation/project/PHASE_7_3_FRONTEND_CODE_PLAN.md) | Phase 7.3 — CMS HTML sanitization, CSP hardening, 429 handling, ESLint security | Security, Frontend devs | Complete |
+| [PHASE_7_4_BACKEND_CODE_PLAN.md](documentation/project/PHASE_7_4_BACKEND_CODE_PLAN.md) | Phase 7.4 — CORS/HSTS hardening, vote atomicity, exception handling, validation | Security, Backend devs | Complete |
+| [PHASE_7_5_IAC_SECURITY_PLAN.md](documentation/project/PHASE_7_5_IAC_SECURITY_PLAN.md) | Phase 7.5 — resource tagging, KV purge protection, SQL diagnostics, alert groups | DevOps, Infra, Security | Complete |
+| [PHASE_7_6_CICD_PLAN.md](documentation/project/PHASE_7_6_CICD_PLAN.md) | Phase 7.6 — SHA pinning, concurrency controls, rollback fix, Dependabot | DevOps, Security | Complete |
+| [PHASE_7_7_DOCKER_PLAN.md](documentation/project/PHASE_7_7_DOCKER_PLAN.md) | Phase 7.7 — base image SHA pinning, Alpine migration, compose cleanup | DevOps, Security | Complete |
+| [PHASE_7_8_TESTING_PLAN.md](documentation/project/PHASE_7_8_TESTING_PLAN.md) | Phase 7.8 — test result docs, backend CI coverage, E2E auth strategy | QA, DevOps | Complete |
+| [PHASE_7_9_DOCUMENTATION_PLAN.md](documentation/project/PHASE_7_9_DOCUMENTATION_PLAN.md) | Phase 7.9 — archive stale test results, IaC cross-refs, CMS phase status | All contributors | Complete |
+| [PHASE_7_10_PRODUCTION_READINESS_PLAN.md](documentation/project/PHASE_7_10_PRODUCTION_READINESS_PLAN.md) | Phase 7.10 — SEO, health probes, business telemetry, a11y CI gate | DevOps, SRE, Architect | Complete |
 
 ---
 
@@ -176,26 +175,20 @@
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [COMPREHENSIVE_TEST_RESULTS.md](documentation/test_results/COMPREHENSIVE_TEST_RESULTS.md) | Pre-Phase 4 test snapshot (archived — use phase7_8_testing_baseline.md for current metrics) | Archived (Pre-Phase 4 snapshot) |
-| [phase4_5_coverage_report.md](documentation/test_results/phase4_5_coverage_report.md) | Phase 4.5 code coverage report | Historical |
-| [phase4_5_e2e_test_results.md](documentation/test_results/phase4_5_e2e_test_results.md) | Phase 4.5 E2E test results | Historical |
-| [phase4_5_frontend_test_results.md](documentation/test_results/phase4_5_frontend_test_results.md) | Phase 4.5 frontend test results | Historical |
-| [phase4_5_week1_setup_complete.md](documentation/test_results/phase4_5_week1_setup_complete.md) | Phase 4.5 week 1 setup completion report | Historical |
-| [phase4_5_week2_completion.md](documentation/test_results/phase4_5_week2_completion.md) | Phase 4.5 week 2 completion report | Historical |
-| [phase4_5_week3_test_results.md](documentation/test_results/phase4_5_week3_test_results.md) | Phase 4.5 week 3 test results | Historical |
-| [phase5_1_auth_test_results.md](documentation/test_results/phase5_1_auth_test_results.md) | Phase 5.1 auth test results | Historical |
-| [phase6_test_results.md](documentation/test_results/phase6_test_results.md) | Phases 6.3–6.8 testing additions (Lighthouse CI, Chromatic, cross-browser E2E, auth E2E) | Current |
+| [COMPREHENSIVE_TEST_RESULTS.md](documentation/test_results/COMPREHENSIVE_TEST_RESULTS.md) | Pre-Phase 4 test snapshot (archived — use phase7_8_testing_baseline.md for current metrics) | Archived (exempt from retention) |
+| [phase5_1_auth_test_results.md](documentation/test_results/phase5_1_auth_test_results.md) | Phase 5.1 auth test results | Historical (N-2) |
+| [phase6_test_results.md](documentation/test_results/phase6_test_results.md) | Phases 6.3–6.8 testing additions (Lighthouse CI, Chromatic, cross-browser E2E, auth E2E) | Historical (N-1) |
 | [phase7_8_testing_baseline.md](documentation/test_results/phase7_8_testing_baseline.md) | Phase 7.8 testing baseline — all six test layers, CI architecture, metrics snapshot | Current |
 
 ---
 
 ## documentation/diagrams/ — Visual diagrams
 
-*Mermaid format, embedded directly in their target architecture docs. All 14 complete.*
+*Mermaid format, embedded directly in their target architecture docs. All 15 complete.*
 
 | File | Purpose | Status |
 |------|---------|--------|
-| [DIAGRAM_INDEX.md](documentation/diagrams/DIAGRAM_INDEX.md) | Index of all 14 diagrams — where each lives, format, and Mermaid conventions. | Current |
+| [DIAGRAM_INDEX.md](documentation/diagrams/DIAGRAM_INDEX.md) | Index of all 15 diagrams — where each lives, format, and Mermaid conventions. | Current |
 
 **All diagrams (embedded in their target docs):**
 | Diagram | Embedded In |
@@ -214,6 +207,7 @@
 | Pattern Lifecycle (state) | [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) |
 | Authentication States (state) | [SECURITY_OVERVIEW.md](documentation/architecture/SECURITY_OVERVIEW.md) |
 | Backend Domain Model (class) | [BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md) |
+| CI/CD Quality Gates Pipeline (flowchart) | [QUALITY_HARDENING.md](documentation/architecture/QUALITY_HARDENING.md) |
 
 ---
 

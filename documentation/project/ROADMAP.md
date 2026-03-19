@@ -132,7 +132,7 @@ Four tracks completed:
 3. **Bicep IaC** — `infrastructure/` with `main.bicep` + 7 modules (monitoring, acr, keyvault, sql, cms, containerAppsEnvironment, containerApps); `deploy.ps1`; `infrastructure/README.md`; `validate-infrastructure` CI job added to `test.yml`
 4. **Infrastructure .NET project** — `AddInfrastructure()` extension in `AIEnterprisePatterns.Infrastructure` extracts AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter from `Program.cs`; 105/105 backend tests pass
 
-**Implementation plan:** [PHASE_INFRASTRUCTURE_PLAN.md](PHASE_INFRASTRUCTURE_PLAN.md)
+**Implementation plan:** Deleted per governance (1 phase after completion). Decisions preserved in [TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md) and [INFRASTRUCTURE_MANAGEMENT.md](../operations/INFRASTRUCTURE_MANAGEMENT.md).
 
 ---
 

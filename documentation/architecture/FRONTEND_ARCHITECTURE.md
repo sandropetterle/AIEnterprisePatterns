@@ -1,6 +1,6 @@
 # Frontend Architecture
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-19
 **Audience:** Frontend Developers, Solutions Architects
 **Purpose:** Describe the Next.js 16 frontend structure, App Router conventions, authentication flow, CMS integration, ISR strategy, and coding standards.
 
@@ -71,6 +71,7 @@ components/
 lib/
 ├── api/
 │   ├── client.ts                 ← Base HTTP client (get, post, put, delete + error handling)
+│   ├── error.ts                  ← handleApiError() — includes 429 rate-limit handling (Phase 7.3)
 │   ├── patterns.ts               ← Pattern API calls (getPatterns, getPatternBySlug, etc.)
 │   ├── mappers.ts                ← mapBackendCategory / mapFrontendCategory (CRITICAL)
 │   └── types.ts                  ← API response types
@@ -78,7 +79,8 @@ lib/
 │   ├── client.ts                 ← fetchStrapi() with CmsUnavailableError handling
 │   ├── queries.ts                ← Strapi content queries by content type
 │   ├── types.ts                  ← Strapi response types
-│   └── components.tsx            ← Dynamic Zone component renderers
+│   ├── sanitize.ts               ← sanitizeCmsHtml() — DOMPurify wrapper for CMS HTML (Phase 7.3)
+│   └── components.tsx            ← Dynamic Zone component renderers (all dangerouslySetInnerHTML wrapped with sanitizeCmsHtml)
 └── types/
     ├── pattern.ts                ← Frontend pattern types
     └── auth.ts                   ← hasRole(), roleLabel(), Session extension
@@ -297,7 +299,35 @@ REVALIDATE_SECRET=<generate-random-secret>
 
 ---
 
-## 11. Coding Standards
+## 11. Security Headers & CSP (Phase 7.3)
+
+Security headers are configured in `next.config.mjs`:
+
+| Header | Value | Purpose |
+|--------|-------|---------|
+| Content-Security-Policy | `default-src 'self'; script-src 'self' 'unsafe-eval'; img-src 'self' data: https://staipatternsmedia.blob.core.windows.net; base-uri 'self'; object-src 'none'; frame-src 'none'` | Restrict resource loading origins |
+| X-Content-Type-Options | `nosniff` | Prevent MIME-type sniffing |
+| X-Frame-Options | `DENY` | Prevent clickjacking |
+| Strict-Transport-Security | `max-age=31536000; includeSubDomains` | Enforce HTTPS |
+| Permissions-Policy | Camera, microphone, geolocation disabled | Restrict browser features |
+
+**CMS HTML sanitization:** All `dangerouslySetInnerHTML` calls in `lib/cms/components.tsx` are wrapped with `sanitizeCmsHtml()` (uses `isomorphic-dompurify`).
+
+**ESLint security plugin:** `eslint-plugin-security` with 4 rules enabled (detect-non-literal-fs-filename, detect-non-literal-regexp, detect-possible-timing-attacks, detect-unsafe-regex). `detect-object-injection` is disabled (too many false positives in TypeScript).
+
+See [SECURITY_OVERVIEW.md](SECURITY_OVERVIEW.md) for the full security architecture.
+
+---
+
+## 12. SEO (Phase 7.10)
+
+- **`app/robots.ts`** — Next.js Metadata API; allows `/`, disallows `/api/` and `/login/`; references sitemap URL
+- **`app/sitemap.ts`** — Static routes (home, `/patterns`) + dynamic pattern routes fetched from API; falls back to static-only on API error
+- **`app/layout.tsx`** — `metadataBase` set to production Container Apps URL; OpenGraph (type, locale, site name, image) and Twitter card configured; `robots` metadata with index/follow
+
+---
+
+## 13. Coding Standards
 
 - **TypeScript:** Prefer `type` over `interface`; avoid `any`; use `unknown` with type guards
 - **Tailwind:** Only utility classes; use `cn()` for conditionals; no CSS files or inline styles
@@ -307,11 +337,13 @@ REVALIDATE_SECRET=<generate-random-secret>
 
 ---
 
-## 12. Testing
+## 14. Testing
 
 - **Framework:** Jest + React Testing Library
 - **E2E:** Playwright (Chromium, Firefox, WebKit)
 - **Auth mocking:** `next-auth/react` mocked globally in `jest.setup.ts`; override per-test with `(useSession as jest.Mock).mockReturnValue(...)`
-- **Current count:** 350/350 tests passing; 70%+ coverage enforced in CI
+- **Current count:** 396/396 tests passing; 76%+ line coverage (CI gate: 70% all four metrics)
+- **Visual regression:** Chromatic (38 Storybook stories) — unreviewed changes block deploy
+- **Performance:** Lighthouse CI — LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80, Accessibility ≥ 0.90 (warn)
 
 See [../testing/TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md) for full approach and gotchas.
