@@ -4,7 +4,7 @@
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**53 active decisions | 0 archived**
+**54 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,26 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 54: Phase 7.1 — Frontend Dependency Hardening
+
+**Date:** 2026-03-19
+**Category:** Security / Dependencies
+
+**Decision:** Four implementation tracks for frontend dependency hardening: (1) add `overrides` in `package.json` for `flatted >=3.4.0`, `serialize-javascript >=7.0.3`, `minimatch >=9.0.7` (in addition to existing `ajv ^8.8.2`) to resolve transitive vulnerabilities without breaking upstream tools; (2) update all production and dev dependencies to latest minor/patch versions (`next` 16.1.6→16.2.0, Storybook 10.2.14→10.3.0, Jest 30.2→30.3, etc.); (3) update CMS packages: all `@strapi/*` 5.36.1→5.40.0 together, `mysql2` 3.11.0→3.20.0; (4) add `npm audit --omit=dev --audit-level=high` step to both CI workflows and create `.github/dependabot.yml` with weekly Monday automation for npm (root + cms), NuGet (backend), and GitHub Actions.
+
+**Why:** The Phase 7.1 audit found 14 npm vulnerabilities (10 low, 4 high — all in devDependencies transitive chains) and 18 outdated packages, with no automated dependency management. Production deps were already clean. The `--omit=dev` audit flag is deliberate: remaining HIGH vulnerabilities (`elliptic` via Storybook→crypto-browserify, `tmp` via LHCI→inquirer) have no upstream patches and only affect dev-time tooling — production users are never exposed to these code paths.
+
+**Alternatives evaluated:**
+- `npm audit fix --force` — would downgrade `@storybook/nextjs` to 7.x or `@lhci/cli` to 0.1.0, both breaking changes with significant regression risk
+- Skip `overrides` for `minimatch` — already resolved by the `next` 16.2.0 upgrade which pulled in a patched version; override added defensively
+- Major version updates (tailwindcss v4, eslint v10, next-auth v5 stable) — out of scope; tailwindcss v4 is a configuration rewrite, eslint v10 has breaking plugin changes, next-auth is intentionally on v5 beta
+
+**Accepted risks:** `elliptic` (Storybook→crypto-browserify — no patched version available), `tmp` (LHCI→inquirer — no patched version available). Both are dev-only with no production exposure. Accepted until upstream maintainers release fixes.
+
+**Implementation plan:** [PHASE_7_1_FRONTEND_DEPS_PLAN.md](../project/PHASE_7_1_FRONTEND_DEPS_PLAN.md)
 
 ---
 
