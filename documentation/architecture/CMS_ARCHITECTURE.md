@@ -1,6 +1,6 @@
 # CMS Architecture
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-19
 **Audience:** Frontend Developers, Solutions Architects, Infrastructure Engineers
 **Purpose:** Document the Strapi 5 CMS integration — content model, deployment, ISR revalidation webhook, and known operational gotchas.
 
@@ -12,7 +12,7 @@ Strapi 5 (headless CMS) manages all **static site content** — page copy, label
 
 **CMS Phase Status:**
 - ✅ Phase 1 (CMS.1–CMS.3): Infrastructure, home page Dynamic Zone, global layout, on-demand revalidation — complete and deployed to production
-- 🔜 Phase 2 (6.4–6.6): About, Docs, Login, Error, Not-Found pages + pattern UI labels — upcoming
+- ✅ Phase 2 (6.4–6.6): About, Docs, Login, Error, Not-Found pages + pattern UI labels — complete (2026-03-03)
 
 ---
 

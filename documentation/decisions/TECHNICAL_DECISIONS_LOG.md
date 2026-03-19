@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-03-19 (Phase 7.7)
+**Last Updated:** 2026-03-19 (Phase 7.9)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**59 active decisions | 0 archived**
+**61 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,104 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 61: Phase 7.9 — Documentation Completeness & Accuracy Audit
+
+**Date:** 2026-03-19
+**Title:** Phase 7.9 Documentation Audit — Strong Foundation Confirmed; Four MEDIUM Findings Remediated
+**Category:** Documentation / Governance
+
+### Summary
+
+Phase 7.9 is a systematic audit of all project documentation for completeness, accuracy, currency, and governance compliance. The documentation foundation is strong overall. Four MEDIUM findings and two LOW accepted risks were identified. Three lightweight tracks address all MEDIUM findings. This is a docs-only phase with no code changes.
+
+### Decisions Made
+
+**Track 1 — Archive Stale Test Results:**
+`documentation/test_results/COMPREHENSIVE_TEST_RESULTS.md` (dated 2026-02-10, Pre-Phase 4 snapshot) was archived rather than updated. Phase 7.8 Track 1 already created the replacement baselines (`phase7_8_testing_baseline.md` and `phase6_test_results.md`). Updating the old file would duplicate that work. An archive banner was added to the top, the Executive Summary status was changed from "PASSING WITH ISSUES" to "ARCHIVED", and `DOCUMENTATION_INDEX.md` was updated to reflect the archived status.
+
+**Track 2 — IaC Cross-References in Operations Docs:**
+All four operations docs (`RUNBOOK.md`, `DISASTER_RECOVERY.md`, `INCIDENT_RESPONSE.md`, `MONITORING_GUIDE.md`) were written in February 2026 before Phase 6.8 introduced Bicep IaC. Added cross-references to `INFRASTRUCTURE_MANAGEMENT.md` per GOVERNANCE.md Section 4 (Single Source of Truth):
+- RUNBOOK: Added "Infrastructure Changes" section — do not use ad-hoc `az containerapp update` for permanent config; changes must go through Bicep
+- DISASTER_RECOVERY: Added Bicep redeployment as a full environment rebuild strategy (Section 5.2a)
+- INCIDENT_RESPONSE: Added infrastructure forensics step in Eradication phase — review Bicep modules, harden in code, redeploy
+- MONITORING_GUIDE: Added Section 4.0 noting the 4 metric alerts are defined in `monitoring.bicep` — modify there, not via Azure Portal
+Updated `Last Updated` dates on all four docs to 2026-03-19.
+
+**Track 3 — CMS Phase Status, Auth Guide Header, Decision Log:**
+- `CMS_ARCHITECTURE.md` line 15: Changed Phase 2 status from "🔜 ... upcoming" to "✅ ... complete (2026-03-03)". Updated `Last Updated` to 2026-03-19.
+- `AUTH_SETUP_GUIDE.md`: Added required GOVERNANCE.md Section 3 header (`Last Updated`, `Audience`, `Purpose`) which was missing.
+- This entry.
+
+**Accepted Risks (unchanged from evaluation):**
+- Dead links to `COMPREHENSIVE_TEST_PLAN.md` (8 occurrences in TESTING_STRATEGY.md and MANUAL_TEST_EXECUTION_GUIDE.md) — fixed as part of this phase (optional track)
+- `SYSTEM_OVERVIEW.md` missing IaC reference — still architecturally accurate; `INFRASTRUCTURE_MANAGEMENT.md` is the single source of truth per GOVERNANCE.md Section 4
+
+### Alternatives Evaluated
+
+- **Update COMPREHENSIVE_TEST_RESULTS.md instead of archiving:** Would duplicate Phase 7.8's baseline work. Archive is cleaner and the two 7.8 docs are the correct ongoing baselines.
+- **Full rewrite of operations docs to incorporate IaC detail:** Rejected — would violate GOVERNANCE.md Section 4 (single source of truth). Cross-references to `INFRASTRUCTURE_MANAGEMENT.md` are sufficient and avoid duplication drift.
+
+---
+
+## Decision 60: Phase 7.8 — Testing Coverage & Quality Evaluation
+
+**Date:** 2026-03-19
+**Title:** Phase 7.8 Testing Audit — Enterprise-Grade Baseline Confirmed; Three Lightweight Tracks Implemented
+**Category:** Testing / Quality Assurance / CI/CD
+
+### Summary
+
+Phase 7.8 is a systematic audit of all test layers: frontend unit, backend unit, E2E, performance, visual regression, and accessibility. The evaluation confirms the testing infrastructure is enterprise-grade. Five MEDIUM findings were identified; all are addressed (three lightweight tracks implemented in Phase 7.8, two deferred).
+
+### Decisions Made
+
+**Track 1 — Test Results Documentation:**
+Created two new test result documents to close the documentation gap since Phase 5.1:
+- `documentation/test_results/phase6_test_results.md` — snapshot of testing additions across Phases 6.3–6.8 (Lighthouse CI, Chromatic, cross-browser E2E, CMS query tests, auth E2E)
+- `documentation/test_results/phase7_8_testing_baseline.md` — full metrics snapshot at Phase 7.8 evaluation (all six test layers, CI architecture, deferred capabilities)
+
+**Track 2 — Backend CI Coverage Reporting:**
+Backend coverage collection was already in place (added in an earlier phase): `coverlet.collector` v6.0.4 is referenced in all three test `.csproj` files; `dotnet test --collect:"XPlat Code Coverage" --settings coverlet.runsettings` runs in CI; Codecov upload (`flag: backend`) is configured in `test.yml`. No CI changes required.
+
+The `backend/coverlet.runsettings` file excludes test assemblies and EF Core migrations, includes the three source projects (Api, Core, Data). A formal coverage **threshold** (e.g., 70% matching frontend) is not yet enforced — accepted risk for Phase 7.8; backend structure is stable and threshold enforcement is a Phase 8 item.
+
+**Track 3 — E2E API Write Test Strategy Documentation:**
+Added Section 9.1 ("E2E Auth Test Strategy") to `documentation/testing/TESTING_STRATEGY.md` explaining the three-tier auth test split:
+- Unauthenticated guards — always run
+- Authenticated UI — always run when `AUTH_SECRET` is set (synthetic session cookie via `@auth/core/jwt`)
+- Authenticated API writes — **intentionally skipped in CI** (`E2E_API_WRITES=true` opt-in)
+
+Documented the rationale (backend JWKS validation rejects synthetic tokens), what would be required to enable in CI (test Entra user + GitHub Secrets + protected environment), and how to run locally.
+
+**Track 4 — Decision Log:**
+This entry.
+
+### Deferred
+
+| Finding | Tool | Effort | Phase |
+|---------|------|--------|-------|
+| No mutation testing (assertion quality unverified) | Stryker + Stryker.NET | 4-6 weeks | 8 |
+| No load/stress testing (rate limiters unverified under concurrency) | k6 | 3-4 weeks | 8 |
+| No contract testing (frontend/backend DTO drift) | Pact | 4-5 weeks | 9+ |
+
+### Accepted Risks
+
+| Risk | Rationale |
+|------|-----------|
+| `OperationCanceledException` not unit-tested | Rare edge case; logged correctly; Application Insights monitors production |
+| SkeletonCard + LoadingAnnouncer at 0% Jest coverage | Pure presentational; no logic; covered by E2E when loading states appear |
+| Radix UI mocked in Jest (jsdom portal limitation) | Documented pattern; mocks are comprehensive; real components validated in E2E |
+| Chromatic `exit-zero-on-changes` still active | Intentional — baseline acceptance in progress |
+| No backend CI coverage threshold | Backend structure is stable; threshold enforcement is a Phase 8 item |
+
+### Alternatives Evaluated
+
+- **Stryker mutation testing now** — rejected for Phase 7.8: significant effort (4-6 weeks); 70%+ frontend and ~85% backend coverage thresholds are adequate for current scale and team size
+- **k6 load testing now** — rejected: needs a staging environment with a larger dataset; Lighthouse CI validates single-user performance adequately
+- **Pact contract testing now** — rejected: single monorepo with tightly coupled frontend/backend; most valuable when APIs serve multiple consumers or services live in separate repos
 
 ---
 
