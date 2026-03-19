@@ -5,7 +5,7 @@ WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-RUN npm ci
+RUN npm install
 
 # ── Stage 2: Dev (used by docker-compose for local development) ──────────────
 FROM deps AS dev
