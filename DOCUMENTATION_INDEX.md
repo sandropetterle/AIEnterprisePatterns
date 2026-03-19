@@ -55,6 +55,7 @@
 | [CMS_ARCHITECTURE.md](documentation/architecture/CMS_ARCHITECTURE.md) | Strapi 5 content model, deployment, webhooks, known gotchas | Frontend devs, Infra | Current |
 | [DATA_MODEL.md](documentation/architecture/DATA_MODEL.md) | Entities, relationships, seeding, category enum mapping | Backend devs, Architect | Current |
 | [SECURITY_OVERVIEW.md](documentation/architecture/SECURITY_OVERVIEW.md) | Auth architecture, CORS, CSP, rate limiting, security headers | Security, Architect, Devs | Current |
+| [QUALITY_HARDENING.md](documentation/architecture/QUALITY_HARDENING.md) | Phase 7 hardening evaluation: findings, implementation status, accepted risks | Architect, Security, Devs | Current |
 
 ---
 
