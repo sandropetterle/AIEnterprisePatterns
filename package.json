@@ -5,8 +5,7 @@
   "overrides": {
     "ajv": "^8.8.2",
     "flatted": ">=3.4.0",
-    "serialize-javascript": ">=7.0.3",
-    "minimatch": ">=9.0.7"
+    "serialize-javascript": ">=7.0.3"
   },
   "description": "AI Enterprise Patterns Library - A centralized repository of AI-driven recipes, prompts, and blueprints for enterprise software architecture patterns",
   "scripts": {
