@@ -1,6 +1,6 @@
 # Quality & Hardening Evaluation
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-03-19 (Phase 7.2 complete)
 **Audience:** Solutions Architects, Security Engineers, all developers
 **Purpose:** Consolidate all Phase 7 quality and hardening evaluation findings, implementation status, accepted risks, and deferred items into a single architect-facing reference. Updated as implementations progress.
 
@@ -18,8 +18,8 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | Area | Scope | Findings (M/L) | Tracks | Status |
 |------|-------|-----------------|--------|--------|
-| [7.1 Frontend Dependencies](#31-area-71--frontend-dependency-audit) | npm packages, vulnerabilities | 4H / 10L | 5 | Not Started |
-| [7.2 Backend Dependencies](#32-area-72--backend-dependency-audit) | NuGet packages, CVEs | 1H / 19 outdated | 5 | Not Started |
+| [7.1 Frontend Dependencies](#31-area-71--frontend-dependency-audit) | npm packages, vulnerabilities | 4H / 10L | 5 | ✅ Complete |
+| [7.2 Backend Dependencies](#32-area-72--backend-dependency-audit) | NuGet packages, CVEs | 1H / 19 outdated | 5 | ✅ Complete |
 | [7.3 Frontend Code Quality](#33-area-73--frontend-code-quality--security) | TypeScript, CSP, sanitization | 5M / 4L | 5 | Not Started |
 | [7.4 Backend Code Quality](#34-area-74--backend-code-quality--security) | OWASP, CORS, race conditions | 4M / 4L | 5 | Not Started |
 | [7.5 IaC & Azure Security](#35-area-75--infrastructure-as-code--azure-security) | Bicep modules, Key Vault, monitoring | 10M / 8L | 4 | Not Started |
@@ -39,20 +39,20 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | ID | Severity | Finding | Track | Status |
 |----|----------|---------|-------|--------|
-| 7.1-1 | HIGH | 14 npm vulnerabilities (10 low, 4 high — all dev-only transitive) | Track 1: Security fixes | Not Started |
-| 7.1-2 | MEDIUM | 18 outdated packages | Track 2: Safe updates | Not Started |
-| 7.1-3 | MEDIUM | No Dependabot configured | Track 4: CI hardening | Not Started |
-| 7.1-4 | MEDIUM | No `npm audit` gate in CI | Track 4: CI hardening | Not Started |
+| 7.1-1 | HIGH | 14 npm vulnerabilities (10 low, 4 high — all dev-only transitive) | Track 1: Security fixes | ✅ Fixed |
+| 7.1-2 | MEDIUM | 18 outdated packages | Track 2: Safe updates | ✅ Fixed |
+| 7.1-3 | MEDIUM | No Dependabot configured | Track 4: CI hardening | ✅ Fixed |
+| 7.1-4 | MEDIUM | No `npm audit` gate in CI | Track 4: CI hardening | ✅ Fixed |
 
 **Tracks:**
 
 | # | Track | Status |
 |---|-------|--------|
-| 1 | Security fixes — npm overrides for ajv/flatted/serialize-javascript | Not Started |
-| 2 | Safe minor/patch updates — next, lucide-react, tailwind-merge, Storybook, jest, types | Not Started |
-| 3 | CMS dependency updates — Strapi 5 latest patch, mysql2 | Not Started |
-| 4 | CI hardening — npm audit gate + Dependabot configuration | Not Started |
-| 5 | Documentation — Decision 51 | Not Started |
+| 1 | Security fixes — npm overrides for ajv/flatted/serialize-javascript | ✅ Complete |
+| 2 | Safe minor/patch updates — next, lucide-react, tailwind-merge, Storybook, jest, types | ✅ Complete |
+| 3 | CMS dependency updates — Strapi 5 latest patch, mysql2 | ✅ Complete |
+| 4 | CI hardening — npm audit gate + Dependabot configuration | ✅ Complete |
+| 5 | Documentation — Decision 54 | ✅ Complete |
 
 **Accepted Risks:**
 
@@ -71,20 +71,20 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | ID | Severity | Finding | Track | Status |
 |----|----------|---------|-------|--------|
-| 7.2-1 | HIGH | CVE-2024-43483 DoS in `Microsoft.Extensions.Caching.Memory 8.0.0` (test-only) | Track 1: Security fix | Not Started |
-| 7.2-2 | MEDIUM | 19 outdated packages (all within .NET 8.x servicing) | Track 2–3: Updates | Not Started |
-| 7.2-3 | MEDIUM | No CI vulnerability gate for NuGet | Track 4: CI hardening | Not Started |
-| 7.2-4 | MEDIUM | No Dependabot for NuGet | Track 4: CI hardening | Not Started |
+| 7.2-1 | HIGH | CVE-2024-43483 DoS in `Microsoft.Extensions.Caching.Memory 8.0.0` (test-only) | Track 1: Security fix | ✅ Fixed |
+| 7.2-2 | MEDIUM | 19 outdated packages (all within .NET 8.x servicing) | Track 2–3: Updates | ✅ Fixed |
+| 7.2-3 | MEDIUM | No CI vulnerability gate for NuGet | Track 4: CI hardening | ✅ Fixed |
+| 7.2-4 | MEDIUM | No Dependabot for NuGet | Track 4: CI hardening | ✅ Fixed |
 
 **Tracks:**
 
 | # | Track | Status |
 |---|-------|--------|
-| 1 | Security fix — CVE-2024-43483 patch (8.0.0 → 8.0.1) | Not Started |
-| 2 | Production dependency updates (Api, Data, Infrastructure to latest .NET 8.x) | Not Started |
-| 3 | Test infrastructure updates (xUnit, FluentAssertions, SDK, coverlet) | Not Started |
-| 4 | CI hardening — NuGet vulnerability gate + Dependabot config | Not Started |
-| 5 | Documentation — Decision entry | Not Started |
+| 1 | Security fix — CVE-2024-43483 patch (8.0.0 → 8.0.1) | ✅ Complete |
+| 2 | Production dependency updates (Api, Data, Infrastructure to latest .NET 8.x) | ✅ Complete |
+| 3 | Test infrastructure updates (xUnit, FluentAssertions, SDK, coverlet) | ✅ Complete |
+| 4 | CI hardening — NuGet vulnerability gate + Dependabot config | ✅ Complete |
+| 5 | Documentation — Decision 55 | ✅ Complete |
 
 **Deferred:** .NET 9/10 upgrade (~Nov 2026 when .NET 10 LTS available), Swashbuckle → Microsoft.AspNetCore.OpenApi (with .NET 9+), xUnit 3.x (major API changes)
 
