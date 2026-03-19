@@ -1,6 +1,6 @@
 # Quality & Hardening Evaluation
 
-**Last Updated:** 2026-03-19 (Phase 7.9 complete)
+**Last Updated:** 2026-03-19 (Phase 7 — all 10 areas complete)
 **Audience:** Solutions Architects, Security Engineers, all developers
 **Purpose:** Consolidate all Phase 7 quality and hardening evaluation findings, implementation status, accepted risks, and deferred items into a single architect-facing reference. Updated as implementations progress.
 
@@ -27,7 +27,7 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 | [7.7 Docker & Containers](#37-area-77--docker--container-security) | Dockerfiles, compose, images | 3M / 2L | 5 | ✅ Complete |
 | [7.8 Testing Coverage](#38-area-78--testing-coverage--quality) | Jest, xUnit, Playwright, Lighthouse | 5M / 5L | 4 | ✅ Complete |
 | [7.9 Documentation](#39-area-79--documentation-completeness--accuracy) | Stale docs, cross-references | 4M / 2L | 3 | ✅ Complete |
-| [7.10 Production Readiness](#310-area-710--production-readiness--observability) | Alerts, SEO, telemetry, probes | 6M / 3L | 5 | Not Started |
+| [7.10 Production Readiness](#310-area-710--production-readiness--observability) | Alerts, SEO, telemetry, probes | 6M / 3L | 5 | ✅ Complete |
 
 ---
 
@@ -347,9 +347,9 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 | Risk | Rationale |
 |------|-----------|
 | Dead links to `COMPREHENSIVE_TEST_PLAN.md` (8 occurrences) | Fixed as optional track — TESTING_STRATEGY.md + MANUAL_TEST_EXECUTION_GUIDE.md updated to `MANUAL_TEST_PLAN.md` |
-| `SYSTEM_OVERVIEW.md` missing IaC reference | Architecturally accurate; `INFRASTRUCTURE_MANAGEMENT.md` is SSOT |
+| `SYSTEM_OVERVIEW.md` missing IaC reference | ✅ Resolved — IaC and QUALITY_HARDENING.md links added in Phase 7 cleanup |
 
-**Strengths (no action needed):** DOCUMENTATION_INDEX excellent, 52+ decisions logged, API docs complete, CMS component docs comprehensive (26 components), 14 Mermaid diagrams all embedded, GOVERNANCE.md authoritative.
+**Strengths (no action needed):** DOCUMENTATION_INDEX excellent, 52+ decisions logged, API docs complete, CMS component docs comprehensive (26 components), 15 Mermaid diagrams all embedded, GOVERNANCE.md authoritative.
 
 ---
 
@@ -359,25 +359,25 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | ID | Severity | Finding | Track | Status |
 |----|----------|---------|-------|--------|
-| 7.10-1 | MEDIUM | Alert action groups not wired — alerts fire, nobody notified | Track 1: Alert routing | Not Started |
-| 7.10-2 | MEDIUM | No `robots.txt` or XML sitemap | Track 2: SEO | Not Started |
-| 7.10-3 | MEDIUM | `metadataBase` uses placeholder URL | Track 2: SEO | Not Started |
-| 7.10-4 | MEDIUM | No Container Apps liveness/readiness/startup probes in IaC | Track 3: Health probes | Not Started |
-| 7.10-5 | MEDIUM | Zero `TelemetryClient` business telemetry | Track 4: Telemetry | Not Started |
-| 7.10-6 | MEDIUM | Web container missing 6 env vars in IaC (AUTH/Strapi) | Track 3: Env parity | Not Started |
-| 7.10-7 | LOW | Exception spike threshold is 20; should be 10 | Track 1 (with 7.5) | Not Started |
-| 7.10-8 | LOW | MONITORING_GUIDE.md pre-dates IaC integration | Track 5: Docs | Not Started |
-| 7.10-9 | LOW | No Lighthouse accessibility score gated in CI | Track 5: CI gate | Not Started |
+| 7.10-1 | MEDIUM | Alert action groups not wired — alerts fire, nobody notified | Track 1: Alert routing | ✅ Fixed |
+| 7.10-2 | MEDIUM | No `robots.txt` or XML sitemap | Track 2: SEO | ✅ Fixed |
+| 7.10-3 | MEDIUM | `metadataBase` uses placeholder URL | Track 2: SEO | ✅ Fixed |
+| 7.10-4 | MEDIUM | No Container Apps liveness/readiness/startup probes in IaC | Track 3: Health probes | ✅ Fixed |
+| 7.10-5 | MEDIUM | Zero `TelemetryClient` business telemetry | Track 4: Telemetry | ✅ Fixed |
+| 7.10-6 | MEDIUM | Web container missing 6 env vars in IaC (AUTH/Strapi) | Track 3: Env parity | ✅ Fixed |
+| 7.10-7 | LOW | Exception spike threshold is 20; should be 10 | Track 1 (with 7.5) | ✅ Fixed |
+| 7.10-8 | LOW | MONITORING_GUIDE.md pre-dates IaC integration | Track 5: Docs | ✅ Fixed |
+| 7.10-9 | LOW | No Lighthouse accessibility score gated in CI | Track 5: CI gate | ✅ Fixed |
 
 **Tracks:**
 
 | # | Track | Status |
 |---|-------|--------|
-| 1 | Alert action group wiring + threshold adjustment | Not Started |
-| 2 | SEO essentials — `robots.ts`, `sitemap.ts`, `metadataBase` | Not Started |
-| 3 | IaC health probes & env parity — probes + 6 missing env vars | Not Started |
-| 4 | Business telemetry — `TelemetryClient` in `PatternService` | Not Started |
-| 5 | Documentation & CI updates — MONITORING_GUIDE, Lighthouse a11y gate | Not Started |
+| 1 | Alert action group wiring + threshold adjustment | ✅ Complete |
+| 2 | SEO essentials — `robots.ts`, `sitemap.ts`, `metadataBase` | ✅ Complete |
+| 3 | IaC health probes & env parity — probes + 6 missing env vars | ✅ Complete |
+| 4 | Business telemetry — `TelemetryClient` in `PatternService` | ✅ Complete |
+| 5 | Documentation & CI updates — MONITORING_GUIDE, Lighthouse a11y gate | ✅ Complete |
 
 **Accepted Risks:**
 
@@ -393,7 +393,78 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 ---
 
-## 4. Cross-Area Dependencies
+## 4. CI/CD Quality Gates Pipeline
+
+The following diagram shows how Phase 7 hardening work integrates into the deployment pipeline. Every quality gate must pass before code reaches production.
+
+```mermaid
+flowchart TD
+    %% ── Trigger ────────────────────────────────────────────────────────────
+    Push(["Push to main /<br/>Pull Request"])
+
+    %% ── Test Stage ─────────────────────────────────────────────────────────
+    subgraph Tests["🧪 Test Stage (test.yml)"]
+        direction TB
+        NpmAudit["npm audit<br/>--omit=dev<br/>(7.1)"]
+        NuGetAudit["dotnet list package<br/>--vulnerable<br/>(7.2)"]
+        BackendTests["114 xUnit tests<br/>+ Codecov<br/>(7.8)"]
+        FrontendTests["396 Jest tests<br/>≥ 70% coverage<br/>(7.8)"]
+        ESLint["ESLint<br/>+ security plugin<br/>(7.3)"]
+        E2E["42 E2E × 3 browsers<br/>Chromium · Firefox · WebKit<br/>(6.4)"]
+    end
+
+    %% ── Parallel Quality Gates ─────────────────────────────────────────────
+    subgraph Gates["🔒 Quality Gates (parallel)"]
+        direction LR
+        Docker["Docker Build<br/>SHA-pinned FROM<br/>Alpine · non-root<br/>(7.7)"]
+        Lighthouse["Lighthouse CI<br/>LCP · FCP · TTI<br/>Perf ≥ 0.80<br/>a11y ≥ 0.90<br/>(7.10)"]
+        Chromatic["Chromatic<br/>38 stories<br/>visual regression<br/>(6.4)"]
+    end
+
+    %% ── Deploy Stage ───────────────────────────────────────────────────────
+    subgraph Deploy["🚀 Deploy"]
+        direction TB
+        ACR["Push to ACR<br/>(SHA-pinned Actions)<br/>(7.6)"]
+        CAE["Container Apps<br/>startup · liveness<br/>readiness probes<br/>(7.10)"]
+        Health["Healthcheck<br/>/health + /health/ready"]
+        Rollback["Auto-rollback<br/>on failure<br/>(7.6 fix)"]
+    end
+
+    %% ── Production ─────────────────────────────────────────────────────────
+    subgraph Prod["📊 Production Observability"]
+        direction LR
+        Telemetry["App Insights<br/>PatternViewed<br/>PatternVoted<br/>cache metrics<br/>(7.10)"]
+        Alerts["Alert Rules<br/>action group<br/>exception ≥ 10<br/>(7.5 / 7.10)"]
+        SEO["robots.ts<br/>sitemap.ts<br/>(7.10)"]
+    end
+
+    %% ── Connections ────────────────────────────────────────────────────────
+    Push --> Tests
+    Tests --> Gates
+    Gates --> Deploy
+    Deploy --> Prod
+    ACR --> CAE --> Health
+    Health -->|"failure"| Rollback
+
+    %% ── Styles ─────────────────────────────────────────────────────────────
+    classDef trigger  fill:#F9FAFB,stroke:#6B7280,stroke-width:2px,color:#111827,font-weight:bold
+    classDef test     fill:#DBEAFE,stroke:#2563EB,stroke-width:2px,color:#1E3A8A
+    classDef gate     fill:#D1FAE5,stroke:#059669,stroke-width:2px,color:#064E3B
+    classDef deploy   fill:#FEF3C7,stroke:#D97706,stroke-width:2px,color:#78350F
+    classDef prod     fill:#EDE9FE,stroke:#7C3AED,stroke-width:2px,color:#3B0764
+
+    class Push trigger
+    class NpmAudit,NuGetAudit,BackendTests,FrontendTests,ESLint,E2E test
+    class Docker,Lighthouse,Chromatic gate
+    class ACR,CAE,Health,Rollback deploy
+    class Telemetry,Alerts,SEO prod
+```
+
+> **Legend:** 🔵 Blue = test stage · 🟢 Green = quality gates · 🟡 Amber = deployment · 🟣 Purple = production observability. Phase numbers in parentheses indicate which Phase 7 area implemented the gate.
+
+---
+
+## 5. Cross-Area Dependencies
 
 | Item | Owner Area | Related Areas | Notes |
 |------|-----------|---------------|-------|
@@ -449,7 +520,7 @@ All risks below were evaluated and explicitly accepted with documented rationale
 | AR-32 | 7.8 | Radix UI mocked in Jest | LOW | Documented; real E2E testing |
 | AR-33 | 7.8 | Chromatic `exit-zero-on-changes` | LOW | Baseline pending |
 | AR-34 | 7.9 | Dead links to `COMPREHENSIVE_TEST_PLAN.md` | LOW | Trivial fix; optional |
-| AR-35 | 7.9 | `SYSTEM_OVERVIEW.md` missing IaC reference | LOW | Architecturally accurate |
+| AR-35 | 7.9 | ~~`SYSTEM_OVERVIEW.md` missing IaC reference~~ | ~~LOW~~ | ✅ Resolved in Phase 7 cleanup |
 | AR-36 | 7.10 | Unstructured frontend logging | LOW | Container Apps captures console |
 | AR-37 | 7.10 | No frontend App Insights SDK | LOW | Bundle cost; server-side tracked |
 | AR-38 | 7.10 | No `Cache-Control` headers on API | LOW | ISR handles caching |
@@ -458,7 +529,7 @@ All risks below were evaluated and explicitly accepted with documented rationale
 
 ---
 
-## 6. Deferred to Future Phases
+## 7. Deferred to Future Phases
 
 | Item | Target Phase | Estimated Effort | Reason for Deferral |
 |------|-------------|-----------------|---------------------|
@@ -484,7 +555,7 @@ All risks below were evaluated and explicitly accepted with documented rationale
 
 ---
 
-## 7. References
+## 8. References
 
 ### Individual Evaluation Plans
 - [PHASE_QUALITY_HARDENING_PLAN.md](../project/PHASE_QUALITY_HARDENING_PLAN.md) — Master evaluation coordinator

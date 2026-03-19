@@ -136,9 +136,11 @@ backend/
 ### 3.3 Test Results & Documentation
 ```
 documentation/
-├── test_results/                  # All test execution reports
-│   ├── phase5_test_results.md
-│   └── test_run_2026-02-13.md
+├── test_results/                  # Retention: current phase + 2 prior
+│   ├── COMPREHENSIVE_TEST_RESULTS.md  # Archived (exempt from retention)
+│   ├── phase5_1_auth_test_results.md  # Phase 5 (N-2)
+│   ├── phase6_test_results.md         # Phase 6 (N-1)
+│   └── phase7_8_testing_baseline.md   # Phase 7 (current)
 ├── TESTING_STRATEGY.md            # This document
 └── MANUAL_TEST_PLAN.md            # Manual test cases
 ```
@@ -270,7 +272,7 @@ Tests run automatically in GitHub Actions on:
 - ✅ All E2E tests must pass on all three browsers (Chromium, Firefox, WebKit)
 - ✅ Code coverage ≥ 70% all four metrics (stmt/branch/fn/line — enforced via `jest.config.mjs`)
 - ✅ No critical accessibility violations (axe-core failures block merge)
-- ✅ Lighthouse CI thresholds: LCP < 2500ms, FCP < 1800ms, TTI < 5000ms, Performance ≥ 0.80
+- ✅ Lighthouse CI thresholds: LCP < 2500ms, FCP < 1800ms, TTI < 5000ms, Performance ≥ 0.80, Accessibility ≥ 0.90 (warn — Phase 7.10)
 - ✅ Chromatic: no unreviewed visual changes (once baseline is accepted and `continue-on-error` removed)
 - ⚠️ No high-severity security vulnerabilities (npm audit, Snyk, or similar)
 
@@ -440,7 +442,7 @@ Phase 7.8 (Testing Coverage & Quality) audited all test layers. Testing infrastr
 
 **Testing baseline (Phase 7.8):**
 - Frontend: 396/396 Jest tests passing; 76.04% lines / 76.77% branches / 71.70% fn / 75.84% stmt (CI gate: 70%)
-- Backend: 105/105 xUnit tests passing; ~85% testable coverage; Codecov upload in CI
+- Backend: 114/114 xUnit tests passing; ~85% testable coverage; Codecov upload in CI (9 telemetry tests added in Phase 7.10)
 - E2E: 42 tests × 3 browsers; critical flows + auth guards; API-write tests opt-in (`E2E_API_WRITES=true`)
 - Lighthouse CI, Chromatic (38 stories), 4 a11y suites — all in CI
 
@@ -485,10 +487,10 @@ If enabling in CI: set `E2E_API_WRITES: true` in the `e2e-tests` job environment
 
 ---
 
-### Next Phase: Phase 6.7
-- CMS Content Migration — Tests & Documentation
+### Next Phase: Phase 8
+- Community Features, Integrations & Performance (includes Stryker mutation testing, k6 load testing)
 
-See [../project/PHASE_CMS_CONTENT_PLAN.md](../project/PHASE_CMS_CONTENT_PLAN.md) for the implementation plan.
+See [../project/ROADMAP.md](../project/ROADMAP.md) for the full phase plan.
 
 ### Maintenance
 - Update tests as features are added/modified

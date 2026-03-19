@@ -1,6 +1,6 @@
 # Diagram Index
 
-**Last Updated:** 2026-03-02
+**Last Updated:** 2026-03-19
 **Audience:** All contributors
 **Purpose:** Documents the complete set of Mermaid diagrams for this project — where each diagram lives and the conventions used to create them.
 
@@ -8,7 +8,7 @@
 
 ## Overview
 
-All diagrams use **Mermaid** format (renders natively in GitHub) and are embedded directly in their target architecture documents. There are 14 diagrams total.
+All diagrams use **Mermaid** format (renders natively in GitHub) and are embedded directly in their target architecture documents. There are 15 diagrams total.
 
 ---
 
@@ -73,6 +73,12 @@ When adding a diagram placeholder in a document, use:
 | Diagram | Target Document | Format |
 |---------|----------------|--------|
 | Backend Domain Model | [documentation/architecture/BACKEND_ARCHITECTURE.md](../architecture/BACKEND_ARCHITECTURE.md) | Mermaid classDiagram |
+
+### Pipeline Diagram
+
+| Diagram | Target Document | Format |
+|---------|----------------|--------|
+| CI/CD Quality Gates Pipeline | [documentation/architecture/QUALITY_HARDENING.md](../architecture/QUALITY_HARDENING.md) | Mermaid flowchart TD |
 
 ---
 

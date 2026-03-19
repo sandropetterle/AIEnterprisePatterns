@@ -221,7 +221,7 @@ Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 
 **Key docs:** `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (53 decisions), `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
-**Diagrams:** All 14 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
+**Diagrams:** All 15 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
 
 **Storybook:** Stories are colocated with their components (`*.stories.tsx`). Config in `.storybook/`. Shared fixtures in `.storybook/fixtures.ts`. Mock for `next-auth/react` in `.storybook/mocks/next-auth-react.tsx`.
 
