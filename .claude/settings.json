@@ -113,7 +113,10 @@
       "Bash(docker pull:*)",
       "Bash(docker build:*)",
       "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\)[0]; print\\(''''Base:'''', d[''''Config''''][''''Image''''] if ''''Image'''' in d[''''Config''''] else ''''n/a''''\\); [print\\(e\\) for e in d[''''Config''''][''''Env''''] if ''''ASPNETCORE'''' in e]\")",
-      "Read(//c/Users/Users/sandr/Documents/Projects/AIEnterprisePatterns/**)"
+      "Read(//c/Users/Users/sandr/Documents/Projects/AIEnterprisePatterns/**)",
+      "Bash(az keyvault:*)",
+      "Bash(az mysql:*)",
+      "Bash(az containerapp:*)"
     ],
     "additionalDirectories": [
       "C:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\cms\\src\\components\\shared",
