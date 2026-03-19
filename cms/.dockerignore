@@ -8,3 +8,18 @@ build
 .env.*
 !.env.example
 public/uploads
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+
+# Docs
+*.md
