@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "10328243875934625196"
+      "templateHash": "13591761863153385802"
     }
   },
   "parameters": {
@@ -21,19 +21,38 @@
       "metadata": {
         "description": "MySQL admin password"
       }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags applied to all resources in this module"
+      }
+    },
+    "mysqlServerName": {
+      "type": "string",
+      "defaultValue": "mysql-aipatterns-cms",
+      "metadata": {
+        "description": "MySQL Flexible Server resource name"
+      }
+    },
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "staipatternsmedia",
+      "metadata": {
+        "description": "Storage account resource name"
+      }
     }
   },
   "variables": {
-    "mysqlServerName": "mysql-aipatterns-cms",
-    "mysqlAdminLogin": "mysqladmin",
-    "storageAccountName": "staipatternsmedia"
+    "mysqlAdminLogin": "mysqladmin"
   },
   "resources": [
     {
       "type": "Microsoft.DBforMySQL/flexibleServers",
       "apiVersion": "2023-06-30",
-      "name": "[variables('mysqlServerName')]",
+      "name": "[parameters('mysqlServerName')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "sku": {
         "name": "Standard_B1ms",
         "tier": "Burstable"
@@ -58,32 +77,33 @@
     {
       "type": "Microsoft.DBforMySQL/flexibleServers/databases",
       "apiVersion": "2023-06-30",
-      "name": "[format('{0}/{1}', variables('mysqlServerName'), 'strapi_cms')]",
+      "name": "[format('{0}/{1}', parameters('mysqlServerName'), 'strapi_cms')]",
       "properties": {
         "charset": "utf8mb4",
         "collation": "utf8mb4_unicode_ci"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.DBforMySQL/flexibleServers', variables('mysqlServerName'))]"
+        "[resourceId('Microsoft.DBforMySQL/flexibleServers', parameters('mysqlServerName'))]"
       ]
     },
     {
       "type": "Microsoft.DBforMySQL/flexibleServers/firewallRules",
       "apiVersion": "2023-06-30",
-      "name": "[format('{0}/{1}', variables('mysqlServerName'), 'AllowAzureServices')]",
+      "name": "[format('{0}/{1}', parameters('mysqlServerName'), 'AllowAzureServices')]",
       "properties": {
         "startIpAddress": "0.0.0.0",
         "endIpAddress": "0.0.0.0"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.DBforMySQL/flexibleServers', variables('mysqlServerName'))]"
+        "[resourceId('Microsoft.DBforMySQL/flexibleServers', parameters('mysqlServerName'))]"
       ]
     },
     {
       "type": "Microsoft.Storage/storageAccounts",
       "apiVersion": "2022-09-01",
-      "name": "[variables('storageAccountName')]",
+      "name": "[parameters('storageAccountName')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "sku": {
         "name": "Standard_LRS"
       },
@@ -98,20 +118,20 @@
     {
       "type": "Microsoft.Storage/storageAccounts/blobServices",
       "apiVersion": "2022-09-01",
-      "name": "[format('{0}/{1}', variables('storageAccountName'), 'default')]",
+      "name": "[format('{0}/{1}', parameters('storageAccountName'), 'default')]",
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts', variables('storageAccountName'))]"
+        "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]"
       ]
     },
     {
       "type": "Microsoft.Storage/storageAccounts/blobServices/containers",
       "apiVersion": "2022-09-01",
-      "name": "[format('{0}/{1}/{2}', variables('storageAccountName'), 'default', 'strapi-media')]",
+      "name": "[format('{0}/{1}/{2}', parameters('storageAccountName'), 'default', 'strapi-media')]",
       "properties": {
         "publicAccess": "Blob"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', variables('storageAccountName'), 'default')]"
+        "[resourceId('Microsoft.Storage/storageAccounts/blobServices', parameters('storageAccountName'), 'default')]"
       ]
     }
   ],
@@ -121,14 +141,14 @@
       "metadata": {
         "description": "MySQL server fully qualified domain name"
       },
-      "value": "[reference(resourceId('Microsoft.DBforMySQL/flexibleServers', variables('mysqlServerName')), '2023-06-30').fullyQualifiedDomainName]"
+      "value": "[reference(resourceId('Microsoft.DBforMySQL/flexibleServers', parameters('mysqlServerName')), '2023-06-30').fullyQualifiedDomainName]"
     },
     "storageAccountName": {
       "type": "string",
       "metadata": {
         "description": "Storage account name for Strapi media"
       },
-      "value": "[variables('storageAccountName')]"
+      "value": "[parameters('storageAccountName')]"
     }
   }
 }

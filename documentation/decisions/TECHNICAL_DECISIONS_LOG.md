@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-03-19 (Phase 7.9)
+**Last Updated:** 2026-03-19 (Phase 7.10)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**61 active decisions | 0 archived**
+**62 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,46 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 62: Phase 7.10 — Production Readiness & Observability Hardening
+
+**Date:** 2026-03-19
+**Title:** Phase 7.10 Production Readiness — Five Tracks Address All MEDIUM Findings
+**Category:** Operations / Infrastructure / Observability
+
+### Summary
+
+Phase 7.10 is a systematic audit of production readiness and observability. The system was in good shape overall (fundamentals solid: App Insights wired, health endpoints, security headers, ISR caching). Six MEDIUM findings and five LOW accepted risks were identified. Five implementation tracks address all actionable items.
+
+### Decisions Made
+
+**Track 1 — Alert Action Group:** Already implemented in Phase 7.5. Alert action group with email receiver conditional on `alertEmail` parameter is wired into all 4 metric alerts in `monitoring.bicep`. No further action required.
+
+**Track 2 — SEO Essentials:** Created `app/robots.ts` (Next.js Metadata API, disallows `/api/` and `/login/`) and `app/sitemap.ts` (fetches all patterns dynamically, falls back to static routes if API unavailable). Updated `metadataBase` and OpenGraph `url` in `app/layout.tsx` from placeholder `ai-patterns.example.com` to the production Container Apps URL.
+
+**Track 3 — IaC Health Probes & Env Parity:** Added startup/liveness/readiness HTTP probes to both API (port 8080, `/health` / `/health/ready`) and web (port 3000, `/`) container apps in `containerApps.bicep`. Added 6 missing web container env vars (`AUTH_ENTRA_ISSUER`, `AUTH_ENTRA_CLIENT_ID`, `AUTH_API_SCOPE_READ`, `AUTH_API_SCOPE_WRITE`, `STRAPI_URL`, `STRAPI_API_TOKEN`). `STRAPI_API_TOKEN` is a Key Vault secret reference. All new params threaded through `main.bicep` with production defaults.
+
+**Track 4 — Business Telemetry:** Injected `TelemetryClient` into `PatternService` (auto-registered by `AddApplicationInsightsTelemetry()`). Added `TrackEvent()` calls: `PatternViewed` (slug, category), `PatternVoted` (patternId), `PatternSearched` (search, category, tagCount — only when filter applied), `PatternCreated` (slug, category), `PatternUpdated` (slug, category). Added `TrackMetric()` for featured/trending cache hit/miss. Added `Microsoft.ApplicationInsights` package to Core project. Added 5 unit tests verifying telemetry assertions via `FakeTelemetryChannel`.
+
+**Track 5 — Documentation & CI:** Updated `MONITORING_GUIDE.md` performance baselines to reflect IaC and CMS integration; updated continuous improvement section with completed/deferred items. Added `categories:accessibility: warn, minScore: 0.90` to `lighthouserc.yml`.
+
+### Alternatives Evaluated
+
+- **TelemetryClient in Infrastructure layer:** Would avoid adding `Microsoft.ApplicationInsights` to Core. Rejected — Core already has `IMemoryCache` from Microsoft.Extensions; App Insights base package is a stable, low-risk addition. Placing tracking in the service layer keeps business intent visible where business logic lives.
+- **Separate liveness endpoint (`/health/live`):** Would allow probes to differentiate container alive vs. DB ready. Accepted risk — DB check is the only meaningful health signal; Container Apps probes with `/health` / `/health/ready` are the real fix over the TCP default.
+- **Frontend App Insights JS SDK:** Would give client-side RUM and session tracking. Deferred — requires `'use client'` instrumentation wrapper, increases bundle size; server-side API calls already tracked by backend App Insights.
+
+### Accepted Risks
+
+| # | Risk | Rationale |
+|---|------|-----------|
+| 1 | Unstructured frontend logging | Container Apps captures console output; structured logging library adds complexity for minimal gain at this scale |
+| 2 | No frontend App Insights SDK | Bundle cost; server-side tracking covers the critical path |
+| 3 | No explicit Cache-Control on API responses | ISR handles frontend caching; browser-level API caching not needed |
+| 4 | No bundle size budget in CI | Lighthouse performance ≥ 0.80 implicitly gates egregious bundle growth |
+| 5 | `/health` and `/health/ready` identical | DB check is the only dependency; Container Apps probes are the real fix |
 
 ---
 

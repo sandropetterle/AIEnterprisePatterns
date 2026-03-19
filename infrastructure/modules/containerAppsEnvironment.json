@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "17656408886097553745"
+      "templateHash": "12000847634764458283"
     }
   },
   "parameters": {
@@ -26,6 +26,12 @@
       "metadata": {
         "description": "Log Analytics workspace resource ID"
       }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags applied to all resources in this module"
+      }
     }
   },
   "resources": [
@@ -34,6 +40,7 @@
       "apiVersion": "2023-05-01",
       "name": "cae-aipatterns-prod",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "properties": {
         "appLogsConfiguration": {
           "destination": "log-analytics",

@@ -9,6 +9,11 @@ on:
       - '.github/workflows/cms-container-deploy.yml'
   workflow_dispatch:
 
+# Queue deploys — never cancel a deploy mid-flight
+concurrency:
+  group: deploy-cms-${{ github.ref }}
+  cancel-in-progress: false
+
 env:
   AZURE_CONTAINER_APP: 'ca-aipatterns-cms-prod'
   RESOURCE_GROUP: 'rg-aipatterns-prod'
@@ -25,10 +30,10 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
 
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@eec3c95657c1536435858eda1f3ff5437fee8474 # v2.3.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -43,13 +48,11 @@ jobs:
           docker build \
             --target production \
             -t ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
-            -t ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest \
             .
 
       - name: Push Docker image
         run: |
           docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }}
-          docker push ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:latest
 
       - name: Logout from Azure
         run: az logout
@@ -68,7 +71,7 @@ jobs:
 
     steps:
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@eec3c95657c1536435858eda1f3ff5437fee8474 # v2.3.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -106,7 +109,7 @@ jobs:
 
     steps:
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@eec3c95657c1536435858eda1f3ff5437fee8474 # v2.3.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}
@@ -147,10 +150,39 @@ jobs:
         run: az logout
         if: always()
 
+  tag-latest:
+    name: Tag as Latest
+    runs-on: ubuntu-latest
+    needs: healthcheck
+    if: success()
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Login to Azure
+        uses: azure/login@eec3c95657c1536435858eda1f3ff5437fee8474 # v2.3.0
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Tag image as latest
+        run: |
+          az acr import \
+            --name ${{ env.CONTAINER_REGISTRY }} \
+            --source ${{ env.CONTAINER_REGISTRY }}.azurecr.io/${{ env.IMAGE_NAME }}:${{ github.sha }} \
+            --image ${{ env.IMAGE_NAME }}:latest \
+            --force
+
+      - name: Logout from Azure
+        run: az logout
+        if: always()
+
   rollback:
     name: Rollback on Failure
     runs-on: ubuntu-latest
-    needs: healthcheck
+    needs: [healthcheck, tag-latest]
     if: failure()
     permissions:
       id-token: write
@@ -158,7 +190,7 @@ jobs:
 
     steps:
       - name: Login to Azure
-        uses: azure/login@v2
+        uses: azure/login@eec3c95657c1536435858eda1f3ff5437fee8474 # v2.3.0
         with:
           client-id: ${{ secrets.AZURE_CLIENT_ID }}
           tenant-id: ${{ secrets.AZURE_TENANT_ID }}

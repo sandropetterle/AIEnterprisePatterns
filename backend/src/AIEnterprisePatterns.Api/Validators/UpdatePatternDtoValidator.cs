@@ -30,7 +30,8 @@ public class UpdatePatternDtoValidator : AbstractValidator<UpdatePatternDto>
             .WithMessage("Maximum 10 tags allowed.");
 
         RuleForEach(x => x.Tags)
-            .NotEmpty()
+            .Must(t => !string.IsNullOrWhiteSpace(t))
+            .WithMessage("Tags must not be empty or whitespace.")
             .MaximumLength(50);
 
         RuleFor(x => x.Author)

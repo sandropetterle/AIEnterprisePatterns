@@ -34,6 +34,9 @@ ci:
       categories:performance:
         - error
         - minScore: 0.80
+      categories:accessibility:
+        - warn
+        - minScore: 0.90
 
   upload:
     # Posts results to a temporary public URL (no token required).

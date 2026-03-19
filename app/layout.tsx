@@ -21,11 +21,11 @@ export const metadata: Metadata = {
   authors: [{ name: 'AI Enterprise Patterns' }],
   creator: 'AI Enterprise Patterns',
   publisher: 'AI Enterprise Patterns',
-  metadataBase: new URL('https://ai-patterns.example.com'),
+  metadataBase: new URL('https://ca-aipatterns-web-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io'),
   openGraph: {
     type: 'website',
     locale: 'en_US',
-    url: 'https://ai-patterns.example.com',
+    url: 'https://ca-aipatterns-web-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io',
     siteName: 'AI Enterprise Patterns Library',
     title: 'AI Enterprise Patterns Library',
     description: 'Curated AI-driven recipes, prompts, and blueprints for enterprise software architecture',

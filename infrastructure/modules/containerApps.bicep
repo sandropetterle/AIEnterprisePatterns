@@ -18,12 +18,29 @@ param acrLoginServer string
 @description('ACR resource ID (for AcrPull role assignment)')
 param acrResourceId string
 
-@description('Key Vault name (for secret references in API app)')
+@description('Key Vault name (for secret references in all apps)')
 param kvName string
 
-@description('Application Insights connection string')
-@secure()
-param appInsightsConnectionString string
+@description('Public API base URL for the frontend app')
+param apiBaseUrl string = 'https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/api'
+
+@description('Azure Entra External ID OIDC issuer URL')
+param authEntraIssuer string = 'https://aipatterns.ciamlogin.com/aipatterns.onmicrosoft.com/v2.0'
+
+@description('Azure Entra External ID frontend client ID')
+param authEntraClientId string = ''
+
+@description('Auth.js API scope for read access')
+param authApiScopeRead string = 'api://aipatterns-api/patterns.read'
+
+@description('Auth.js API scope for write access')
+param authApiScopeWrite string = 'api://aipatterns-api/patterns.write'
+
+@description('Strapi CMS public URL (Container App FQDN)')
+param strapiUrl string = 'https://ca-aipatterns-cms-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io'
+
+@description('Resource tags applied to all resources in this module')
+param tags object
 
 // Image tags — placeholder used on first deploy; CI manages these via az containerapp update
 @description('API container image (including tag). Set to placeholder on first deploy.')
@@ -43,6 +60,7 @@ var acrPullRoleId = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
 resource apiApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'ca-aipatterns-api-prod'
   location: location
+  tags: tags
   identity: {
     type: 'SystemAssigned'
   }
@@ -64,7 +82,8 @@ resource apiApp 'Microsoft.App/containerApps@2023-05-01' = {
       secrets: [
         {
           name: 'appinsights-connection-string'
-          value: appInsightsConnectionString
+          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/appinsights-connection-string'
+          identity: 'system'
         }
         {
           name: 'sql-connection-string'
@@ -122,6 +141,36 @@ resource apiApp 'Microsoft.App/containerApps@2023-05-01' = {
               value: 'true'
             }
           ]
+          probes: [
+            {
+              type: 'Startup'
+              httpGet: {
+                path: '/health'
+                port: 8080
+              }
+              initialDelaySeconds: 30
+              periodSeconds: 10
+              failureThreshold: 3
+            }
+            {
+              type: 'Liveness'
+              httpGet: {
+                path: '/health'
+                port: 8080
+              }
+              periodSeconds: 10
+              failureThreshold: 3
+            }
+            {
+              type: 'Readiness'
+              httpGet: {
+                path: '/health/ready'
+                port: 8080
+              }
+              periodSeconds: 10
+              failureThreshold: 3
+            }
+          ]
         }
       ]
       scale: {
@@ -148,6 +197,7 @@ resource apiAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 resource webApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'ca-aipatterns-web-prod'
   location: location
+  tags: tags
   identity: {
     type: 'SystemAssigned'
   }
@@ -177,6 +227,11 @@ resource webApp 'Microsoft.App/containerApps@2023-05-01' = {
           keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/auth-entra-client-secret'
           identity: 'system'
         }
+        {
+          name: 'strapi-api-token'
+          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-api-token'
+          identity: 'system'
+        }
       ]
     }
     template: {
@@ -195,7 +250,7 @@ resource webApp 'Microsoft.App/containerApps@2023-05-01' = {
             }
             {
               name: 'NEXT_PUBLIC_API_BASE_URL'
-              value: 'https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/api'
+              value: apiBaseUrl
             }
             {
               name: 'AUTH_TRUST_HOST'
@@ -208,6 +263,60 @@ resource webApp 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'AUTH_ENTRA_CLIENT_SECRET'
               secretRef: 'auth-entra-client-secret'
+            }
+            {
+              name: 'AUTH_ENTRA_ISSUER'
+              value: authEntraIssuer
+            }
+            {
+              name: 'AUTH_ENTRA_CLIENT_ID'
+              value: authEntraClientId
+            }
+            {
+              name: 'AUTH_API_SCOPE_READ'
+              value: authApiScopeRead
+            }
+            {
+              name: 'AUTH_API_SCOPE_WRITE'
+              value: authApiScopeWrite
+            }
+            {
+              name: 'STRAPI_URL'
+              value: strapiUrl
+            }
+            {
+              name: 'STRAPI_API_TOKEN'
+              secretRef: 'strapi-api-token'
+            }
+          ]
+          probes: [
+            {
+              type: 'Startup'
+              httpGet: {
+                path: '/'
+                port: 3000
+              }
+              initialDelaySeconds: 30
+              periodSeconds: 10
+              failureThreshold: 3
+            }
+            {
+              type: 'Liveness'
+              httpGet: {
+                path: '/'
+                port: 3000
+              }
+              periodSeconds: 10
+              failureThreshold: 3
+            }
+            {
+              type: 'Readiness'
+              httpGet: {
+                path: '/'
+                port: 3000
+              }
+              periodSeconds: 10
+              failureThreshold: 3
             }
           ]
         }
@@ -236,6 +345,7 @@ resource webAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
 resource cmsApp 'Microsoft.App/containerApps@2023-05-01' = {
   name: 'ca-aipatterns-cms-prod'
   location: location
+  tags: tags
   identity: {
     type: 'SystemAssigned'
   }

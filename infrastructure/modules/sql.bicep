@@ -8,7 +8,15 @@ param location string
 @secure()
 param sqlAdminPassword string
 
-var sqlServerName = 'sql-aipatterns-sandr-1770754196'
+@description('Log Analytics workspace resource ID for diagnostic settings (empty = diagnostics disabled)')
+param logAnalyticsId string = ''
+
+@description('Resource tags applied to all resources in this module')
+param tags object
+
+@description('SQL Server resource name')
+param sqlServerName string = 'sql-aipatterns-sandr-1770754196'
+
 var sqlAdminLogin = 'sqladmin'
 
 // ── SQL Server ────────────────────────────────────────────────────────────────
@@ -16,6 +24,7 @@ var sqlAdminLogin = 'sqladmin'
 resource sqlServer 'Microsoft.Sql/servers@2022-05-01-preview' = {
   name: sqlServerName
   location: location
+  tags: tags
   properties: {
     administratorLogin: sqlAdminLogin
     administratorLoginPassword: sqlAdminPassword
@@ -41,6 +50,7 @@ resource sqlDb 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
   parent: sqlServer
   name: 'sqldb-aipatterns-prod'
   location: location
+  tags: tags
   sku: {
     name: 'GP_S_Gen5'
     tier: 'GeneralPurpose'
@@ -56,6 +66,36 @@ resource sqlDb 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
     autoPauseDelay: 15 // minutes
     minCapacity: json('0.5')
     requestedBackupStorageRedundancy: 'Local'
+  }
+}
+
+// ── SQL Diagnostic Settings (conditional — only when Log Analytics ID provided) ─
+
+resource sqlDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsId)) {
+  name: 'sql-diagnostics'
+  scope: sqlDb
+  properties: {
+    workspaceId: logAnalyticsId
+    logs: [
+      {
+        category: 'SQLSecurityAuditEvents'
+        enabled: true
+      }
+      {
+        category: 'DevOpsOperationsAudit'
+        enabled: true
+      }
+    ]
+    metrics: [
+      {
+        category: 'Basic'
+        enabled: true
+      }
+      {
+        category: 'InstanceAndAppAdvanced'
+        enabled: true
+      }
+    ]
   }
 }
 

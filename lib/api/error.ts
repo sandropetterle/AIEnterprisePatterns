@@ -38,6 +38,14 @@ export async function handleApiError(
     )
   }
 
+  if (response.status === 429) {
+    throw new ApiError(
+      'Too many requests. Please wait a moment and try again.',
+      429,
+      endpoint
+    )
+  }
+
   let errorMessage = `API request failed: ${response.statusText}`
 
   try {

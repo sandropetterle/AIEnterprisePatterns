@@ -9,6 +9,7 @@
  */
 
 import React from 'react';
+import { sanitizeCmsHtml } from './sanitize';
 import type {
   CmsApiReferenceBlock,
   CmsContributingBlock,
@@ -149,7 +150,7 @@ function RichTextRenderer({ block }: { block: CmsRichTextBlock }) {
   return (
     <section className="py-12">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl prose prose-neutral dark:prose-invert">
-        <div dangerouslySetInnerHTML={{ __html: block.body }} />
+        <div dangerouslySetInnerHTML={{ __html: sanitizeCmsHtml(block.body) }} />
       </div>
     </section>
   );
@@ -270,7 +271,7 @@ function DocSectionRenderer({ block }: { block: CmsDocSectionBlock }) {
       <div className="container mx-auto px-4 sm:px-6 lg:px-8 max-w-4xl">
         <h2 className="text-2xl font-bold mb-4">{block.title}</h2>
         <div className="prose prose-neutral dark:prose-invert">
-          <div dangerouslySetInnerHTML={{ __html: block.content }} />
+          <div dangerouslySetInnerHTML={{ __html: sanitizeCmsHtml(block.content) }} />
         </div>
       </div>
     </section>
@@ -352,7 +353,7 @@ function ContributingRenderer({ block }: { block: CmsContributingBlock }) {
             <h3 className="text-xl font-semibold mb-3">{block.howToTitle}</h3>
             {block.steps && (
               <div className="prose prose-neutral dark:prose-invert mb-6">
-                <div dangerouslySetInnerHTML={{ __html: block.steps }} />
+                <div dangerouslySetInnerHTML={{ __html: sanitizeCmsHtml(block.steps) }} />
               </div>
             )}
           </>

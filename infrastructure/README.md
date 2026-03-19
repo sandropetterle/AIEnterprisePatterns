@@ -126,7 +126,52 @@ Secrets are **never stored in Bicep or parameter files**. The flow is:
 3. Container Apps reference secrets from Key Vault via `keyVaultUrl` + `identity: 'system'`
 4. ASP.NET Core reads them as `IConfiguration` values (env var naming: `__` → `:`)
 
+**Required post-deploy secrets** (set before first container app deploy):
+
+```bash
+# SQL connection string (get from Azure Portal → SQL Database → Connection strings)
+az keyvault secret set --vault-name kv-aipatterns-0754755 --name sql-connection-string --value "..."
+
+# Application Insights connection string (get from Azure Portal → appi-aipatterns-prod → Overview → Connection String)
+az keyvault secret set --vault-name kv-aipatterns-0754755 --name appinsights-connection-string --value "..."
+
+# Auth secrets (see AUTH_SETUP_GUIDE.md for values)
+az keyvault secret set --vault-name kv-aipatterns-0754755 --name auth-authority --value "..."
+az keyvault secret set --vault-name kv-aipatterns-0754755 --name auth-audience --value "..."
+az keyvault secret set --vault-name kv-aipatterns-0754755 --name auth-secret --value "..."
+az keyvault secret set --vault-name kv-aipatterns-0754755 --name auth-entra-client-secret --value "..."
+
+# CMS secrets
+az keyvault secret set --vault-name kv-aipatterns-0754755 --name strapi-app-keys --value "..."
+az keyvault secret set --vault-name kv-aipatterns-0754755 --name strapi-admin-jwt-secret --value "..."
+az keyvault secret set --vault-name kv-aipatterns-0754755 --name mysql-admin-password --value "..."
+```
+
 See [`documentation/operations/INFRASTRUCTURE_MANAGEMENT.md`](../documentation/operations/INFRASTRUCTURE_MANAGEMENT.md) for the full secrets inventory.
+
+---
+
+## ACR Image Cleanup
+
+ACR Basic SKU does not support automated purge policies. Clean up old image tags manually to avoid storage bloat:
+
+```bash
+# Keep the 5 most recent tags for the API image, delete the rest
+az acr repository show-tags --name craipatternssp54426 --repository aipatterns-api --orderby time_asc --output tsv \
+  | head -n -5 \
+  | xargs -I {} az acr repository delete --name craipatternssp54426 --image aipatterns-api:{} --yes
+
+# Repeat for the web and cms images
+az acr repository show-tags --name craipatternssp54426 --repository aipatterns-web --orderby time_asc --output tsv \
+  | head -n -5 \
+  | xargs -I {} az acr repository delete --name craipatternssp54426 --image aipatterns-web:{} --yes
+
+az acr repository show-tags --name craipatternssp54426 --repository aipatterns-cms --orderby time_asc --output tsv \
+  | head -n -5 \
+  | xargs -I {} az acr repository delete --name craipatternssp54426 --image aipatterns-cms:{} --yes
+```
+
+Run this cleanup periodically (e.g. monthly) or after major deploy cycles.
 
 ---
 

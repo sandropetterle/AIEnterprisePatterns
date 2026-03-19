@@ -362,23 +362,25 @@ When you receive an alert:
 
 ## 6. Performance Baselines
 
-**Established:** 2026-02-13 (Phase 4.5)
+**Last Updated:** 2026-03-19 (Phase 7.10 — IaC and CMS integration complete)
 **Review Schedule:** Monthly
 
 | Metric | Baseline | Target | Alert Threshold |
 |--------|----------|--------|-----------------|
 | Request Rate (avg) | 30 req/min | 100 req/min | N/A |
-| Response Time (avg) | 250ms | < 500ms | P95 > 2000ms |
+| Response Time (avg) | 250ms | < 500ms | avg > 3000ms |
 | Response Time (P95) | 800ms | < 1500ms | > 2000ms |
-| Error Rate | 0.5% | < 1% | > 5% |
-| Availability | 99.8% | > 99.5% | < 99% |
+| Error Rate | 0.5% | < 1% | failed requests > 10/15min |
+| Availability | 99.8% | > 99.5% | < 95%/15min |
 | Exception Rate | 2/hour | < 5/hour | > 10/5min |
+
+**Note:** Alert thresholds reflect values in `infrastructure/modules/monitoring.bicep`. Do not modify thresholds via Azure Portal — change Bicep and redeploy.
 
 **How to Update Baselines:**
 1. Run queries over 7-day period
 2. Calculate averages and percentiles
 3. Update this section
-4. Adjust alert thresholds if needed
+4. If thresholds need adjustment, update `infrastructure/modules/monitoring.bicep` and redeploy
 
 ---
 
@@ -479,25 +481,23 @@ dependencies
 
 ## 10. Continuous Improvement
 
-### 10.1 Monitoring Enhancements (Future)
+### 10.1 Monitoring Enhancements
 
-**Phase 6 (Planned):**
-- [ ] Set up Lighthouse CI for performance budgets
-- [ ] Add synthetic monitoring (uptime checks)
-- [ ] Create automated daily reports
-- [ ] Add custom metrics (business KPIs)
+**Completed (Phase 6–7):**
+- [x] Lighthouse CI for performance budgets (Phase 6.4)
+- [x] Alert action group with email notification (Phase 7.5)
+- [x] SQL diagnostic settings to Log Analytics (Phase 7.5)
+- [x] Business telemetry: PatternViewed, PatternVoted, PatternSearched, PatternCreated, PatternUpdated (Phase 7.10)
+- [x] Cache hit/miss metrics for featured/trending patterns (Phase 7.10)
+- [x] Lighthouse accessibility score gated at ≥ 0.90 (warn) (Phase 7.10)
 
-**Phase 7 (Planned):**
-- [ ] Implement distributed tracing
-- [ ] Add user session monitoring
-- [ ] Create SLA dashboards
+**Deferred (Phase 8+):**
+- [ ] Frontend Application Insights JS SDK (user session tracking)
+- [ ] Synthetic availability tests (scale-to-zero makes these noisy)
+- [ ] Custom Azure Portal dashboards
+- [ ] Backend response time P95 CI gate
 - [ ] Integrate with PagerDuty/Slack
-
-**Phase 8 (Planned):**
 - [ ] AI-powered anomaly detection
-- [ ] Predictive alerts
-- [ ] Multi-region monitoring
-- [ ] Custom telemetry for enterprise features
 
 ---
 

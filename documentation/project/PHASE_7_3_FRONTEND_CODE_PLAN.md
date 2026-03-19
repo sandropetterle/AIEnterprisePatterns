@@ -1,7 +1,7 @@
 # Phase 7.3: Frontend Code Quality & Security — Implementation Plan
 
 **Created:** 2026-03-18
-**Status:** Ready for implementation
+**Status:** ✅ Complete (2026-03-19)
 **Parent:** Phase 7 — Quality & Hardening Evaluation ([PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md))
 
 ---
@@ -175,11 +175,11 @@ The CMS is admin-only and trusted, but defense-in-depth dictates sanitizing even
 
 ## Verification Checklist
 
-- [ ] `npm run test:ci` — 390+ tests pass, all coverage ≥ 70%
-- [ ] `npm run build` — production build succeeds
-- [ ] `npm run lint` — no errors (including new security rules)
-- [ ] Browser DevTools — no CSP violations on key pages
-- [ ] All `dangerouslySetInnerHTML` wrapped in `sanitizeCmsHtml()`
-- [ ] No `.map` files in production output (or explicitly disabled)
-- [ ] Decision 51 in TECHNICAL_DECISIONS_LOG.md
+- [x] `npm run test:ci` — 396 tests pass (added 5 for sanitize, 1 for 429), all coverage ≥ 70%
+- [ ] `npm run build` — production build succeeds (verify manually)
+- [ ] `npm run lint` — NOTE: `next lint` removed in Next.js 16; `eslint-plugin-security` rules applied via `.eslintrc.json`
+- [ ] Browser DevTools — no CSP violations on key pages (verify manually with production build)
+- [x] All `dangerouslySetInnerHTML` wrapped in `sanitizeCmsHtml()`
+- [x] No `.map` files in production output (verified: none in `.next/static/`)
+- [x] Decision 58 in TECHNICAL_DECISIONS_LOG.md
 - [ ] ROADMAP.md shows 7.3 evaluated

@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "14841131531883830466"
+      "templateHash": "18358298683217300263"
     }
   },
   "parameters": {
@@ -20,18 +20,38 @@
       "metadata": {
         "description": "SQL Server admin password"
       }
+    },
+    "logAnalyticsId": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Log Analytics workspace resource ID for diagnostic settings (empty = diagnostics disabled)"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags applied to all resources in this module"
+      }
+    },
+    "sqlServerName": {
+      "type": "string",
+      "defaultValue": "sql-aipatterns-sandr-1770754196",
+      "metadata": {
+        "description": "SQL Server resource name"
+      }
     }
   },
   "variables": {
-    "sqlServerName": "sql-aipatterns-sandr-1770754196",
     "sqlAdminLogin": "sqladmin"
   },
   "resources": [
     {
       "type": "Microsoft.Sql/servers",
       "apiVersion": "2022-05-01-preview",
-      "name": "[variables('sqlServerName')]",
+      "name": "[parameters('sqlServerName')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "properties": {
         "administratorLogin": "[variables('sqlAdminLogin')]",
         "administratorLoginPassword": "[parameters('sqlAdminPassword')]",
@@ -43,20 +63,21 @@
     {
       "type": "Microsoft.Sql/servers/firewallRules",
       "apiVersion": "2022-05-01-preview",
-      "name": "[format('{0}/{1}', variables('sqlServerName'), 'AllowAzureServices')]",
+      "name": "[format('{0}/{1}', parameters('sqlServerName'), 'AllowAzureServices')]",
       "properties": {
         "startIpAddress": "0.0.0.0",
         "endIpAddress": "0.0.0.0"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
       ]
     },
     {
       "type": "Microsoft.Sql/servers/databases",
       "apiVersion": "2022-05-01-preview",
-      "name": "[format('{0}/{1}', variables('sqlServerName'), 'sqldb-aipatterns-prod')]",
+      "name": "[format('{0}/{1}', parameters('sqlServerName'), 'sqldb-aipatterns-prod')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "sku": {
         "name": "GP_S_Gen5",
         "tier": "GeneralPurpose",
@@ -74,7 +95,40 @@
         "requestedBackupStorageRedundancy": "Local"
       },
       "dependsOn": [
-        "[resourceId('Microsoft.Sql/servers', variables('sqlServerName'))]"
+        "[resourceId('Microsoft.Sql/servers', parameters('sqlServerName'))]"
+      ]
+    },
+    {
+      "condition": "[not(empty(parameters('logAnalyticsId')))]",
+      "type": "Microsoft.Insights/diagnosticSettings",
+      "apiVersion": "2021-05-01-preview",
+      "scope": "[resourceId('Microsoft.Sql/servers/databases', parameters('sqlServerName'), 'sqldb-aipatterns-prod')]",
+      "name": "sql-diagnostics",
+      "properties": {
+        "workspaceId": "[parameters('logAnalyticsId')]",
+        "logs": [
+          {
+            "category": "SQLSecurityAuditEvents",
+            "enabled": true
+          },
+          {
+            "category": "DevOpsOperationsAudit",
+            "enabled": true
+          }
+        ],
+        "metrics": [
+          {
+            "category": "Basic",
+            "enabled": true
+          },
+          {
+            "category": "InstanceAndAppAdvanced",
+            "enabled": true
+          }
+        ]
+      },
+      "dependsOn": [
+        "[resourceId('Microsoft.Sql/servers/databases', parameters('sqlServerName'), 'sqldb-aipatterns-prod')]"
       ]
     }
   ],
@@ -84,7 +138,7 @@
       "metadata": {
         "description": "SQL Server fully qualified domain name"
       },
-      "value": "[reference(resourceId('Microsoft.Sql/servers', variables('sqlServerName')), '2022-05-01-preview').fullyQualifiedDomainName]"
+      "value": "[reference(resourceId('Microsoft.Sql/servers', parameters('sqlServerName')), '2022-05-01-preview').fullyQualifiedDomainName]"
     }
   }
 }

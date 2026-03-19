@@ -80,6 +80,8 @@ Write-Host ""
 Write-Host "  Post-deploy checklist:" -ForegroundColor Cyan
 Write-Host "  1. Set Key Vault secrets if not already set:"
 Write-Host "       az keyvault secret set --vault-name kv-aipatterns-0754755 --name sql-connection-string --value '...'"
+Write-Host "       az keyvault secret set --vault-name kv-aipatterns-0754755 --name appinsights-connection-string --value '...'"
+Write-Host "       (App Insights connection string: Azure Portal → appi-aipatterns-prod → Connection String)"
 Write-Host "  2. Verify health endpoints:"
 Write-Host "       curl https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/health"
 Write-Host "  3. CI/CD will update image tags automatically on next push to main."

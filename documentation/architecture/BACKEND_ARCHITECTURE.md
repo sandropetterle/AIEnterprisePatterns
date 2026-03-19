@@ -1,6 +1,6 @@
 # Backend Architecture
 
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-19
 **Audience:** Backend Developers, Solutions Architects
 **Purpose:** Describe the ASP.NET Core 8 backend structure, Clean Architecture layers, patterns used, and the full API reference.
 
@@ -87,7 +87,7 @@ flowchart TD
 
 ### Unit of Work
 - `IUnitOfWork` registered as scoped service in DI
-- `PatternService` calls `repository.SaveAsync()` directly (UoW not actively used — the interface is registered but bypassed)
+- `PatternService` calls `repository.SaveAsync()` directly (UoW interface registered but not used — accepted tech debt, deferred to Phase 8)
 
 ### PatternMapper
 - Dedicated mapper class (not AutoMapper) in `Core`
@@ -101,7 +101,13 @@ flowchart TD
 ### Memory Caching
 - `IMemoryCache` for featured, trending, and related patterns
 - Cache keys: `featured_patterns`, `trending_patterns`, `related_patterns_{slug}`
-- TTL: 5 minutes, no explicit cache invalidation on vote
+- TTL: 5 minutes; `VoteForPatternAsync` invalidates `featured_patterns` + `trending_patterns`
+- Cache hit/miss emitted as `FeaturedPatternsCacheHit` / `TrendingPatternsCacheHit` metrics via `TelemetryClient`
+
+### Business Telemetry
+- `TelemetryClient` injected into `PatternService` (auto-registered by `AddApplicationInsightsTelemetry()`)
+- Events: `PatternViewed` (slug, category), `PatternVoted` (patternId), `PatternSearched` (search, category, tagCount — only when filter active), `PatternCreated` (slug, category), `PatternUpdated` (slug, category)
+- Metrics: `FeaturedPatternsCacheHit`, `TrendingPatternsCacheHit` (1 = hit, 0 = miss)
 
 ### Rate Limiting (Fixed Window)
 | Policy | Limit | Window |
@@ -149,19 +155,20 @@ sequenceDiagram
         alt Invalid GUID
             Ctrl-->>Client: 400 Bad Request
         else Valid GUID
-            Ctrl->>Svc: VoteAsync(patternId)
-            Svc->>DB: ExecuteUpdateAsync()<br/>SET VoteCount = VoteCount + 1<br/>WHERE Id = @id
+            Ctrl->>Svc: VoteForPatternAsync(patternId)
+            Note over Svc,DB: Relational (SQLite/SQL Server): atomic ExecuteUpdateAsync()<br/>InMemory (tests): FindAsync() + SaveChangesAsync()
+            Svc->>DB: UPDATE Patterns SET VoteCount = VoteCount + 1<br/>WHERE Id = @id
 
             alt Pattern not found (0 rows updated)
-                DB-->>Svc: 0 rows affected
-                Svc-->>Ctrl: null
+                DB-->>Svc: rowsAffected = 0
+                Svc-->>Ctrl: voteCount = -1
                 Ctrl-->>Client: 404 Not Found
             else Vote recorded
-                DB-->>Svc: 1 row affected
-                Svc->>DB: SELECT updated pattern
-                DB-->>Svc: PatternDetailDto
-                Svc-->>Ctrl: PatternDetailDto
-                Ctrl-->>Client: 200 OK {voteCount: N}
+                DB-->>Svc: rowsAffected = 1
+                Svc->>DB: SELECT VoteCount WHERE Id = @id
+                DB-->>Svc: voteCount = N
+                Svc-->>Ctrl: voteCount = N
+                Ctrl-->>Client: 200 OK {patternId, voteCount: N}
                 Note over Client: Optimistic UI update confirmed
             end
         end
@@ -172,18 +179,20 @@ sequenceDiagram
 
 ## 4. Data Validation
 
-- `FluentValidation` applied to all DTOs: `CreatePatternDto`, `UpdatePatternDto`
-- `GetPatternsQuery` validated with `Range` and `MaxLength` constraints
-- Automatic model validation via `AddValidatorsFromAssembly` + validation filter
-- `MaxLength` on all text input fields
+- `FluentValidation` applied to all DTOs: `CreatePatternDto`, `UpdatePatternDto`, `GetPatternsQuery`
+- All text fields have `MaxLength` constraints
+- Tags must not be empty or contain only whitespace (`!string.IsNullOrWhiteSpace` guard)
+- Category validated via `Enum.TryParse` in FluentValidation; controller uses `Enum.Parse` (safe — FluentValidation runs first)
+- Automatic model validation via `AddValidatorsFromAssembly` + `AddFluentValidationAutoValidation`
 
 ---
 
 ## 5. Error Handling
 
-- Global error handling middleware: returns consistent JSON error responses
+- Global error handling middleware (`ExceptionHandlingMiddleware`): returns consistent JSON error responses
+- `OperationCanceledException` from client disconnects caught separately, logged at `Information` (not `Error`) to reduce noise
+- Other exceptions logged at `Error` level with full details (server-side only — not exposed to clients)
 - No exception details leaked to clients in production
-- API returns standard problem detail objects (`ProblemDetails`)
 
 ---
 
@@ -353,7 +362,7 @@ classDiagram
 - **Framework:** xUnit + Moq + FluentAssertions
 - **Repository tests:** EF Core InMemory provider
 - **Integration tests:** `WebApplicationFactory` with `TestAuthHandler` (header-driven auth via `X-Test-Roles`)
-- **Current count:** 105 tests passing
+- **Current count:** 114 tests passing
 - **Coverage:** ~85% on testable code
 
 See [../testing/TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md) for full testing approach.
@@ -364,8 +373,9 @@ See [../testing/TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md) for full te
 
 ```bash
 # Backend environment variables
-ConnectionStrings__DefaultConnection=   # Empty = SQLite dev; set for SQL Server
-FrontendUrl=http://localhost:3000        # CORS allowed origin
+ConnectionStrings__DefaultConnection=   # Empty/unset = SQLite (local dev); non-empty = SQL Server (production)
+FrontendUrl=http://localhost:3000        # Single CORS origin (legacy); production uses FrontendUrls array
+FrontendUrls__0=https://example.com     # Multiple CORS origins (current); localhost:3000 auto-added in Development only
 Authentication__Authority=              # Entra OIDC authority (optional; auth disabled if not set)
 Authentication__Audience=               # API app client ID
 Authentication__RequireHttpsMetadata=true

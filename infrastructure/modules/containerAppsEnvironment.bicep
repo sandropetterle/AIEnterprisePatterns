@@ -10,11 +10,15 @@ param logAnalyticsCustomerId string
 @description('Log Analytics workspace resource ID')
 param logAnalyticsId string
 
+@description('Resource tags applied to all resources in this module')
+param tags object
+
 // ── Container Apps Environment ────────────────────────────────────────────────
 
 resource cae 'Microsoft.App/managedEnvironments@2023-05-01' = {
   name: 'cae-aipatterns-prod'
   location: location
+  tags: tags
   properties: {
     appLogsConfiguration: {
       destination: 'log-analytics'

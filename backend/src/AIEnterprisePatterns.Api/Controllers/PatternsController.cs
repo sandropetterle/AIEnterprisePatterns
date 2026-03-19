@@ -87,8 +87,7 @@ public class PatternsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PatternDetailDto>> CreatePattern(CreatePatternDto dto, CancellationToken ct = default)
     {
-        if (!Enum.TryParse<PatternCategory>(dto.Category, true, out var category))
-            return BadRequest($"Invalid category: {dto.Category}");
+        var category = Enum.Parse<PatternCategory>(dto.Category, true);
 
         var pattern = new Pattern
         {
@@ -109,8 +108,7 @@ public class PatternsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<PatternDetailDto>> UpdatePattern(Guid id, UpdatePatternDto dto, CancellationToken ct = default)
     {
-        if (!Enum.TryParse<PatternCategory>(dto.Category, true, out var category))
-            return BadRequest($"Invalid category: {dto.Category}");
+        var category = Enum.Parse<PatternCategory>(dto.Category, true);
 
         var updated = new Pattern
         {

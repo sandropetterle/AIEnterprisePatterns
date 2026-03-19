@@ -7,18 +7,51 @@
 // Deploy via: infrastructure/deploy.ps1
 
 @description('Azure region for all resources (default: centralus)')
+@allowed(['centralus', 'eastus', 'eastus2', 'westus2'])
 param location string = 'centralus'
 
 @description('Environment name suffix used in resource names')
+@allowed(['prod', 'staging', 'dev'])
 param environment string = 'prod'
 
 @description('SQL Server administrator password')
+@minLength(12)
 @secure()
 param sqlAdminPassword string
 
 @description('MySQL administrator password')
+@minLength(12)
 @secure()
 param mysqlAdminPassword string
+
+@description('Email address for alert notifications (empty = alerts fire but no notifications sent)')
+param alertEmail string = ''
+
+@description('Public API base URL for the frontend app')
+param apiBaseUrl string = 'https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/api'
+
+@description('Azure Entra External ID OIDC issuer URL')
+param authEntraIssuer string = 'https://aipatterns.ciamlogin.com/aipatterns.onmicrosoft.com/v2.0'
+
+@description('Azure Entra External ID frontend client ID')
+param authEntraClientId string = ''
+
+@description('Auth.js API scope for read access')
+param authApiScopeRead string = 'api://aipatterns-api/patterns.read'
+
+@description('Auth.js API scope for write access')
+param authApiScopeWrite string = 'api://aipatterns-api/patterns.write'
+
+@description('Strapi CMS Container App FQDN')
+param strapiUrl string = 'https://ca-aipatterns-cms-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io'
+
+// ── Resource Tags ─────────────────────────────────────────────────────────────
+
+var tags = {
+  project: 'AIEnterprisePatterns'
+  environment: environment
+  managedBy: 'bicep'
+}
 
 // ── 1. Monitoring (no dependencies) ──────────────────────────────────────────
 
@@ -27,6 +60,8 @@ module monitoring 'modules/monitoring.bicep' = {
   params: {
     location: location
     environment: environment
+    alertEmail: alertEmail
+    tags: tags
   }
 }
 
@@ -36,6 +71,7 @@ module acr 'modules/acr.bicep' = {
   name: 'acr'
   params: {
     location: location
+    tags: tags
   }
 }
 
@@ -47,16 +83,19 @@ module keyvault 'modules/keyvault.bicep' = {
   name: 'keyvault'
   params: {
     location: location
+    tags: tags
   }
 }
 
-// ── 4. SQL (no dependencies) ─────────────────────────────────────────────────
+// ── 4. SQL (depends on monitoring for diagnostic settings) ───────────────────
 
 module sql 'modules/sql.bicep' = {
   name: 'sql'
   params: {
     location: location
     sqlAdminPassword: sqlAdminPassword
+    logAnalyticsId: monitoring.outputs.logAnalyticsId
+    tags: tags
   }
 }
 
@@ -66,6 +105,7 @@ module cms 'modules/cms.bicep' = {
   name: 'cms'
   params: {
     mysqlAdminPassword: mysqlAdminPassword
+    tags: tags
   }
 }
 
@@ -77,10 +117,11 @@ module cae 'modules/containerAppsEnvironment.bicep' = {
     location: location
     logAnalyticsCustomerId: monitoring.outputs.logAnalyticsCustomerId
     logAnalyticsId: monitoring.outputs.logAnalyticsId
+    tags: tags
   }
 }
 
-// ── 7. Container Apps (depends on cae, acr, keyvault, monitoring, sql) ───────
+// ── 7. Container Apps (depends on cae, acr, keyvault, monitoring) ────────────
 
 module containerApps 'modules/containerApps.bicep' = {
   name: 'containerApps'
@@ -90,7 +131,13 @@ module containerApps 'modules/containerApps.bicep' = {
     acrLoginServer: acr.outputs.acrLoginServer
     acrResourceId: acr.outputs.acrResourceId
     kvName: keyvault.outputs.kvName
-    appInsightsConnectionString: monitoring.outputs.appInsightsConnectionString
+    apiBaseUrl: apiBaseUrl
+    authEntraIssuer: authEntraIssuer
+    authEntraClientId: authEntraClientId
+    authApiScopeRead: authApiScopeRead
+    authApiScopeWrite: authApiScopeWrite
+    strapiUrl: strapiUrl
+    tags: tags
   }
 }
 
