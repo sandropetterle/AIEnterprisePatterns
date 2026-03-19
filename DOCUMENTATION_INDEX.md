@@ -141,6 +141,7 @@
 | [PHASE_7_8_TESTING_PLAN.md](documentation/project/PHASE_7_8_TESTING_PLAN.md) | Phase 7.8 — test result docs, backend CI coverage, E2E auth strategy | QA, DevOps | Complete |
 | [PHASE_7_9_DOCUMENTATION_PLAN.md](documentation/project/PHASE_7_9_DOCUMENTATION_PLAN.md) | Phase 7.9 — archive stale test results, IaC cross-refs, CMS phase status | All contributors | Complete |
 | [PHASE_7_10_PRODUCTION_READINESS_PLAN.md](documentation/project/PHASE_7_10_PRODUCTION_READINESS_PLAN.md) | Phase 7.10 — SEO, health probes, business telemetry, a11y CI gate | DevOps, SRE, Architect | Complete |
+| [PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md](documentation/project/PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md) | Phase 7.11 — Live Azure drift resolution, security fixes, IaC hardening (30 items, 6 tracks) | DevOps, SRE, Architect | Planned |
 
 ---
 
