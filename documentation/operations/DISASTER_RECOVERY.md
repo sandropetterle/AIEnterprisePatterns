@@ -1,7 +1,7 @@
 # Disaster Recovery Plan - AI Enterprise Patterns Library
 
 **Document Version:** 1.0
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-03-19
 **Audience:** DevOps Engineers, Site Reliability Engineers, IT Management
 
 ---
@@ -294,6 +294,19 @@ az sql db show-backup-long-term-retention-policy \
 
 **Estimated Time:** 2-3 hours (depending on database size)
 **Data Loss:** Data between restore point and incident time
+
+### 5.2a Full Environment Rebuild via IaC
+
+For scenarios requiring a complete environment rebuild (e.g., full regional failover, catastrophic resource deletion), use the Bicep IaC rather than manually recreating resources:
+
+```powershell
+# Redeploy all Azure resources from Bicep templates
+./infrastructure/deploy.ps1 -ResourceGroup rg-aipatterns-prod -Location centralus
+```
+
+This redeploys all modules: Container Apps Environment, Container Apps, SQL Server, Key Vault, ACR, Application Insights, and CMS resources. See [INFRASTRUCTURE_MANAGEMENT.md](INFRASTRUCTURE_MANAGEMENT.md) for the full validate/what-if/deploy workflow and required parameters.
+
+---
 
 ### 5.3 Regional Failover (Geo-Restore)
 

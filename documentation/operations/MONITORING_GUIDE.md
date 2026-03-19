@@ -1,7 +1,7 @@
 # Monitoring Guide - AI Enterprise Patterns Library
 
 **Document Version:** 1.0
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-03-19
 **Audience:** DevOps Engineers, Site Reliability Engineers, Support Team
 
 ---
@@ -158,6 +158,10 @@ requests
 ---
 
 ## 4. Alerts
+
+### 4.0 Alert Infrastructure
+
+The 4 metric alerts below (high error rate, slow response time, availability drop, exception spike) are defined declaratively in `infrastructure/modules/monitoring.bicep`. **Do not modify alert thresholds or create new alerts via the Azure Portal** — changes must be made in Bicep and redeployed to remain under version control. See [INFRASTRUCTURE_MANAGEMENT.md](INFRASTRUCTURE_MANAGEMENT.md) for the validate/what-if/deploy workflow.
 
 ### 4.1 Configured Alerts
 

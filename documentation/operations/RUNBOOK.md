@@ -1,7 +1,7 @@
 # Operational Runbook - AI Enterprise Patterns Library
 
 **Document Version:** 1.0
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-03-19
 **Audience:** DevOps Engineers, Support Team, On-Call Personnel
 
 ---
@@ -457,6 +457,14 @@ az sql server firewall-rule create \
 # If database paused, resume it (serverless auto-resumes on connection)
 # Just wait 30-60 seconds for auto-resume
 ```
+
+---
+
+## Infrastructure Changes
+
+All Azure infrastructure is managed via Bicep IaC. Do not create or modify Azure resources manually. See [INFRASTRUCTURE_MANAGEMENT.md](INFRASTRUCTURE_MANAGEMENT.md) for module structure, validate/what-if/deploy workflow, and secret management.
+
+Infrastructure-level changes (scaling limits, environment variables defined in Bicep, alert thresholds, Key Vault references) require a Bicep redeployment via `./infrastructure/deploy.ps1` — not ad-hoc `az containerapp update` commands. Use `az containerapp update` only for emergency operational responses (e.g., temporary replica scaling during an incident); any permanent change must be reflected in Bicep.
 
 ---
 
