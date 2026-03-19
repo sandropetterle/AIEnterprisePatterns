@@ -4,7 +4,7 @@
 # ============================================================================
 
 # Stage 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0@sha256:a9330090b730c2abde8f3f43b3d1e24e4b8cba028de7bab1a7fdcd50cb7a3b7e AS build
 WORKDIR /src
 
 # Copy project files
@@ -24,15 +24,12 @@ WORKDIR "/src/src/AIEnterprisePatterns.Api"
 RUN dotnet build "AIEnterprisePatterns.Api.csproj" -c Release -o /app/build
 RUN dotnet publish "AIEnterprisePatterns.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
-# Stage 2: Runtime
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+# Stage 2: Runtime (Alpine — smaller image, BusyBox wget for healthcheck)
+FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:354c2fcfb3c23abc60d98f0380cdb403fba844a62a123b6343a8c9611209995c AS runtime
 WORKDIR /app
 
-# Create non-root user for security
-RUN groupadd -r appuser && useradd -r -g appuser appuser
-
-# Install curl for healthcheck
-RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+# Create non-root user (Alpine syntax)
+RUN addgroup -S appuser && adduser -S appuser -G appuser
 
 # Copy published app from build stage
 COPY --from=build /app/publish .
@@ -46,9 +43,9 @@ USER appuser
 # Expose port (Using 8080 for non-root user compatibility)
 EXPOSE 8080
 
-# Health check
+# Health check (BusyBox wget — pre-installed in Alpine, no curl/apt-get needed)
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8080/health || exit 1
+    CMD wget -qO- http://localhost:8080/health || exit 1
 
 # Set environment variables
 ENV ASPNETCORE_URLS=http://+:8080
