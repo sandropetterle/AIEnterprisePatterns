@@ -91,7 +91,10 @@
       "Bash(rm azure-setup.ps1 add-environment-cred.ps1 fix-creds.ps1 fix-federated-credential.ps1 setup-github-secrets.ps1 setup-github-secrets-simple.ps1 azure-container-apps-setup.ps1)",
       "Bash(mv setup-github-secrets-fixed.ps1 setup-github-oidc.ps1)",
       "Bash(az bicep:*)",
-      "Bash(az --version)"
+      "Bash(az --version)",
+      "Bash(find /c/Users/sandr/Documents/Projects/AIEnterprisePatterns -maxdepth 2 -type f \\\\\\(-name next.config.* -o -name tsconfig.json -o -name .eslintrc.* -o -name eslint.config.* -o -name jest.config.* -o -name tailwind.config.* -o -name prettier.config.* -o -name postcss.config.* -o -name Dockerfile -o -name .dockerignore -o -name .env* -o -name package.json -o -name package-lock.json \\\\\\))",
+      "Bash(xargs head:*)",
+      "WebSearch"
     ],
     "additionalDirectories": [
       "C:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\cms\\src\\components\\shared",

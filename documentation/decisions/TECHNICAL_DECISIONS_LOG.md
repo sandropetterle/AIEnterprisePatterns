@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-19
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**50 active decisions | 0 archived**
+**53 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,86 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 53: Phase 7.10 — Production Readiness & Observability
+
+**Date:** 2026-03-19
+**Category:** Observability / Infrastructure
+
+**Decision:** Five implementation tracks for cross-cutting production readiness: (1) wire alert action groups into all 4 metric alerts in `monitoring.bicep` with email notification and lower exception threshold from 20 to 10; (2) add `robots.txt` and XML sitemap via Next.js Metadata API, fix placeholder `metadataBase` URL; (3) add Container Apps liveness/readiness/startup health probes in `containerApps.bicep` and declare 6 missing web container env vars in IaC; (4) inject `TelemetryClient` into `PatternService` for custom business telemetry (PatternViewed, PatternVoted, PatternSearched, cache hit/miss); (5) add Lighthouse accessibility assertion to CI and update stale monitoring baselines.
+
+**Why:** The Phase 7.10 audit evaluated 9 cross-cutting production concerns (health probes, logging, telemetry, alerting, performance baselines, SEO, accessibility, caching, environment parity). The system is in good production shape overall — Application Insights connected, health endpoints present, JSON-LD structured data on all key pages, ISR caching configured, 4 accessibility test suites. Six MEDIUM findings were identified:
+- Alert action groups not wired — all 4 metric alerts fire into the void; nobody gets notified of outages or error spikes
+- No `robots.txt` or XML sitemap; `metadataBase` uses placeholder `ai-patterns.example.com`
+- No Container Apps health probes in IaC — Azure uses default TCP-only probes
+- Web container missing 6 env vars in Bicep (auth, CMS) — likely set via `az containerapp update` but not declared in IaC
+- Zero custom business telemetry — no visibility into pattern views, votes, searches, or cache effectiveness
+
+**Alternatives evaluated:**
+- Frontend Application Insights JavaScript SDK — adds client-side telemetry but increases bundle size and requires `'use client'` wrapper; deferred to Phase 8+
+- Synthetic availability tests — scale-to-zero makes these noisy with cold start false positives
+- CDN / Azure Front Door — adds $35+/month, not justified at current traffic levels
+- Structured frontend logging (pino/winston) — Container Apps already captures console output; complexity not justified at this scale
+
+**Accepted risks:** Unstructured frontend console logging (captured by Container Apps), no frontend App Insights SDK (server calls tracked by backend), no explicit Cache-Control headers on API (ISR handles caching), no bundle size budget (Lighthouse score gates growth), identical `/health` and `/health/ready` endpoints (health probes are the real fix).
+
+**Implementation plan:** [PHASE_7_10_PRODUCTION_READINESS_PLAN.md](../project/PHASE_7_10_PRODUCTION_READINESS_PLAN.md)
+
+---
+
+## Decision 52: Phase 7.6 — CI/CD Pipeline Hardening
+
+**Date:** 2026-03-18
+**Category:** Infrastructure
+
+**Decision:** Five hardening tracks for all 4 GitHub Actions workflows: (1) pin all 6 unique actions (~36 `uses:` references) to full commit SHAs for supply chain security; (2) add least-privilege `permissions: {}` to `test.yml`, concurrency groups to all workflows, and fix a rollback bug where `:latest` is overwritten before healthcheck (defer `:latest` tag to post-healthcheck `tag-latest` job); (3) create `.github/dependabot.yml` for npm, NuGet, GitHub Actions, and Docker ecosystems; (4) include `e2e-tests` in `test-summary` gate (handle `"skipped"` on PRs); (5) documentation.
+
+**Why:** The Phase 7.6 audit found the CI/CD foundation solid (OIDC auth, path-filtered deploys, healthcheck gates, Lighthouse/Chromatic quality gates, cross-browser E2E matrix). Six MEDIUM findings and one rollback correctness bug were identified:
+- Tag-based action references (`@v4`) are mutable — a compromised action can silently change behavior
+- `test.yml` has no `permissions` block, defaulting to broad read/write on push events
+- No `concurrency:` groups means overlapping deploys on rapid pushes can cause race conditions
+- All 3 deploy workflows push `:latest` at build time, then rollback uses `:latest` — deploying the same broken image
+- No Dependabot means no automated dependency update PRs
+- E2E failures on main don't block the `test-summary` gate
+
+**Alternatives evaluated:**
+- Tag-only references (`@v4`) — mutable, supply chain risk; SHA pinning is GitHub's recommended practice
+- Renovate instead of Dependabot — heavier setup, external service; Dependabot is native to GitHub
+- Repository variables for Azure names — adds Settings dependency, reduces readability; accept as-is for single-environment project
+- `cancel-in-progress: true` on deploys — could cancel mid-push to ACR, leaving registry inconsistent; queue instead
+- Production approval gates — single developer; `environment: 'Production'` already declared; can enable GitHub environment protection rules without workflow changes
+
+**Accepted risks:** Hardcoded Azure resource names (low, rarely change), CMS has no test gate (managed CMS), E2E tests skip PRs (by design), fixed healthcheck delays (works reliably), `fail_ci_if_error: false` on Codecov (Jest enforces thresholds), Azure CLI via curl-pipe-bash (ephemeral runner).
+
+**Implementation plan:** [PHASE_7_6_CICD_PLAN.md](../project/PHASE_7_6_CICD_PLAN.md)
+
+---
+
+## Decision 51: Phase 7.3 — Frontend Code & Security Hardening
+
+**Date:** 2026-03-18
+**Category:** Security
+
+**Decision:** Five hardening tracks for the frontend codebase: (1) sanitize CMS rich text HTML via `isomorphic-dompurify` before `dangerouslySetInnerHTML` (3 sites in `lib/cms/components.tsx`); (2) harden CSP — add `base-uri 'self'`, `object-src 'none'`, whitelist `img-src` to known domains, test removing `'unsafe-eval'`; (3) add 429 rate-limit error handling in `lib/api/error.ts`; (4) add `eslint-plugin-security` for static security analysis; (5) verify production source maps are not exposed.
+
+**Why:** The Phase 7.3 audit found the frontend in strong shape (strict TypeScript, rehype-sanitize for markdown, proper security headers, secure Auth.js OIDC, no secrets in git). These five MEDIUM findings add defense-in-depth layers:
+- CMS HTML is rendered via `dangerouslySetInnerHTML` without sanitization — if a CMS admin account is compromised or Strapi has a vulnerability, XSS is possible
+- CSP includes `'unsafe-eval'` (may not be needed in Next.js 16) and allows all HTTPS images
+- API client gives generic errors for rate-limited requests instead of user-friendly guidance
+- No ESLint security rules to catch dangerous patterns at lint time
+- Source maps may expose code structure in production
+
+**Alternatives evaluated:**
+- `sanitize-html` instead of `isomorphic-dompurify` — less battle-tested, smaller community
+- Nonce-based CSP to eliminate `'unsafe-inline'` — too complex for current phase (requires Next.js middleware + nonce propagation); deferred to Phase 8+
+- `eslint-plugin-no-unsanitized` (Mozilla) — more narrow, less community adoption than `eslint-plugin-security`
+- Auth `middleware.ts` for centralized routing — per-page `auth()` + `redirect()` is equally secure; middleware adds complexity without security benefit
+
+**Accepted risks:** `'unsafe-inline'` in CSP (Next.js requirement), no `middleware.ts` auth centralization, `console.warn` in mappers (non-sensitive, useful for debugging), CMS `href` values without `javascript:` URL filtering (same trust boundary as CMS HTML content).
+
+**Implementation plan:** [PHASE_7_3_FRONTEND_CODE_PLAN.md](../project/PHASE_7_3_FRONTEND_CODE_PLAN.md)
 
 ---
 
