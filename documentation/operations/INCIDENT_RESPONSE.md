@@ -1,7 +1,7 @@
 # Incident Response Plan - AI Enterprise Patterns Library
 
 **Document Version:** 1.0
-**Last Updated:** 2026-02-13
+**Last Updated:** 2026-03-19
 **Audience:** Security Team, DevOps Engineers, Development Team, IT Management
 
 ---
@@ -101,6 +101,7 @@ az containerapp revision restart \
 2. **Remove malicious code** - Scan and clean affected systems
 3. **Patch vulnerabilities** - Apply security updates
 4. **Restore from clean backups** - If data compromised (see DISASTER_RECOVERY.md)
+5. **Infrastructure forensics** - Review Bicep module structure for misconfigured resources (open firewall rules, missing Key Vault restrictions, over-permissioned managed identities). See [INFRASTRUCTURE_MANAGEMENT.md](INFRASTRUCTURE_MANAGEMENT.md) for the full module inventory. Harden in Bicep and redeploy rather than patching manually in the portal.
 
 **Example: SQL Injection Vulnerability**
 ```csharp
