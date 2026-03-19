@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-17 (Phase 6.8 complete — Bicep IaC, script cleanup, AddInfrastructure())
+**Last Updated:** 2026-03-19 (Phase 7 — Quality & Hardening Evaluation)
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -102,7 +102,7 @@
 
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
-| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 50 active architectural decisions (newest first) | Architect, Senior Devs | Current |
+| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 53 active architectural decisions (newest first) | Architect, Senior Devs | Current |
 | [DECISIONS_ARCHIVE.md](documentation/decisions/DECISIONS_ARCHIVE.md) | Compacted/superseded decisions (full text) | Architect | Current |
 | [DECISION_TEMPLATE.md](documentation/decisions/DECISION_TEMPLATE.md) | Standard format for new decision entries | All devs | Current |
 
@@ -130,6 +130,17 @@
 |------|---------|----------|--------|
 | [ROADMAP.md](documentation/project/ROADMAP.md) | Phase plans, status summary table, deliverables, upcoming phases | PM, Architect, all | Current |
 | [PHASE_INFRASTRUCTURE_PLAN.md](documentation/project/PHASE_INFRASTRUCTURE_PLAN.md) | Phase 6.8 implementation plan — Bicep IaC, script consolidation, Infrastructure .NET project | DevOps, Architect | Complete (Phase 6.8) |
+| [PHASE_QUALITY_HARDENING_PLAN.md](documentation/project/PHASE_QUALITY_HARDENING_PLAN.md) | Phase 7 evaluation plan — 10-area quality & security audit | Architect, Security, All | Active (Phase 7) |
+| [PHASE_7_1_FRONTEND_DEPS_PLAN.md](documentation/project/PHASE_7_1_FRONTEND_DEPS_PLAN.md) | Phase 7.1 implementation plan — npm audit fixes, dependency updates, Dependabot, CI audit gate | DevOps, Frontend devs | Ready for implementation |
+| [PHASE_7_2_BACKEND_DEPS_PLAN.md](documentation/project/PHASE_7_2_BACKEND_DEPS_PLAN.md) | Phase 7.2 implementation plan — CVE patch, NuGet updates, CI vulnerability gate, Dependabot | DevOps, Backend devs | Ready for implementation |
+| [PHASE_7_3_FRONTEND_CODE_PLAN.md](documentation/project/PHASE_7_3_FRONTEND_CODE_PLAN.md) | Phase 7.3 implementation plan — CMS HTML sanitization, CSP hardening, 429 handling, ESLint security, source maps | Security, Frontend devs | Ready for implementation |
+| [PHASE_7_4_BACKEND_CODE_PLAN.md](documentation/project/PHASE_7_4_BACKEND_CODE_PLAN.md) | Phase 7.4 implementation plan — CORS/HSTS hardening, vote race condition, exception middleware, validation cleanup | Security, Backend devs | Ready for implementation |
+| [PHASE_7_5_IAC_SECURITY_PLAN.md](documentation/project/PHASE_7_5_IAC_SECURITY_PLAN.md) | Phase 7.5 implementation plan — resource tagging, parameterization, KV purge protection, SQL diagnostics, alert action groups | DevOps, Infra, Security | Ready for implementation |
+| [PHASE_7_6_CICD_PLAN.md](documentation/project/PHASE_7_6_CICD_PLAN.md) | Phase 7.6 implementation plan — SHA pinning, concurrency controls, rollback fix, Dependabot, test summary | DevOps, Security | Ready for implementation |
+| [PHASE_7_7_DOCKER_PLAN.md](documentation/project/PHASE_7_7_DOCKER_PLAN.md) | Phase 7.7 implementation plan — base image SHA pinning, Alpine migration, CMS npm ci, compose cleanup | DevOps, Security | Ready for implementation |
+| [PHASE_7_8_TESTING_PLAN.md](documentation/project/PHASE_7_8_TESTING_PLAN.md) | Phase 7.8 implementation plan — test result docs, backend CI coverage, E2E auth strategy documentation | QA, DevOps | Ready for implementation |
+| [PHASE_7_9_DOCUMENTATION_PLAN.md](documentation/project/PHASE_7_9_DOCUMENTATION_PLAN.md) | Phase 7.9 implementation plan — archive stale test results, operations IaC cross-refs, CMS phase status, auth guide header | All contributors | Ready for implementation |
+| [PHASE_7_10_PRODUCTION_READINESS_PLAN.md](documentation/project/PHASE_7_10_PRODUCTION_READINESS_PLAN.md) | Phase 7.10 implementation plan — alert action groups, SEO (robots/sitemap), health probes, business telemetry, a11y CI | DevOps, SRE, Architect | Ready for implementation |
 
 ---
 

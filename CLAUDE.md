@@ -13,7 +13,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
 - **CMS:** Strapi 5 (headless, `cms/` directory), MySQL (production), Azure Blob Storage (media)
-- **Current Phase:** 6.8 (complete); Phase 6 complete; Phase 7 next
+- **Current Phase:** 7 (Quality & Hardening Evaluation — all 10 areas evaluated); Phase 6 complete
 
 ## Development Commands
 
@@ -219,7 +219,7 @@ Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 | Azure deployment guides | `deployment/` |
 | Visual diagrams (Mermaid) | `documentation/diagrams/` |
 
-**Key docs:** `documentation/decisions/TECHNICAL_DECISIONS_LOG.md`, `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Key docs:** `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (53 decisions), `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** All 14 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
 

@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-18
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -28,8 +28,9 @@
 | **Phase 6.6** | ✅ Complete | 2026-03-03 | CMS Content Migration — pattern UI labels (listing, detail, form) |
 | **Phase 6.7** | ✅ Complete | 2026-03-04 | CMS Content Migration — tests & documentation |
 | **Phase 6.8** | ✅ Complete | 2026-03-17 | Infrastructure as Code & Management (Bicep IaC, script cleanup, Infrastructure .NET project) |
-| **Phase 7** | 🔜 Next | TBD | Community features, exports, performance, advanced content |
-| Phase 8 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
+| **Phase 7** | 🔄 Active | 2026-03-17 | Quality & Hardening Evaluation (10-area audit: deps, security, infra, CI/CD, containers, tests, docs, observability) |
+| Phase 8 | 📋 Future | TBD | Community features, exports, performance, advanced content |
+| Phase 9 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
 
 ---
 
@@ -137,24 +138,44 @@ Four tracks completed:
 
 ## Planned Phases
 
-### Phase 7 — Community Features, Integrations & Performance (Planned)
-**Priority:** MEDIUM → LOW | **Dependencies:** Phase 6 complete
+### Phase 7 — Quality & Hardening Evaluation (Active)
+**Priority:** HIGH | **Dependencies:** Phase 6 complete | **Started:** 2026-03-17
+
+Systematic 10-area audit to ensure enterprise best-in-class standards before adding new features. Each area evaluated independently, findings consolidated into a master recommendations list, then selectively implemented.
+
+| Area | Scope | Effort | Status |
+|------|-------|--------|--------|
+| 7.1 | Dependency Audit — Frontend | Light | Evaluated — [implementation plan ready](PHASE_7_1_FRONTEND_DEPS_PLAN.md) |
+| 7.2 | Dependency Audit — Backend | Light | Evaluated — [implementation plan ready](PHASE_7_2_BACKEND_DEPS_PLAN.md) |
+| 7.3 | Frontend Code Quality & Security | Medium | Evaluated — [implementation plan ready](PHASE_7_3_FRONTEND_CODE_PLAN.md) |
+| 7.4 | Backend Code Quality & Security | Medium | Evaluated — [implementation plan ready](PHASE_7_4_BACKEND_CODE_PLAN.md) |
+| 7.5 | Infrastructure as Code & Azure Security | Medium | Evaluated — [implementation plan ready](PHASE_7_5_IAC_SECURITY_PLAN.md) |
+| 7.6 | CI/CD Pipeline Quality | Medium | Evaluated — [implementation plan ready](PHASE_7_6_CICD_PLAN.md) |
+| 7.7 | Docker & Container Security | Light | Evaluated — [implementation plan ready](PHASE_7_7_DOCKER_PLAN.md) |
+| 7.8 | Testing Coverage & Quality | Medium | Evaluated — [implementation plan ready](PHASE_7_8_TESTING_PLAN.md) |
+| 7.9 | Documentation Completeness & Accuracy | Light | Evaluated — [implementation plan ready](PHASE_7_9_DOCUMENTATION_PLAN.md) |
+| 7.10 | Production Readiness & Observability | Medium | Evaluated — [implementation plan ready](PHASE_7_10_PRODUCTION_READINESS_PLAN.md) |
+
+**Implementation plan:** [PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md)
+
+### Phase 8 — Community Features, Integrations & Performance (Future)
+**Priority:** MEDIUM → LOW | **Dependencies:** Phase 7 complete
 
 Sub-phases:
-- **7.1** User Engagement: commenting, rating, bookmarks, social sharing, activity feed
-- **7.2** Export & Integration: PDF export, Markdown export, RSS feed, embedding, webhooks, public API portal
-- **7.3** Performance: CDN integration, service worker (offline), load testing suite (k6)
-- **7.4** Content Organization: collections/playlists, versioning, dependency tracking, learning paths
-- **7.5** Notifications: email alerts, browser push, comment reply notifications
-- **7.6** Collaboration: multi-author, review/approval workflow, contributor leaderboard
+- **8.1** User Engagement: commenting, rating, bookmarks, social sharing, activity feed
+- **8.2** Export & Integration: PDF export, Markdown export, RSS feed, embedding, webhooks, public API portal
+- **8.3** Performance: CDN integration, service worker (offline), load testing suite (k6)
+- **8.4** Content Organization: collections/playlists, versioning, dependency tracking, learning paths
+- **8.5** Notifications: email alerts, browser push, comment reply notifications
+- **8.6** Collaboration: multi-author, review/approval workflow, contributor leaderboard
 
-### Phase 8 — Enterprise & Global Features (Future)
-**Priority:** FUTURE | **Dependencies:** Phase 7 complete
+### Phase 9 — Enterprise & Global Features (Future)
+**Priority:** FUTURE | **Dependencies:** Phase 8 complete
 
-- **8.1** Internationalization (i18n): next-i18next, multi-language, RTL support
-- **8.2** Advanced Analytics: view tracking, user journey, popular tags visualization
-- **8.3** Enterprise Features: multi-tenant, SSO (SAML), compliance/audit logging, white-labeling
-- **8.4** AI-Powered: pattern recommendations, similarity detection, natural language search, auto-tagging
+- **9.1** Internationalization (i18n): next-i18next, multi-language, RTL support
+- **9.2** Advanced Analytics: view tracking, user journey, popular tags visualization
+- **9.3** Enterprise Features: multi-tenant, SSO (SAML), compliance/audit logging, white-labeling
+- **9.4** AI-Powered: pattern recommendations, similarity detection, natural language search, auto-tagging
 
 ---
 
@@ -162,5 +183,5 @@ Sub-phases:
 
 - Phase timelines may be adjusted based on business needs and user feedback
 - Technical decisions for each phase are recorded in [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md)
-- Active phase implementation plans: [PHASE_INFRASTRUCTURE_PLAN.md](PHASE_INFRASTRUCTURE_PLAN.md) (Phase 6.8)
+- Active phase implementation plans: [PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md) (Phase 7)
 - Test results per phase are in [../test_results/](../test_results/)
