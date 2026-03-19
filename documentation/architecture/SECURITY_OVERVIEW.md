@@ -1,6 +1,6 @@
 # Security Overview
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-03-19
 **Audience:** Security Engineers, Solutions Architects, Backend Developers, Infrastructure Engineers
 **Purpose:** Document the security architecture, authentication flow, protection measures against common vulnerabilities, and security headers configuration.
 
@@ -175,21 +175,37 @@ All GET pattern endpoints and the vote endpoint are public (no authentication re
 
 ## 5. CORS Configuration
 
-Backend CORS policy is environment-specific:
+Backend CORS policy (`AllowFrontend`) is environment-specific:
 
 | Setting | Value |
 |---------|-------|
-| Allowed origins | Configured per environment (frontend URL) |
-| Allowed methods | GET, POST, PUT, DELETE |
-| Allowed headers | Content-Type, Authorization |
+| Allowed origins | Development: `http://localhost:3000` (auto-added) + any `FrontendUrl`/`FrontendUrls` config. Production: `FrontendUrl`/`FrontendUrls` config only — localhost never added. |
+| Allowed methods | GET, POST, PUT, DELETE, OPTIONS |
+| Allowed headers | Content-Type, Authorization, X-Requested-With |
 | Credentials | Allowed |
 
-Development: `http://localhost:3000`
-Production: Azure Container Apps frontend URL
+- **Development** (`IsDevelopment() == true`): `http://localhost:3000` is automatically included. Additional origins from `FrontendUrl` / `FrontendUrls` config are also added.
+- **Production** (`IsDevelopment() == false`): Only origins explicitly configured via `FrontendUrl` or `FrontendUrls` are allowed. No localhost origins.
 
 ---
 
-## 6. Security Headers (Frontend)
+## 6. Security Headers (Backend)
+
+Applied to all ASP.NET Core API responses via inline middleware in `Program.cs`:
+
+| Header | Value | Scope |
+|--------|-------|-------|
+| `X-Content-Type-Options` | `nosniff` | All environments |
+| `X-Frame-Options` | `DENY` | All environments |
+| `X-XSS-Protection` | `1; mode=block` | All environments |
+| `Referrer-Policy` | `strict-origin-when-cross-origin` | All environments |
+| `Strict-Transport-Security` | `max-age=31536000; includeSubDomains` | Production only (`!IsDevelopment()`) |
+
+Note: No `preload` directive — HSTS preload list submission requires a stable production domain and is deferred to post-launch.
+
+---
+
+## 6a. Security Headers (Frontend)
 
 Applied to all Next.js responses via `next.config.mjs`:
 
@@ -220,7 +236,10 @@ Applied to all Next.js responses via `next.config.mjs`:
 
 ## 8. Container Security
 
-- Backend Docker container runs as non-root user `appuser`
+- All 3 Dockerfiles (`Dockerfile`, `backend/Dockerfile`, `cms/Dockerfile`) use multi-stage builds
+- All `FROM` lines SHA-pinned to immutable digest (`@sha256:<64-char-hex>`) — mutable tag kept as a comment for readability; Dependabot Docker ecosystem keeps pins current
+- Backend runtime uses `aspnet:8.0-alpine` — no `apt-get` or `curl` layer (~90 MB vs ~240 MB previously); healthcheck uses BusyBox `wget -qO-` (pre-installed in Alpine)
+- All containers run as non-root users (`appuser`, `nextjs`, `strapi`)
 - Ports <1024 require root; backend uses port 8080 inside container (mapped to 80/443 externally)
 - Container images stored in Azure Container Registry with RBAC access
 

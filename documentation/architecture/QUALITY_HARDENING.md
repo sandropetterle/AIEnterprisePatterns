@@ -1,6 +1,6 @@
 # Quality & Hardening Evaluation
 
-**Last Updated:** 2026-03-19 (Phase 7.2 complete)
+**Last Updated:** 2026-03-19 (Phase 7.7 complete)
 **Audience:** Solutions Architects, Security Engineers, all developers
 **Purpose:** Consolidate all Phase 7 quality and hardening evaluation findings, implementation status, accepted risks, and deferred items into a single architect-facing reference. Updated as implementations progress.
 
@@ -20,11 +20,11 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 |------|-------|-----------------|--------|--------|
 | [7.1 Frontend Dependencies](#31-area-71--frontend-dependency-audit) | npm packages, vulnerabilities | 4H / 10L | 5 | ✅ Complete |
 | [7.2 Backend Dependencies](#32-area-72--backend-dependency-audit) | NuGet packages, CVEs | 1H / 19 outdated | 5 | ✅ Complete |
-| [7.3 Frontend Code Quality](#33-area-73--frontend-code-quality--security) | TypeScript, CSP, sanitization | 5M / 4L | 5 | Not Started |
-| [7.4 Backend Code Quality](#34-area-74--backend-code-quality--security) | OWASP, CORS, race conditions | 4M / 4L | 5 | Not Started |
-| [7.5 IaC & Azure Security](#35-area-75--infrastructure-as-code--azure-security) | Bicep modules, Key Vault, monitoring | 10M / 8L | 4 | Not Started |
-| [7.6 CI/CD Pipeline](#36-area-76--cicd-pipeline-quality) | GitHub Actions, supply chain | 6M / 1L | 5 | Not Started |
-| [7.7 Docker & Containers](#37-area-77--docker--container-security) | Dockerfiles, compose, images | 3M / 2L | 5 | Not Started |
+| [7.3 Frontend Code Quality](#33-area-73--frontend-code-quality--security) | TypeScript, CSP, sanitization | 5M / 4L | 5 | ✅ Complete |
+| [7.4 Backend Code Quality](#34-area-74--backend-code-quality--security) | OWASP, CORS, race conditions | 4M / 4L | 5 | ✅ Complete |
+| [7.5 IaC & Azure Security](#35-area-75--infrastructure-as-code--azure-security) | Bicep modules, Key Vault, monitoring | 10M / 8L | 4 | ✅ Complete |
+| [7.6 CI/CD Pipeline](#36-area-76--cicd-pipeline-quality) | GitHub Actions, supply chain | 6M / 1L | 5 | ✅ Complete |
+| [7.7 Docker & Containers](#37-area-77--docker--container-security) | Dockerfiles, compose, images | 3M / 2L | 5 | ✅ Complete |
 | [7.8 Testing Coverage](#38-area-78--testing-coverage--quality) | Jest, xUnit, Playwright, Lighthouse | 5M / 5L | 4 | Not Started |
 | [7.9 Documentation](#39-area-79--documentation-completeness--accuracy) | Stale docs, cross-references | 4M / 2L | 3 | Not Started |
 | [7.10 Production Readiness](#310-area-710--production-readiness--observability) | Alerts, SEO, telemetry, probes | 6M / 3L | 5 | Not Started |
@@ -96,21 +96,21 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | ID | Severity | Finding | Track | Status |
 |----|----------|---------|-------|--------|
-| 7.3-1 | MEDIUM | CMS `dangerouslySetInnerHTML` without sanitization (3 sites) | Track 1: Sanitization | Not Started |
-| 7.3-2 | MEDIUM | CSP missing `base-uri`/`object-src`, wide `img-src`, `unsafe-eval` present | Track 2: CSP hardening | Not Started |
-| 7.3-3 | MEDIUM | No 429 rate-limit handling in API client | Track 3: Rate-limit UX | Not Started |
-| 7.3-4 | MEDIUM | ESLint has no security plugin | Track 4: eslint-plugin-security | Not Started |
-| 7.3-5 | MEDIUM | Source maps — verify not exposed in production | Track 5: Verification | Not Started |
+| 7.3-1 | MEDIUM | CMS `dangerouslySetInnerHTML` without sanitization (3 sites) | Track 1: Sanitization | ✅ Fixed |
+| 7.3-2 | MEDIUM | CSP missing `base-uri`/`object-src`, wide `img-src`, `unsafe-eval` present | Track 2: CSP hardening | ✅ Fixed |
+| 7.3-3 | MEDIUM | No 429 rate-limit handling in API client | Track 3: Rate-limit UX | ✅ Fixed |
+| 7.3-4 | MEDIUM | ESLint has no security plugin | Track 4: eslint-plugin-security | ✅ Fixed |
+| 7.3-5 | MEDIUM | Source maps — verify not exposed in production | Track 5: Verification | ✅ Verified (none present) |
 
 **Tracks:**
 
 | # | Track | Status |
 |---|-------|--------|
-| 1 | CMS HTML sanitization — isomorphic-dompurify for 3 `dangerouslySetInnerHTML` sites | Not Started |
-| 2 | CSP hardening — add `base-uri`, `object-src`; narrow `img-src`; test `unsafe-eval` removal | Not Started |
-| 3 | 429 rate-limit handling — add case in `handleApiError` | Not Started |
-| 4 | ESLint security plugin — `eslint-plugin-security` | Not Started |
-| 5 | Source maps verification — confirm not exposed in production | Not Started |
+| 1 | CMS HTML sanitization — isomorphic-dompurify for 3 `dangerouslySetInnerHTML` sites | ✅ Complete |
+| 2 | CSP hardening — add `base-uri`, `object-src`; narrow `img-src`; test `unsafe-eval` removal | ✅ Complete |
+| 3 | 429 rate-limit handling — add case in `handleApiError` | ✅ Complete |
+| 4 | ESLint security plugin — `eslint-plugin-security` | ✅ Complete |
+| 5 | Source maps verification — confirmed not present in `.next/static/` | ✅ Complete |
 
 **Accepted Risks:**
 
@@ -165,25 +165,25 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | ID | Severity | Finding | Track | Status |
 |----|----------|---------|-------|--------|
-| 7.5-1 | MEDIUM | No resource tagging on any module | Track 1: Governance | Not Started |
-| 7.5-2 | MEDIUM | Hardcoded resource names (not parameterized) | Track 1: Governance | Not Started |
-| 7.5-3 | MEDIUM | Hardcoded `NEXT_PUBLIC_API_BASE_URL` in containerApps.bicep | Track 1: Governance | Not Started |
-| 7.5-4 | MEDIUM | No parameter validation (`@minLength`, `@allowed`) | Track 1: Governance | Not Started |
-| 7.5-5 | MEDIUM | No SQL diagnostic settings (no DB audit trail) | Track 2: Monitoring | Not Started |
-| 7.5-6 | MEDIUM | Alert action groups missing — alerts fire, nobody notified | Track 2: Monitoring | Not Started |
-| 7.5-7 | MEDIUM | Exception spike threshold too high (20 → 10) | Track 2: Monitoring | Not Started |
-| 7.5-8 | MEDIUM | No Key Vault purge protection | Track 3: Key Vault | Not Started |
-| 7.5-9 | MEDIUM | Soft delete only 7 days (too short for production) | Track 3: Key Vault | Not Started |
-| 7.5-10 | MEDIUM | App Insights connection string passed as inline value | Track 3: Key Vault | Not Started |
+| 7.5-1 | MEDIUM | No resource tagging on any module | Track 1: Governance | ✅ Fixed |
+| 7.5-2 | MEDIUM | Hardcoded resource names (not parameterized) | Track 1: Governance | ✅ Fixed |
+| 7.5-3 | MEDIUM | Hardcoded `NEXT_PUBLIC_API_BASE_URL` in containerApps.bicep | Track 1: Governance | ✅ Fixed |
+| 7.5-4 | MEDIUM | No parameter validation (`@minLength`, `@allowed`) | Track 1: Governance | ✅ Fixed |
+| 7.5-5 | MEDIUM | No SQL diagnostic settings (no DB audit trail) | Track 2: Monitoring | ✅ Fixed |
+| 7.5-6 | MEDIUM | Alert action groups missing — alerts fire, nobody notified | Track 2: Monitoring | ✅ Fixed |
+| 7.5-7 | MEDIUM | Exception spike threshold too high (20 → 10) | Track 2: Monitoring | ✅ Fixed |
+| 7.5-8 | MEDIUM | No Key Vault purge protection | Track 3: Key Vault | ✅ Fixed |
+| 7.5-9 | MEDIUM | Soft delete only 7 days (too short for production) | Track 3: Key Vault | ✅ Fixed |
+| 7.5-10 | MEDIUM | App Insights connection string passed as inline value | Track 3: Key Vault | ✅ Fixed |
 
 **Tracks:**
 
 | # | Track | Status |
 |---|-------|--------|
-| 1 | Governance & parameterization — tags, names, `@allowed`/`@minLength` validation | Not Started |
-| 2 | Monitoring & observability — action group, SQL diagnostics, threshold adjustment | Not Started |
-| 3 | Key Vault & secrets hardening — purge protection, 7→90 days, KV references | Not Started |
-| 4 | Documentation — Decision 53, ACR cleanup docs | Not Started |
+| 1 | Governance & parameterization — tags on all modules, parameterized names with prod defaults, `apiBaseUrl` param, `@allowed`/`@minLength` validation | ✅ Complete |
+| 2 | Monitoring & observability — conditional alert action group, SQL diagnostic settings to Log Analytics, exception threshold 20→10 | ✅ Complete |
+| 3 | Key Vault & secrets hardening — purge protection, soft-delete 7→90 days, App Insights connection string to KV reference | ✅ Complete |
+| 4 | Documentation — Decision 53, ACR cleanup docs in infrastructure/README.md | ✅ Complete |
 
 **Accepted Risks:**
 
@@ -208,22 +208,22 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | ID | Severity | Finding | Track | Status |
 |----|----------|---------|-------|--------|
-| 7.6-1 | MEDIUM | GitHub Actions not pinned to SHA (~36 `uses:` refs) | Track 1: SHA pinning | Not Started |
-| 7.6-2 | MEDIUM | No top-level `permissions` block in `test.yml` | Track 2: Security | Not Started |
-| 7.6-3 | MEDIUM | No `concurrency:` groups on any workflow | Track 2: Security | Not Started |
-| 7.6-4 | **MEDIUM** | **CRITICAL BUG:** Rollback deploys `:latest` overwritten with broken build | Track 2: Rollback fix | Not Started |
-| 7.6-5 | MEDIUM | No `.github/dependabot.yml` configured | Track 3: Dependabot | Not Started |
-| 7.6-6 | MEDIUM | `test-summary` does not include E2E results | Track 4: Test summary | Not Started |
+| 7.6-1 | MEDIUM | GitHub Actions not pinned to SHA (~36 `uses:` refs) | Track 1: SHA pinning | ✅ Complete |
+| 7.6-2 | MEDIUM | No top-level `permissions` block in `test.yml` | Track 2: Security | ✅ Complete |
+| 7.6-3 | MEDIUM | No `concurrency:` groups on any workflow | Track 2: Security | ✅ Complete |
+| 7.6-4 | **MEDIUM** | **CRITICAL BUG:** Rollback deploys `:latest` overwritten with broken build | Track 2: Rollback fix | ✅ Complete |
+| 7.6-5 | MEDIUM | No `.github/dependabot.yml` configured | Track 3: Dependabot | ✅ Complete |
+| 7.6-6 | MEDIUM | `test-summary` does not include E2E results | Track 4: Test summary | ✅ Complete |
 
 **Tracks:**
 
 | # | Track | Status |
 |---|-------|--------|
-| 1 | Action version pinning — ~36 refs to SHA format | Not Started |
-| 2 | Workflow security & correctness — permissions, concurrency, rollback bug fix | Not Started |
-| 3 | Dependabot configuration — npm, NuGet, GitHub Actions, Docker | Not Started |
-| 4 | Test summary improvement — include E2E results | Not Started |
-| 5 | Documentation — Decision 52, roadmap | Not Started |
+| 1 | Action version pinning — ~36 refs to SHA format | ✅ Complete |
+| 2 | Workflow security & correctness — permissions, concurrency, rollback bug fix | ✅ Complete |
+| 3 | Dependabot configuration — npm, NuGet, GitHub Actions, Docker | ✅ Complete |
+| 4 | Test summary improvement — include E2E results | ✅ Complete |
+| 5 | Documentation — Decision 52, roadmap | ✅ Complete |
 
 **Accepted Risks:**
 
@@ -248,21 +248,21 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | ID | Severity | Finding | Track | Status |
 |----|----------|---------|-------|--------|
-| 7.7-1 | MEDIUM | No SHA pinning on base images (3 Dockerfiles, 7 FROM lines) | Track 1: SHA pinning | Not Started |
-| 7.7-2 | MEDIUM | Backend uses Debian `aspnet:8.0` + curl (~20 MB overhead) | Track 2: Alpine migration | Not Started |
-| 7.7-3 | MEDIUM | CMS uses `npm install` instead of `npm ci` | Track 3: Reproducible builds | Not Started |
-| 7.7-4 | LOW | `docker-compose.yml` deprecated `version: '3.8'` field | Track 4: Compose cleanup | Not Started |
-| 7.7-5 | LOW | CMS `.dockerignore` missing `.git/`, IDE, OS file exclusions | Track 4: Dockerignore | Not Started |
+| 7.7-1 | MEDIUM | No SHA pinning on base images (3 Dockerfiles, 7 FROM lines) | Track 1: SHA pinning | ✅ Fixed |
+| 7.7-2 | MEDIUM | Backend uses Debian `aspnet:8.0` + curl (~20 MB overhead) | Track 2: Alpine migration | ✅ Fixed |
+| 7.7-3 | MEDIUM | CMS uses `npm install` instead of `npm ci` | Track 3: Reproducible builds | ⚠️ Deferred — `cms/package-lock.json` is gitignored (Strapi convention); `npm ci` requires committed lockfile |
+| 7.7-4 | LOW | `docker-compose.yml` deprecated `version: '3.8'` field | Track 4: Compose cleanup | ✅ Fixed |
+| 7.7-5 | LOW | CMS `.dockerignore` missing `.git/`, IDE, OS file exclusions | Track 4: Dockerignore | ✅ Fixed |
 
 **Tracks:**
 
 | # | Track | Status |
 |---|-------|--------|
-| 1 | Base image SHA pinning — all 3 Dockerfiles, 7 FROM lines | Not Started |
-| 2 | Backend Alpine migration — remove curl, ~50% smaller image | Not Started |
-| 3 | CMS Dockerfile `npm ci` — reproducible builds | Not Started |
-| 4 | Compose & Dockerignore cleanup — remove version field, add exclusions | Not Started |
-| 5 | Documentation — Decision 53, roadmap, CLAUDE.md | Not Started |
+| 1 | Base image SHA pinning — all 3 Dockerfiles, 7 FROM lines | ✅ Complete |
+| 2 | Backend Alpine migration — `aspnet:8.0-alpine`, remove curl layer, ~63% smaller image (~90 MB) | ✅ Complete |
+| 3 | CMS Dockerfile `npm ci` — deferred: requires removing `package-lock.json` from `cms/.gitignore` | ⚠️ Deferred |
+| 4 | Compose & Dockerignore cleanup — removed `version: '3.8'`, added `.git/` IDE/OS exclusions | ✅ Complete |
+| 5 | Documentation — Decision 59, ROADMAP, CLAUDE.md, QUALITY_HARDENING | ✅ Complete |
 
 **Accepted Risks:**
 
@@ -285,7 +285,7 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | Layer | Framework | Tests | Coverage | CI Gate |
 |-------|-----------|-------|----------|---------|
-| Frontend | Jest + RTL | 390 | 75.97% lines | 70% all metrics |
+| Frontend | Jest + RTL | 396 | 76.04% lines | 70% all metrics |
 | Backend | xUnit + Moq | 105 | ~85% testable | Pass/fail only |
 | E2E | Playwright | 42 x 3 browsers | Critical flows | Cross-browser matrix |
 | Performance | Lighthouse CI | 2 URLs x 3 runs | LCP/FCP/TTI | Threshold gates |
