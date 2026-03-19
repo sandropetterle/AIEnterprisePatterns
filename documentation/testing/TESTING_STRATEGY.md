@@ -1,6 +1,6 @@
 # Testing Strategy
 
-**Last Updated:** 2026-03-03
+**Last Updated:** 2026-03-19
 **Audience:** QA Engineers, Developers
 **Purpose:** Define the testing approach, tools, coverage targets, and quality standards for the AI Enterprise Patterns Library.
 
@@ -54,7 +54,7 @@ This document outlines the testing strategy for the AI Enterprise Patterns Libra
 - **Standard:** WCAG 2.1 AA compliance
 
 ### 1.7 Manual Tests
-- **Execution:** Follow `documentation/COMPREHENSIVE_TEST_PLAN.md` for structured manual testing
+- **Execution:** Follow `documentation/testing/MANUAL_TEST_PLAN.md` for structured manual testing
 - **When:** Pre-release smoke testing, exploratory testing, UAT
 - **Documentation:** Results stored in `documentation/test_results/`
 
@@ -75,7 +75,7 @@ This document outlines the testing strategy for the AI Enterprise Patterns Libra
 - **Load Testing:** k6 or Apache JMeter (Phase 6+)
 
 ### 2.3 Manual Testing
-- **Test Execution:** Follow `documentation/COMPREHENSIVE_TEST_PLAN.md` for manual test cases
+- **Test Execution:** Follow `documentation/testing/MANUAL_TEST_PLAN.md` for manual test cases
 - **Exploratory Testing:** Ad-hoc testing for new features and bug verification
 - **User Acceptance Testing (UAT):** Phase 8 enterprise features
 
@@ -140,7 +140,7 @@ documentation/
 │   ├── phase5_test_results.md
 │   └── test_run_2026-02-13.md
 ├── TESTING_STRATEGY.md            # This document
-└── COMPREHENSIVE_TEST_PLAN.md     # Manual test cases
+└── MANUAL_TEST_PLAN.md            # Manual test cases
 ```
 
 ---
@@ -167,7 +167,7 @@ documentation/
 1. **Daily Development:** Run unit tests locally (`npm test`, `dotnet test`)
 2. **Before PR:** Run full test suite including E2E (local)
 3. **In CI/CD:** Automated tests run on every PR and merge to main
-4. **Before Release:** Execute manual test plan (`COMPREHENSIVE_TEST_PLAN.md`)
+4. **Before Release:** Execute manual test plan (`MANUAL_TEST_PLAN.md`)
 5. **Post-Release:** Monitor production, run smoke tests
 
 ## 5. Best Practices
@@ -434,6 +434,57 @@ await expect(page).toHaveURL(/tags=[^&]*,/, { timeout: 10_000 })
 await expect(page).toHaveURL(/tags=[^&]*(%2C|,)/i, { timeout: 10_000 })
 ```
 
+### Phase 7.8 Complete — as of 2026-03-19
+
+Phase 7.8 (Testing Coverage & Quality) audited all test layers. Testing infrastructure confirmed enterprise-grade. Three lightweight tracks implemented; three deferred.
+
+**Testing baseline (Phase 7.8):**
+- Frontend: 396/396 Jest tests passing; 76.04% lines / 76.77% branches / 71.70% fn / 75.84% stmt (CI gate: 70%)
+- Backend: 105/105 xUnit tests passing; ~85% testable coverage; Codecov upload in CI
+- E2E: 42 tests × 3 browsers; critical flows + auth guards; API-write tests opt-in (`E2E_API_WRITES=true`)
+- Lighthouse CI, Chromatic (38 stories), 4 a11y suites — all in CI
+
+**Deferred:** Mutation testing (Stryker, Phase 8), load testing (k6, Phase 8), contract testing (Pact, Phase 9+)
+
+See [`phase7_8_testing_baseline.md`](../test_results/phase7_8_testing_baseline.md) for the full metrics snapshot.
+
+---
+
+### 9.1 E2E Auth Test Strategy
+
+The authenticated E2E tests in `e2e/authenticated-flows.spec.ts` are split into three tiers:
+
+| Tier | Tests | CI Status | Requirement |
+|------|-------|-----------|-------------|
+| Unauthenticated guards | 4 | Always run | None |
+| Authenticated — UI | 4 | Always run (when `AUTH_SECRET` set) | Synthetic session cookie |
+| Authenticated — API writes | 3 | **Skipped in CI** | Real Entra access token |
+
+#### Why API-write tests are skipped in CI
+
+The "Authenticated — API writes" tests (create/edit/delete patterns) call the ASP.NET Core API with a JWT bearer token. The backend validates the token against Entra's JWKS endpoint — only tokens issued by the real Entra External ID tenant pass validation. A synthetic session cookie (created via `@auth/core/jwt encode()`) contains a placeholder access token that is rejected by the backend.
+
+Enabling these tests in CI would require:
+1. A dedicated test Entra user with Editor and Admin roles
+2. The test user's credentials stored in GitHub Secrets
+3. A mechanism to obtain a real Entra access token in CI (browser-based OIDC flow or client-credentials grant)
+4. Potentially a protected CI environment to prevent credential exposure in PRs
+
+**Current trade-off decision:** This is a single-developer project. Post-deploy validation is covered by the healthcheck in `frontend-container-deploy.yml` (`curl -sf https://<url>` checking for "next-size-adjust" in the response). Manual pre-release testing of create/edit/delete flows is sufficient given the deployment cadence.
+
+#### How to enable API-write tests locally or in a protected environment
+
+```bash
+# 1. Log in to the app via browser (creates a real Entra session)
+# 2. Export the session cookie to e2e/.auth/admin.json
+# 3. Run with the flag set:
+E2E_API_WRITES=true npx playwright test e2e/authenticated-flows.spec.ts
+```
+
+If enabling in CI: set `E2E_API_WRITES: true` in the `e2e-tests` job environment (`.github/workflows/test.yml`, line ~208) and store real Entra test user credentials in GitHub Secrets. Use a protected environment to prevent exposure in fork PRs.
+
+---
+
 ### Next Phase: Phase 6.7
 - CMS Content Migration — Tests & Documentation
 
@@ -451,5 +502,5 @@ For test implementation examples, see:
 - Backend: `backend/tests/`
 - Frontend: `__tests__/` and `*.test.tsx` files throughout the project
 - E2E: `e2e/critical-flows.spec.ts`
-- Manual tests: `documentation/COMPREHENSIVE_TEST_PLAN.md`
+- Manual tests: `documentation/testing/MANUAL_TEST_PLAN.md`
 - Results: `documentation/test_results/`

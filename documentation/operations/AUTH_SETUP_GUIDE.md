@@ -1,5 +1,9 @@
 # Authentication Setup Guide — Azure Entra External ID
 
+**Last Updated:** 2026-03-19
+**Audience:** Infrastructure Engineers, Solutions Architects
+**Purpose:** Step-by-step guide for configuring Azure Entra External ID as the OIDC provider for frontend (Auth.js) and backend (JwtBearer) authentication.
+
 This guide covers the Azure Entra External ID configuration required for the AI Enterprise Patterns application. Complete these steps once per environment (development, production).
 
 ---
