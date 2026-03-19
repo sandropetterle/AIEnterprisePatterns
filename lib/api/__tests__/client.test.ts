@@ -322,6 +322,24 @@ describe('API Client', () => {
   })
 
   describe('Error handling', () => {
+    it('should throw ApiError with 429 status on rate limit response', async () => {
+      const mockResponse = {
+        ok: false,
+        status: 429,
+        statusText: 'Too Many Requests',
+        json: async () => ({}),
+      } as Response
+
+      ;(global.fetch as jest.MockedFunction<typeof fetch>).mockResolvedValueOnce(
+        mockResponse
+      )
+
+      const error = await apiClient.get('/test').catch((e) => e)
+      expect(error).toBeInstanceOf(ApiError)
+      expect(error.statusCode).toBe(429)
+      expect(error.message).toMatch(/too many requests/i)
+    })
+
     it('should handle network errors', async () => {
       ;(global.fetch as jest.MockedFunction<typeof fetch>).mockRejectedValueOnce(
         new Error('Network error')

@@ -7,11 +7,18 @@ param location string
 @description('Environment name suffix (e.g. prod)')
 param environment string = 'prod'
 
+@description('Email for alert notifications (empty = no notifications sent)')
+param alertEmail string = ''
+
+@description('Resource tags applied to all resources in this module')
+param tags object
+
 // ── Log Analytics Workspace ───────────────────────────────────────────────────
 
 resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
   name: 'log-aipatterns-${environment}'
   location: location
+  tags: tags
   properties: {
     sku: {
       name: 'PerGB2018'
@@ -25,6 +32,7 @@ resource logAnalytics 'Microsoft.OperationalInsights/workspaces@2022-10-01' = {
 resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   name: 'appi-aipatterns-${environment}'
   location: location
+  tags: tags
   kind: 'web'
   properties: {
     Application_Type: 'web'
@@ -34,11 +42,31 @@ resource appInsights 'Microsoft.Insights/components@2020-02-02' = {
   }
 }
 
+// ── Alert Action Group (conditional — only created when alertEmail is set) ────
+
+resource actionGroup 'Microsoft.Insights/actionGroups@2023-01-01' = if (!empty(alertEmail)) {
+  name: 'ag-aipatterns-alerts-${environment}'
+  location: 'global'
+  tags: tags
+  properties: {
+    groupShortName: 'AIPatAlert'
+    enabled: true
+    emailReceivers: [
+      {
+        name: 'DevOps'
+        emailAddress: alertEmail
+        useCommonAlertSchema: true
+      }
+    ]
+  }
+}
+
 // ── Metric Alerts ─────────────────────────────────────────────────────────────
 
 resource alertErrorRate 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'alert-aipatterns-error-rate-${environment}'
   location: 'global'
+  tags: tags
   properties: {
     description: 'Alert when server error rate exceeds 5%'
     severity: 2
@@ -59,6 +87,11 @@ resource alertErrorRate 'Microsoft.Insights/metricAlerts@2018-03-01' = {
         }
       ]
     }
+    actions: empty(alertEmail) ? [] : [
+      {
+        actionGroupId: actionGroup.id
+      }
+    ]
     autoMitigate: true
   }
 }
@@ -66,6 +99,7 @@ resource alertErrorRate 'Microsoft.Insights/metricAlerts@2018-03-01' = {
 resource alertResponseTime 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'alert-aipatterns-response-time-${environment}'
   location: 'global'
+  tags: tags
   properties: {
     description: 'Alert when average response time exceeds 3 seconds'
     severity: 2
@@ -86,6 +120,11 @@ resource alertResponseTime 'Microsoft.Insights/metricAlerts@2018-03-01' = {
         }
       ]
     }
+    actions: empty(alertEmail) ? [] : [
+      {
+        actionGroupId: actionGroup.id
+      }
+    ]
     autoMitigate: true
   }
 }
@@ -93,6 +132,7 @@ resource alertResponseTime 'Microsoft.Insights/metricAlerts@2018-03-01' = {
 resource alertAvailability 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'alert-aipatterns-availability-${environment}'
   location: 'global'
+  tags: tags
   properties: {
     description: 'Alert when availability drops below 95%'
     severity: 1
@@ -113,6 +153,11 @@ resource alertAvailability 'Microsoft.Insights/metricAlerts@2018-03-01' = {
         }
       ]
     }
+    actions: empty(alertEmail) ? [] : [
+      {
+        actionGroupId: actionGroup.id
+      }
+    ]
     autoMitigate: true
   }
 }
@@ -120,6 +165,7 @@ resource alertAvailability 'Microsoft.Insights/metricAlerts@2018-03-01' = {
 resource alertExceptionSpike 'Microsoft.Insights/metricAlerts@2018-03-01' = {
   name: 'alert-aipatterns-exception-spike-${environment}'
   location: 'global'
+  tags: tags
   properties: {
     description: 'Alert on sharp increase in exception rate'
     severity: 2
@@ -134,23 +180,28 @@ resource alertExceptionSpike 'Microsoft.Insights/metricAlerts@2018-03-01' = {
           name: 'ExceptionSpike'
           metricName: 'exceptions/count'
           operator: 'GreaterThan'
-          threshold: 20
+          threshold: 10
           timeAggregation: 'Count'
           criterionType: 'StaticThresholdCriterion'
         }
       ]
     }
+    actions: empty(alertEmail) ? [] : [
+      {
+        actionGroupId: actionGroup.id
+      }
+    ]
     autoMitigate: true
   }
 }
 
 // ── Outputs ───────────────────────────────────────────────────────────────────
 
-@description('Log Analytics workspace resource ID (for Container Apps Environment)')
+@description('Log Analytics workspace resource ID (for Container Apps Environment and SQL diagnostics)')
 output logAnalyticsId string = logAnalytics.id
 
 @description('Log Analytics workspace customer ID (for Container Apps Environment)')
 output logAnalyticsCustomerId string = logAnalytics.properties.customerId
 
-@description('Application Insights connection string (passed to Container Apps as env var)')
+@description('Application Insights connection string (retained for operational reference)')
 output appInsightsConnectionString string = appInsights.properties.ConnectionString

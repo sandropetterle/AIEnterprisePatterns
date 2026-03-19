@@ -4,11 +4,18 @@
 @description('Azure region for all resources')
 param location string
 
+@description('Resource tags applied to all resources in this module')
+param tags object
+
+@description('ACR resource name')
+param acrName string = 'craipatternssp54426'
+
 // ── Container Registry ────────────────────────────────────────────────────────
 
 resource acr 'Microsoft.ContainerRegistry/registries@2023-01-01-preview' = {
-  name: 'craipatternssp54426'
+  name: acrName
   location: location
+  tags: tags
   sku: {
     name: 'Basic'
   }

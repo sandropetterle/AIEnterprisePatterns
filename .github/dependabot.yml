@@ -89,3 +89,21 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+
+  # Docker — frontend
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+
+  # Docker — backend
+  - package-ecosystem: "docker"
+    directory: "/backend"
+    schedule:
+      interval: "monthly"
+
+  # Docker — CMS
+  - package-ecosystem: "docker"
+    directory: "/cms"
+    schedule:
+      interval: "monthly"

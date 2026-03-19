@@ -73,9 +73,9 @@ builder.Services.AddApiVersioning(options =>
     options.SubstituteApiVersionInUrl = true;
 });
 
-// Database - Use SQLite for local dev, SQL Server for production
+// Database - Use SQLite when no connection string is configured (local dev), SQL Server otherwise
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-if (builder.Environment.IsDevelopment() && (string.IsNullOrEmpty(connectionString) || connectionString.Contains("localhost,1433")))
+if (string.IsNullOrEmpty(connectionString))
 {
     var dbPath = Path.Combine(AppContext.BaseDirectory, "aipatterns.db");
     builder.Services.AddDbContext<ApplicationDbContext>(options =>
@@ -89,7 +89,11 @@ else
 }
 
 // CORS for Next.js frontend - Environment-specific
-var frontendUrls = new List<string> { "http://localhost:3000" };
+var frontendUrls = new List<string>();
+if (builder.Environment.IsDevelopment())
+{
+    frontendUrls.Add("http://localhost:3000");
+}
 
 // Support both single URL (legacy) and array of URLs (current)
 var productionFrontendUrl = builder.Configuration["FrontendUrl"];
@@ -190,6 +194,10 @@ app.Use(async (context, next) =>
     context.Response.Headers.Append("X-Frame-Options", "DENY");
     context.Response.Headers.Append("X-XSS-Protection", "1; mode=block");
     context.Response.Headers.Append("Referrer-Policy", "strict-origin-when-cross-origin");
+    if (!app.Environment.IsDevelopment())
+    {
+        context.Response.Headers.Append("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
     await next();
 });
 

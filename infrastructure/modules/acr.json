@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "483969533298151102"
+      "templateHash": "5079795949995422956"
     }
   },
   "parameters": {
@@ -14,14 +14,28 @@
       "metadata": {
         "description": "Azure region for all resources"
       }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags applied to all resources in this module"
+      }
+    },
+    "acrName": {
+      "type": "string",
+      "defaultValue": "craipatternssp54426",
+      "metadata": {
+        "description": "ACR resource name"
+      }
     }
   },
   "resources": [
     {
       "type": "Microsoft.ContainerRegistry/registries",
       "apiVersion": "2023-01-01-preview",
-      "name": "craipatternssp54426",
+      "name": "[parameters('acrName')]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "sku": {
         "name": "Basic"
       },
@@ -36,14 +50,14 @@
       "metadata": {
         "description": "ACR login server hostname (e.g. craipatternssp54426.azurecr.io)"
       },
-      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', 'craipatternssp54426'), '2023-01-01-preview').loginServer]"
+      "value": "[reference(resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName')), '2023-01-01-preview').loginServer]"
     },
     "acrResourceId": {
       "type": "string",
       "metadata": {
         "description": "ACR resource ID (for managed identity pull role assignment)"
       },
-      "value": "[resourceId('Microsoft.ContainerRegistry/registries', 'craipatternssp54426')]"
+      "value": "[resourceId('Microsoft.ContainerRegistry/registries', parameters('acrName'))]"
     }
   }
 }

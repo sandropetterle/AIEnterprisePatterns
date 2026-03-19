@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "4100294323678692798"
+      "templateHash": "2193654039096640026"
     }
   },
   "parameters": {
@@ -36,13 +36,20 @@
     "kvName": {
       "type": "string",
       "metadata": {
-        "description": "Key Vault name (for secret references in API app)"
+        "description": "Key Vault name (for secret references in all apps)"
       }
     },
-    "appInsightsConnectionString": {
-      "type": "securestring",
+    "apiBaseUrl": {
+      "type": "string",
+      "defaultValue": "https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/api",
       "metadata": {
-        "description": "Application Insights connection string"
+        "description": "Public API base URL for the frontend app"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags applied to all resources in this module"
       }
     },
     "apiImage": {
@@ -76,6 +83,7 @@
       "apiVersion": "2023-05-01",
       "name": "ca-aipatterns-api-prod",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "identity": {
         "type": "SystemAssigned"
       },
@@ -97,7 +105,8 @@
           "secrets": [
             {
               "name": "appinsights-connection-string",
-              "value": "[parameters('appInsightsConnectionString')]"
+              "keyVaultUrl": "[format('https://{0}{1}/secrets/appinsights-connection-string', parameters('kvName'), environment().suffixes.keyvaultDns)]",
+              "identity": "system"
             },
             {
               "name": "sql-connection-string",
@@ -182,6 +191,7 @@
       "apiVersion": "2023-05-01",
       "name": "ca-aipatterns-web-prod",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "identity": {
         "type": "SystemAssigned"
       },
@@ -229,7 +239,7 @@
                 },
                 {
                   "name": "NEXT_PUBLIC_API_BASE_URL",
-                  "value": "https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/api"
+                  "value": "[parameters('apiBaseUrl')]"
                 },
                 {
                   "name": "AUTH_TRUST_HOST",
@@ -271,6 +281,7 @@
       "apiVersion": "2023-05-01",
       "name": "ca-aipatterns-cms-prod",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "identity": {
         "type": "SystemAssigned"
       },

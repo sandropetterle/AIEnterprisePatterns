@@ -5,7 +5,7 @@
     "_generator": {
       "name": "bicep",
       "version": "0.41.2.15936",
-      "templateHash": "15296361859579819371"
+      "templateHash": "13532514695291890119"
     }
   },
   "parameters": {
@@ -21,6 +21,19 @@
       "metadata": {
         "description": "Environment name suffix (e.g. prod)"
       }
+    },
+    "alertEmail": {
+      "type": "string",
+      "defaultValue": "",
+      "metadata": {
+        "description": "Email for alert notifications (empty = no notifications sent)"
+      }
+    },
+    "tags": {
+      "type": "object",
+      "metadata": {
+        "description": "Resource tags applied to all resources in this module"
+      }
     }
   },
   "resources": [
@@ -29,6 +42,7 @@
       "apiVersion": "2022-10-01",
       "name": "[format('log-aipatterns-{0}', parameters('environment'))]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "properties": {
         "sku": {
           "name": "PerGB2018"
@@ -41,6 +55,7 @@
       "apiVersion": "2020-02-02",
       "name": "[format('appi-aipatterns-{0}', parameters('environment'))]",
       "location": "[parameters('location')]",
+      "tags": "[parameters('tags')]",
       "kind": "web",
       "properties": {
         "Application_Type": "web",
@@ -53,10 +68,30 @@
       ]
     },
     {
+      "condition": "[not(empty(parameters('alertEmail')))]",
+      "type": "Microsoft.Insights/actionGroups",
+      "apiVersion": "2023-01-01",
+      "name": "[format('ag-aipatterns-alerts-{0}', parameters('environment'))]",
+      "location": "global",
+      "tags": "[parameters('tags')]",
+      "properties": {
+        "groupShortName": "AIPatAlert",
+        "enabled": true,
+        "emailReceivers": [
+          {
+            "name": "DevOps",
+            "emailAddress": "[parameters('alertEmail')]",
+            "useCommonAlertSchema": true
+          }
+        ]
+      }
+    },
+    {
       "type": "Microsoft.Insights/metricAlerts",
       "apiVersion": "2018-03-01",
       "name": "[format('alert-aipatterns-error-rate-{0}', parameters('environment'))]",
       "location": "global",
+      "tags": "[parameters('tags')]",
       "properties": {
         "description": "Alert when server error rate exceeds 5%",
         "severity": 2,
@@ -79,9 +114,11 @@
             }
           ]
         },
+        "actions": "[if(empty(parameters('alertEmail')), createArray(), createArray(createObject('actionGroupId', resourceId('Microsoft.Insights/actionGroups', format('ag-aipatterns-alerts-{0}', parameters('environment'))))))]",
         "autoMitigate": true
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', format('ag-aipatterns-alerts-{0}', parameters('environment')))]",
         "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
       ]
     },
@@ -90,6 +127,7 @@
       "apiVersion": "2018-03-01",
       "name": "[format('alert-aipatterns-response-time-{0}', parameters('environment'))]",
       "location": "global",
+      "tags": "[parameters('tags')]",
       "properties": {
         "description": "Alert when average response time exceeds 3 seconds",
         "severity": 2,
@@ -112,9 +150,11 @@
             }
           ]
         },
+        "actions": "[if(empty(parameters('alertEmail')), createArray(), createArray(createObject('actionGroupId', resourceId('Microsoft.Insights/actionGroups', format('ag-aipatterns-alerts-{0}', parameters('environment'))))))]",
         "autoMitigate": true
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', format('ag-aipatterns-alerts-{0}', parameters('environment')))]",
         "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
       ]
     },
@@ -123,6 +163,7 @@
       "apiVersion": "2018-03-01",
       "name": "[format('alert-aipatterns-availability-{0}', parameters('environment'))]",
       "location": "global",
+      "tags": "[parameters('tags')]",
       "properties": {
         "description": "Alert when availability drops below 95%",
         "severity": 1,
@@ -145,9 +186,11 @@
             }
           ]
         },
+        "actions": "[if(empty(parameters('alertEmail')), createArray(), createArray(createObject('actionGroupId', resourceId('Microsoft.Insights/actionGroups', format('ag-aipatterns-alerts-{0}', parameters('environment'))))))]",
         "autoMitigate": true
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', format('ag-aipatterns-alerts-{0}', parameters('environment')))]",
         "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
       ]
     },
@@ -156,6 +199,7 @@
       "apiVersion": "2018-03-01",
       "name": "[format('alert-aipatterns-exception-spike-{0}', parameters('environment'))]",
       "location": "global",
+      "tags": "[parameters('tags')]",
       "properties": {
         "description": "Alert on sharp increase in exception rate",
         "severity": 2,
@@ -172,15 +216,17 @@
               "name": "ExceptionSpike",
               "metricName": "exceptions/count",
               "operator": "GreaterThan",
-              "threshold": 20,
+              "threshold": 10,
               "timeAggregation": "Count",
               "criterionType": "StaticThresholdCriterion"
             }
           ]
         },
+        "actions": "[if(empty(parameters('alertEmail')), createArray(), createArray(createObject('actionGroupId', resourceId('Microsoft.Insights/actionGroups', format('ag-aipatterns-alerts-{0}', parameters('environment'))))))]",
         "autoMitigate": true
       },
       "dependsOn": [
+        "[resourceId('Microsoft.Insights/actionGroups', format('ag-aipatterns-alerts-{0}', parameters('environment')))]",
         "[resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment')))]"
       ]
     }
@@ -189,7 +235,7 @@
     "logAnalyticsId": {
       "type": "string",
       "metadata": {
-        "description": "Log Analytics workspace resource ID (for Container Apps Environment)"
+        "description": "Log Analytics workspace resource ID (for Container Apps Environment and SQL diagnostics)"
       },
       "value": "[resourceId('Microsoft.OperationalInsights/workspaces', format('log-aipatterns-{0}', parameters('environment')))]"
     },
@@ -203,7 +249,7 @@
     "appInsightsConnectionString": {
       "type": "string",
       "metadata": {
-        "description": "Application Insights connection string (passed to Container Apps as env var)"
+        "description": "Application Insights connection string (retained for operational reference)"
       },
       "value": "[reference(resourceId('Microsoft.Insights/components', format('appi-aipatterns-{0}', parameters('environment'))), '2020-02-02').ConnectionString]"
     }

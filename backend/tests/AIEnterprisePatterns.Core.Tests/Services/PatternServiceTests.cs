@@ -4,6 +4,9 @@ using AIEnterprisePatterns.Core.Interfaces;
 using AIEnterprisePatterns.Core.Services;
 using AIEnterprisePatterns.Core.ValueObjects;
 using FluentAssertions;
+using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.Channel;
+using Microsoft.ApplicationInsights.Extensibility;
 using Microsoft.Extensions.Caching.Memory;
 using Moq;
 
@@ -16,6 +19,8 @@ public class PatternServiceTests
     private readonly Mock<IUnitOfWork> _unitOfWorkMock;
     private readonly IMemoryCache _cache;
     private readonly FakeTimeProvider _timeProvider;
+    private readonly FakeTelemetryChannel _telemetryChannel;
+    private readonly TelemetryClient _telemetryClient;
     private readonly PatternService _sut;
 
     public PatternServiceTests()
@@ -25,13 +30,17 @@ public class PatternServiceTests
         _unitOfWorkMock = new Mock<IUnitOfWork>();
         _cache = new MemoryCache(new MemoryCacheOptions());
         _timeProvider = new FakeTimeProvider(new DateTimeOffset(2024, 1, 15, 10, 0, 0, TimeSpan.Zero));
+        _telemetryChannel = new FakeTelemetryChannel();
+        var telemetryConfig = new TelemetryConfiguration { TelemetryChannel = _telemetryChannel };
+        _telemetryClient = new TelemetryClient(telemetryConfig);
 
         _sut = new PatternService(
             _patternRepositoryMock.Object,
             _tagRepositoryMock.Object,
             _unitOfWorkMock.Object,
             _cache,
-            _timeProvider);
+            _timeProvider,
+            _telemetryClient);
     }
 
     #region GetPatternsAsync Tests
@@ -516,6 +525,201 @@ public class PatternServiceTests
 
     #endregion
 
+    #region Business Telemetry Tests
+
+    [Fact]
+    public async Task GetBySlugAsync_ShouldTrackPatternViewedEvent_WhenPatternFound()
+    {
+        // Arrange
+        var slug = "test-pattern";
+        var pattern = CreateTestPattern();
+        _patternRepositoryMock
+            .Setup(r => r.GetBySlugAsync(slug, default))
+            .ReturnsAsync(pattern);
+
+        // Act
+        await _sut.GetBySlugAsync(slug);
+
+        // Assert
+        _telemetryClient.Flush();
+        var evt = _telemetryChannel.Items
+            .OfType<Microsoft.ApplicationInsights.DataContracts.EventTelemetry>()
+            .Single();
+        evt.Name.Should().Be("PatternViewed");
+        evt.Properties["slug"].Should().Be(slug);
+    }
+
+    [Fact]
+    public async Task GetBySlugAsync_ShouldNotTrackEvent_WhenPatternNotFound()
+    {
+        // Arrange
+        _patternRepositoryMock
+            .Setup(r => r.GetBySlugAsync("nonexistent", default))
+            .ReturnsAsync((Pattern?)null);
+
+        // Act
+        await _sut.GetBySlugAsync("nonexistent");
+
+        // Assert
+        _telemetryClient.Flush();
+        _telemetryChannel.Items.OfType<Microsoft.ApplicationInsights.DataContracts.EventTelemetry>()
+            .Should().BeEmpty();
+    }
+
+    [Fact]
+    public async Task CreatePatternAsync_ShouldTrackPatternCreatedEvent()
+    {
+        // Arrange
+        var pattern = new Pattern
+        {
+            Title = "Test Pattern",
+            ShortDescription = "Test Description",
+            Category = PatternCategory.Architecture
+        };
+        _tagRepositoryMock
+            .Setup(r => r.GetByNamesAsync(It.IsAny<List<string>>(), default))
+            .ReturnsAsync(new List<Tag>());
+        _patternRepositoryMock
+            .Setup(r => r.AddAsync(It.IsAny<Pattern>(), default))
+            .ReturnsAsync((Pattern p, CancellationToken _) => p);
+
+        // Act
+        await _sut.CreatePatternAsync(pattern, new List<string>());
+
+        // Assert
+        _telemetryClient.Flush();
+        var evt = _telemetryChannel.Items
+            .OfType<Microsoft.ApplicationInsights.DataContracts.EventTelemetry>()
+            .Single();
+        evt.Name.Should().Be("PatternCreated");
+    }
+
+    [Fact]
+    public async Task VoteForPatternAsync_ShouldTrackPatternVotedEvent()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        _patternRepositoryMock
+            .Setup(r => r.IncrementVoteCountAsync(id, default))
+            .ReturnsAsync(1);
+
+        // Act
+        await _sut.VoteForPatternAsync(id);
+
+        // Assert
+        _telemetryClient.Flush();
+        var evt = _telemetryChannel.Items
+            .OfType<Microsoft.ApplicationInsights.DataContracts.EventTelemetry>()
+            .Single();
+        evt.Name.Should().Be("PatternVoted");
+        evt.Properties["patternId"].Should().Be(id.ToString());
+    }
+
+    [Fact]
+    public async Task GetPatternsAsync_ShouldTrackPatternSearchedEvent_WhenFilterApplied()
+    {
+        // Arrange
+        var expectedResult = new PaginatedResult<Pattern> { Items = new List<Pattern>(), TotalCount = 0, CurrentPage = 1, PageSize = 10 };
+        _patternRepositoryMock
+            .Setup(r => r.GetPatternsAsync(1, 10, null, null, null, "test",
+                It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResult);
+
+        // Act
+        await _sut.GetPatternsAsync(1, 10, null, null, null, "test");
+
+        // Assert
+        _telemetryClient.Flush();
+        var evt = _telemetryChannel.Items
+            .OfType<Microsoft.ApplicationInsights.DataContracts.EventTelemetry>()
+            .Single();
+        evt.Name.Should().Be("PatternSearched");
+        evt.Properties["search"].Should().Be("test");
+    }
+
+    [Fact]
+    public async Task UpdatePatternAsync_ShouldTrackPatternUpdatedEvent()
+    {
+        // Arrange
+        var id = Guid.NewGuid();
+        var existing = CreateTestPattern(id);
+        var updated = new Pattern { Title = "Updated Title", Category = PatternCategory.Security };
+        var tags = new List<Tag>();
+
+        _patternRepositoryMock.Setup(r => r.GetByIdAsync(id, default)).ReturnsAsync(existing);
+        _tagRepositoryMock.Setup(r => r.GetByNamesAsync(It.IsAny<List<string>>(), default)).ReturnsAsync(tags);
+
+        // Act
+        await _sut.UpdatePatternAsync(id, updated, new List<string>());
+
+        // Assert
+        _telemetryClient.Flush();
+        var evt = _telemetryChannel.Items
+            .OfType<Microsoft.ApplicationInsights.DataContracts.EventTelemetry>()
+            .Single();
+        evt.Name.Should().Be("PatternUpdated");
+    }
+
+    [Fact]
+    public async Task GetFeaturedPatternsAsync_ShouldTrackCacheHitMetric()
+    {
+        // Arrange
+        var patterns = new List<Pattern> { CreateTestPattern() };
+        _patternRepositoryMock.Setup(r => r.GetFeaturedPatternsAsync(default)).ReturnsAsync(patterns);
+
+        // Act — first call (cache miss), second call (cache hit)
+        await _sut.GetFeaturedPatternsAsync();
+        _telemetryChannel.Items.Clear();
+        await _sut.GetFeaturedPatternsAsync();
+
+        // Assert — second call should record metric value 1 (hit)
+        _telemetryClient.Flush();
+        var metric = _telemetryChannel.Items
+            .OfType<Microsoft.ApplicationInsights.DataContracts.MetricTelemetry>()
+            .Single();
+        metric.Name.Should().Be("FeaturedPatternsCacheHit");
+        metric.Sum.Should().Be(1);
+    }
+
+    [Fact]
+    public async Task GetTrendingPatternsAsync_ShouldTrackCacheMissMetric()
+    {
+        // Arrange
+        var patterns = new List<Pattern> { CreateTestPattern() };
+        _patternRepositoryMock.Setup(r => r.GetTrendingPatternsAsync(default)).ReturnsAsync(patterns);
+
+        // Act — first call (cache miss)
+        await _sut.GetTrendingPatternsAsync();
+
+        // Assert — first call should record metric value 0 (miss)
+        _telemetryClient.Flush();
+        var metric = _telemetryChannel.Items
+            .OfType<Microsoft.ApplicationInsights.DataContracts.MetricTelemetry>()
+            .Single();
+        metric.Name.Should().Be("TrendingPatternsCacheHit");
+        metric.Sum.Should().Be(0);
+    }
+
+    [Fact]
+    public async Task GetPatternsAsync_ShouldNotTrackEvent_WhenNoFilterApplied()
+    {
+        // Arrange
+        var expectedResult = new PaginatedResult<Pattern> { Items = new List<Pattern>(), TotalCount = 0, CurrentPage = 1, PageSize = 10 };
+        _patternRepositoryMock
+            .Setup(r => r.GetPatternsAsync(1, 10, null, null, null, null,
+                It.IsAny<DateTime?>(), It.IsAny<DateTime?>(), It.IsAny<string>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(expectedResult);
+
+        // Act
+        await _sut.GetPatternsAsync(1, 10, null, null, null, null);
+
+        // Assert
+        _telemetryClient.Flush();
+        _telemetryChannel.Items.Should().BeEmpty();
+    }
+
+    #endregion
+
     #region Helper Methods
 
     private Pattern CreateTestPattern(Guid? id = null)
@@ -540,6 +744,20 @@ public class PatternServiceTests
     }
 
     #endregion
+}
+
+/// <summary>
+/// Fake Application Insights channel that captures telemetry items in memory for assertions
+/// </summary>
+public class FakeTelemetryChannel : ITelemetryChannel
+{
+    public List<ITelemetry> Items { get; } = new();
+    public bool? DeveloperMode { get; set; }
+    public string? EndpointAddress { get; set; }
+
+    public void Send(ITelemetry item) => Items.Add(item);
+    public void Flush() { }
+    public void Dispose() { }
 }
 
 /// <summary>

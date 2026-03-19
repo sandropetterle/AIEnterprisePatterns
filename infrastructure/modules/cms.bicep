@@ -8,15 +8,23 @@ param location string = 'francecentral'
 @secure()
 param mysqlAdminPassword string
 
-var mysqlServerName = 'mysql-aipatterns-cms'
+@description('Resource tags applied to all resources in this module')
+param tags object
+
+@description('MySQL Flexible Server resource name')
+param mysqlServerName string = 'mysql-aipatterns-cms'
+
+@description('Storage account resource name')
+param storageAccountName string = 'staipatternsmedia'
+
 var mysqlAdminLogin = 'mysqladmin'
-var storageAccountName = 'staipatternsmedia'
 
 // ── MySQL Flexible Server ─────────────────────────────────────────────────────
 
 resource mysqlServer 'Microsoft.DBforMySQL/flexibleServers@2023-06-30' = {
   name: mysqlServerName
   location: location
+  tags: tags
   sku: {
     name: 'Standard_B1ms'
     tier: 'Burstable'
@@ -63,6 +71,7 @@ resource mysqlFirewallAzure 'Microsoft.DBforMySQL/flexibleServers/firewallRules@
 resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: storageAccountName
   location: location
+  tags: tags
   sku: {
     name: 'Standard_LRS'
   }

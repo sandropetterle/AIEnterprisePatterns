@@ -203,8 +203,23 @@ public class PatternRepository : IPatternRepository
 
     public async Task<int> IncrementVoteCountAsync(Guid id, CancellationToken ct = default)
     {
-        // Use traditional approach instead of ExecuteUpdateAsync for better test compatibility
-        // ExecuteUpdateAsync has issues with in-memory database provider
+        if (_context.Database.IsRelational())
+        {
+            // Atomic SQL: UPDATE Patterns SET VoteCount = VoteCount + 1 WHERE Id = @id
+            var rowsAffected = await _context.Patterns
+                .Where(p => p.Id == id)
+                .ExecuteUpdateAsync(s => s.SetProperty(
+                    p => p.VoteCount, p => p.VoteCount + 1), ct);
+
+            if (rowsAffected == 0) return -1;
+
+            return await _context.Patterns
+                .Where(p => p.Id == id)
+                .Select(p => p.VoteCount)
+                .FirstAsync(ct);
+        }
+
+        // Fallback for InMemory provider (tests)
         var pattern = await _context.Patterns.FindAsync(new object[] { id }, ct);
         if (pattern == null) return -1;
 
