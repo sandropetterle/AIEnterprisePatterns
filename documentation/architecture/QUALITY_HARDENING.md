@@ -1,6 +1,6 @@
 # Quality & Hardening Evaluation
 
-**Last Updated:** 2026-03-19 (Phase 7.7 complete)
+**Last Updated:** 2026-03-19 (Phase 7.9 complete)
 **Audience:** Solutions Architects, Security Engineers, all developers
 **Purpose:** Consolidate all Phase 7 quality and hardening evaluation findings, implementation status, accepted risks, and deferred items into a single architect-facing reference. Updated as implementations progress.
 
@@ -25,8 +25,8 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 | [7.5 IaC & Azure Security](#35-area-75--infrastructure-as-code--azure-security) | Bicep modules, Key Vault, monitoring | 10M / 8L | 4 | ✅ Complete |
 | [7.6 CI/CD Pipeline](#36-area-76--cicd-pipeline-quality) | GitHub Actions, supply chain | 6M / 1L | 5 | ✅ Complete |
 | [7.7 Docker & Containers](#37-area-77--docker--container-security) | Dockerfiles, compose, images | 3M / 2L | 5 | ✅ Complete |
-| [7.8 Testing Coverage](#38-area-78--testing-coverage--quality) | Jest, xUnit, Playwright, Lighthouse | 5M / 5L | 4 | Not Started |
-| [7.9 Documentation](#39-area-79--documentation-completeness--accuracy) | Stale docs, cross-references | 4M / 2L | 3 | Not Started |
+| [7.8 Testing Coverage](#38-area-78--testing-coverage--quality) | Jest, xUnit, Playwright, Lighthouse | 5M / 5L | 4 | ✅ Complete |
+| [7.9 Documentation](#39-area-79--documentation-completeness--accuracy) | Stale docs, cross-references | 4M / 2L | 3 | ✅ Complete |
 | [7.10 Production Readiness](#310-area-710--production-readiness--observability) | Alerts, SEO, telemetry, probes | 6M / 3L | 5 | Not Started |
 
 ---
@@ -296,18 +296,18 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 |----|----------|---------|-------|--------|
 | 7.8-1 | MEDIUM | No mutation testing (Stryker) | Deferred Phase 8 | Deferred |
 | 7.8-2 | MEDIUM | No load/stress testing (k6) | Deferred Phase 8 | Deferred |
-| 7.8-3 | MEDIUM | Test result documentation stale since Phase 5.1 | Track 1: Docs update | Not Started |
-| 7.8-4 | MEDIUM | Backend has no coverage reporting or CI threshold | Track 2: Coverage CI | Not Started |
-| 7.8-5 | MEDIUM | E2E API write tests always skipped | Track 3: Strategy docs | Not Started |
+| 7.8-3 | MEDIUM | Test result documentation stale since Phase 5.1 | Track 1: Docs update | ✅ Done |
+| 7.8-4 | MEDIUM | Backend has no coverage reporting or CI threshold | Track 2: Coverage CI | ✅ Done (coverage in CI; threshold deferred) |
+| 7.8-5 | MEDIUM | E2E API write tests always skipped | Track 3: Strategy docs | ✅ Done |
 
 **Tracks:**
 
 | # | Track | Status |
 |---|-------|--------|
-| 1 | Test results documentation — Phase 6 + Phase 7.8 baselines | Not Started |
-| 2 | Backend coverage reporting — coverlet CI integration + Codecov upload | Not Started |
-| 3 | Document E2E API write test strategy | Not Started |
-| 4 | Decision log entry | Not Started |
+| 1 | Test results documentation — Phase 6 + Phase 7.8 baselines | ✅ Done — `phase6_test_results.md` + `phase7_8_testing_baseline.md` created |
+| 2 | Backend coverage reporting — coverlet CI integration + Codecov upload | ✅ Done — already in place; no threshold enforced (accepted risk) |
+| 3 | Document E2E API write test strategy | ✅ Done — `TESTING_STRATEGY.md` Section 9.1 added |
+| 4 | Decision log entry | ✅ Done — Decision 60 added |
 
 **Accepted Risks:**
 
@@ -329,24 +329,24 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 
 | ID | Severity | Finding | Track | Status |
 |----|----------|---------|-------|--------|
-| 7.9-1 | MEDIUM | `COMPREHENSIVE_TEST_RESULTS.md` stale (Pre-Phase 4, 2026-02-10) | Track 1: Archive | Not Started |
-| 7.9-2 | MEDIUM | 4 operations docs stale relative to Phase 6.8 IaC (all 2026-02-13) | Track 2: Cross-refs | Not Started |
-| 7.9-3 | MEDIUM | `CMS_ARCHITECTURE.md` Phase 2 status says "upcoming" (completed 2026-03-03) | Track 3: Fixes | Not Started |
-| 7.9-4 | MEDIUM | `AUTH_SETUP_GUIDE.md` missing governance header | Track 3: Fixes | Not Started |
+| 7.9-1 | MEDIUM | `COMPREHENSIVE_TEST_RESULTS.md` stale (Pre-Phase 4, 2026-02-10) | Track 1: Archive | ✅ Fixed |
+| 7.9-2 | MEDIUM | 4 operations docs stale relative to Phase 6.8 IaC (all 2026-02-13) | Track 2: Cross-refs | ✅ Fixed |
+| 7.9-3 | MEDIUM | `CMS_ARCHITECTURE.md` Phase 2 status says "upcoming" (completed 2026-03-03) | Track 3: Fixes | ✅ Fixed |
+| 7.9-4 | MEDIUM | `AUTH_SETUP_GUIDE.md` missing governance header | Track 3: Fixes | ✅ Fixed |
 
 **Tracks:**
 
 | # | Track | Status |
 |---|-------|--------|
-| 1 | Archive `COMPREHENSIVE_TEST_RESULTS.md` (stale snapshot) | Not Started |
-| 2 | Operations docs IaC cross-references (RUNBOOK, DR, INCIDENT, MONITORING) | Not Started |
-| 3 | CMS phase status + Auth guide header + decision log | Not Started |
+| 1 | Archive `COMPREHENSIVE_TEST_RESULTS.md` (stale snapshot) | ✅ Complete |
+| 2 | Operations docs IaC cross-references (RUNBOOK, DR, INCIDENT, MONITORING) | ✅ Complete |
+| 3 | CMS phase status + Auth guide header + decision log | ✅ Complete |
 
 **Accepted Risks:**
 
 | Risk | Rationale |
 |------|-----------|
-| Dead links to `COMPREHENSIVE_TEST_PLAN.md` (8 occurrences) | Trivial find-replace; bundled as optional fix |
+| Dead links to `COMPREHENSIVE_TEST_PLAN.md` (8 occurrences) | Fixed as optional track — TESTING_STRATEGY.md + MANUAL_TEST_EXECUTION_GUIDE.md updated to `MANUAL_TEST_PLAN.md` |
 | `SYSTEM_OVERVIEW.md` missing IaC reference | Architecturally accurate; `INFRASTRUCTURE_MANAGEMENT.md` is SSOT |
 
 **Strengths (no action needed):** DOCUMENTATION_INDEX excellent, 52+ decisions logged, API docs complete, CMS component docs comprehensive (26 components), 14 Mermaid diagrams all embedded, GOVERNANCE.md authoritative.
