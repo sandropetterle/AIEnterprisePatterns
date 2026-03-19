@@ -63,6 +63,25 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    groups:
+      dotnet-servicing:
+        patterns:
+          - "Microsoft.*"
+      ef-core:
+        patterns:
+          - "Microsoft.EntityFrameworkCore*"
+      test-infrastructure:
+        patterns:
+          - "xunit*"
+          - "FluentAssertions"
+          - "Microsoft.NET.Test.Sdk"
+          - "coverlet.*"
+          - "Moq"
+    ignore:
+      - dependency-name: "Microsoft.*"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "coverlet.*"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"

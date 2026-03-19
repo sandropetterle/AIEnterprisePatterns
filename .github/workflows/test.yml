@@ -27,6 +27,14 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore
 
+      - name: Security audit (NuGet vulnerabilities)
+        run: |
+          dotnet list package --vulnerable --include-transitive 2>&1 | tee vuln-report.txt
+          if grep -q "has the following vulnerable packages" vuln-report.txt; then
+            echo "::error::Vulnerable NuGet packages detected"
+            exit 1
+          fi
+
       - name: Build
         run: dotnet build --no-restore --configuration Release
 
