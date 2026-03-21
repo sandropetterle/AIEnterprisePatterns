@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-19 (Phase 7 — Quality & Hardening Evaluation)
+**Last Updated:** 2026-03-21 (Phase 7 — Executive Summary added)
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -16,6 +16,7 @@
 | [README.md](README.md) | Public entry point: quick start, features, project links | New contributors, GitHub visitors | Current |
 | [CLAUDE.md](CLAUDE.md) | AI assistant operational context: commands, conventions, quick reference | AI assistant, Developers | Current |
 | [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) | This file — central map of all documentation | All | Current |
+| [documentation/EXECUTIVE_SUMMARY.md](documentation/EXECUTIVE_SUMMARY.md) | Executive summary: enterprise approaches, benefits, and architecture for technical leadership | CTOs, VPs of Engineering | Current |
 
 ---
 
