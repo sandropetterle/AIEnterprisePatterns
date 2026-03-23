@@ -1,8 +1,11 @@
 // cms.bicep — MySQL Flexible Server + Blob Storage for Strapi CMS
-// Deployed to francecentral to match existing production resources.
+// MySQL deployed to francecentral; Storage Account deployed to centralus (matches live).
 
-@description('Azure region for CMS resources (francecentral matches existing production)')
+@description('Azure region for MySQL (francecentral matches live production)')
 param location string = 'francecentral'
+
+@description('Azure region for Storage Account (centralus matches live production)')
+param storageLocation string = 'centralus'
 
 @description('MySQL admin password')
 @secure()
@@ -17,7 +20,7 @@ param mysqlServerName string = 'mysql-aipatterns-cms'
 @description('Storage account resource name')
 param storageAccountName string = 'staipatternsmedia'
 
-var mysqlAdminLogin = 'mysqladmin'
+var mysqlAdminLogin = 'strapiAdmin'
 
 // ── MySQL Flexible Server ─────────────────────────────────────────────────────
 
@@ -35,10 +38,10 @@ resource mysqlServer 'Microsoft.DBforMySQL/flexibleServers@2023-06-30' = {
     version: '8.0.21'
     storage: {
       storageSizeGB: 20
-      autoGrow: 'Enabled'
+      autoGrow: 'Disabled'
     }
     backup: {
-      backupRetentionDays: 7
+      backupRetentionDays: 14
       geoRedundantBackup: 'Disabled'
     }
     highAvailability: {
@@ -57,6 +60,16 @@ resource mysqlDatabase 'Microsoft.DBforMySQL/flexibleServers/databases@2023-06-3
 }
 
 // Allow Azure services
+// Enforce SSL on all MySQL connections
+resource mysqlSslConfig 'Microsoft.DBforMySQL/flexibleServers/configurations@2023-06-30' = {
+  parent: mysqlServer
+  name: 'require_secure_transport'
+  properties: {
+    value: 'ON'
+    source: 'user-override'
+  }
+}
+
 resource mysqlFirewallAzure 'Microsoft.DBforMySQL/flexibleServers/firewallRules@2023-06-30' = {
   parent: mysqlServer
   name: 'AllowAzureServices'
@@ -70,7 +83,7 @@ resource mysqlFirewallAzure 'Microsoft.DBforMySQL/flexibleServers/firewallRules@
 
 resource storageAccount 'Microsoft.Storage/storageAccounts@2022-09-01' = {
   name: storageAccountName
-  location: location
+  location: storageLocation
   tags: tags
   sku: {
     name: 'Standard_LRS'
@@ -94,6 +107,26 @@ resource mediaContainer 'Microsoft.Storage/storageAccounts/blobServices/containe
   name: 'strapi-media'
   properties: {
     publicAccess: 'Blob' // Public read for media files
+  }
+}
+
+// ── Resource Locks (CanNotDelete) ────────────────────────────────────────────
+
+resource mysqlLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: 'mysql-delete-lock'
+  scope: mysqlServer
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevents accidental deletion of MySQL CMS database'
+  }
+}
+
+resource storageLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: 'storage-delete-lock'
+  scope: storageAccount
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevents accidental deletion of Strapi media storage'
   }
 }
 

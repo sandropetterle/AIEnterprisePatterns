@@ -1,0 +1,28 @@
+# CODEOWNERS — defines code review ownership
+# See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
+
+# Default owner for everything not matched below
+* @sandr
+
+# Frontend — Next.js app, components, lib
+/app/ @sandr
+/components/ @sandr
+/lib/ @sandr
+/public/ @sandr
+*.tsx @sandr
+*.ts @sandr
+
+# Backend — ASP.NET Core API
+/backend/ @sandr
+
+# CMS — Strapi 5
+/cms/ @sandr
+
+# Infrastructure — Bicep IaC
+/infrastructure/ @sandr
+
+# CI/CD workflows
+/.github/workflows/ @sandr
+
+# Documentation
+/documentation/ @sandr

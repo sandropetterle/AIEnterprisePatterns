@@ -17,7 +17,7 @@ param tags object
 @description('SQL Server resource name')
 param sqlServerName string = 'sql-aipatterns-sandr-1770754196'
 
-var sqlAdminLogin = 'sqladmin'
+var sqlAdminLogin = 'aipatterns-admin'
 
 // ── SQL Server ────────────────────────────────────────────────────────────────
 
@@ -59,13 +59,35 @@ resource sqlDb 'Microsoft.Sql/servers/databases@2022-05-01-preview' = {
   }
   properties: {
     collation: 'SQL_Latin1_General_CP1_CI_AS'
-    maxSizeBytes: 34359738368 // 32 GiB
+    maxSizeBytes: 1073741824 // 1 GiB (matches live; increase when needed)
     catalogCollation: 'SQL_Latin1_General_CP1_CI_AS'
     zoneRedundant: false
     readScale: 'Disabled'
     autoPauseDelay: 15 // minutes
     minCapacity: json('0.5')
     requestedBackupStorageRedundancy: 'Local'
+  }
+}
+
+// ── SQL Backup Short-Term Retention (7 days) ──────────────────────────────────
+
+resource sqlBackupPolicy 'Microsoft.Sql/servers/databases/backupShortTermRetentionPolicies@2022-05-01-preview' = {
+  parent: sqlDb
+  name: 'default'
+  properties: {
+    retentionDays: 7
+    diffBackupIntervalInHours: 24
+  }
+}
+
+// ── Resource Lock (CanNotDelete) ──────────────────────────────────────────────
+
+resource sqlServerLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: 'sql-server-delete-lock'
+  scope: sqlServer
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevents accidental deletion of SQL Server and its databases'
   }
 }
 
