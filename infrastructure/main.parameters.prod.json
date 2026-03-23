@@ -23,6 +23,9 @@
         },
         "secretName": "mysql-admin-password"
       }
+    },
+    "alertEmail": {
+      "value": "sandropetterle@hotmail.com"
     }
   }
 }

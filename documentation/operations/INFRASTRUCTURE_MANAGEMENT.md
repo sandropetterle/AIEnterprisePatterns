@@ -1,6 +1,6 @@
 # Infrastructure Management
 
-**Last Updated:** 2026-03-17
+**Last Updated:** 2026-03-23
 **Audience:** DevOps, Infrastructure Engineers, Solutions Architects
 **Purpose:** Single source of truth for Azure infrastructure management — how it's structured, how to deploy changes, and how secrets flow from Key Vault to application configuration.
 
@@ -25,7 +25,7 @@ All Azure infrastructure for AI Enterprise Patterns is managed declaratively usi
 | Application Insights | Microsoft.Insights/components | appi-aipatterns-prod | centralus |
 | Log Analytics Workspace | Microsoft.OperationalInsights/workspaces | log-aipatterns-prod | centralus |
 | MySQL Flexible Server | Microsoft.DBforMySQL/flexibleServers | mysql-aipatterns-cms | francecentral |
-| Blob Storage Account | Microsoft.Storage/storageAccounts | staipatternsmedia | francecentral |
+| Blob Storage Account | Microsoft.Storage/storageAccounts | staipatternsmedia | centralus |
 
 ---
 
@@ -157,6 +157,11 @@ Key Vault secrets (set once via az keyvault secret set)
 | `strapi-app-keys` | ca-aipatterns-cms-prod | Strapi APP_KEYS (comma-separated) |
 | `strapi-admin-jwt-secret` | ca-aipatterns-cms-prod | Strapi ADMIN_JWT_SECRET |
 | `mysql-admin-password` | ca-aipatterns-cms-prod + Bicep param | MySQL admin password |
+| `strapi-api-token-salt` | ca-aipatterns-cms-prod | Strapi API_TOKEN_SALT |
+| `strapi-transfer-token-salt` | ca-aipatterns-cms-prod | Strapi TRANSFER_TOKEN_SALT |
+| `strapi-jwt-secret` | ca-aipatterns-cms-prod | Strapi JWT_SECRET |
+| `strapi-storage-account-key` | ca-aipatterns-cms-prod | Azure Blob Storage account key for media uploads |
+| `appinsights-connection-string` | ca-aipatterns-api-prod | Application Insights connection string (recommended over InstrumentationKey) |
 
 ### Setting Secrets
 
@@ -213,6 +218,28 @@ The following scripts were deleted in Phase 6.8 — they are preserved in git hi
 6. **Preview**: `./infrastructure/deploy.ps1 -WhatIf` — confirm the what-if output shows only the new resource as "create"
 7. **Deploy**: `./infrastructure/deploy.ps1`
 8. **Update this document** — add the resource to the Resource Inventory table in Section 1
+
+---
+
+## 9. Infrastructure Hardening (Phase 7.11)
+
+Phase 7.11 (2026-03-23) resolved 30 live-vs-Bicep drift items and added new hardening to the IaC. Key changes applied to the Bicep modules:
+
+| Module | Change |
+|--------|--------|
+| `sql.bicep` | Admin login corrected to `aipatterns-admin` (matches live); DB size 32 GB → 1 GB; backup retention policy (7 days); `CanNotDelete` resource lock |
+| `cms.bicep` | Admin login corrected to `strapiAdmin`; `storageLocation` param (centralus); `autoGrow: Disabled`; backup retention 7 → 14 days; MySQL SSL (`require_secure_transport = ON`); `CanNotDelete` locks on MySQL + Storage |
+| `keyvault.bicep` | `AuditEvent` diagnostic settings to Log Analytics; `CanNotDelete` resource lock |
+| `containerApps.bicep` | `maxReplicas` 5 → 10 (API + Web); CMS `DATABASE_USERNAME` corrected; 7 new CMS secrets via KV references; 8 new CMS env vars (`API_TOKEN_SALT`, `TRANSFER_TOKEN_SALT`, `JWT_SECRET`, `AZURE_STORAGE_*`, `PUBLIC_URL`) |
+| `main.bicep` | Key Vault now depends on monitoring module (for Log Analytics ID) |
+| `main.parameters.prod.json` | `alertEmail` added — activates alert action group email notifications |
+
+**Operational steps still required (not automatable in Bicep):**
+- Apply Storage Account TLS 1.2 to live: `az storage account update --name staipatternsmedia -g rg-aipatterns-prod --min-tls-version TLS1_2`
+- Delete orphaned test MySQL server: `az mysql flexible-server delete --name mysql-aipatterns-cms-test -g rg-aipatterns-prod --yes`
+- Apply resource tags to live (applied on next Bicep redeploy with `--mode Incremental`)
+
+See [Decision 63](../decisions/TECHNICAL_DECISIONS_LOG.md) for full rationale and accepted risks.
 
 ---
 

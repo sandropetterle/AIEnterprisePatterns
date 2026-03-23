@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-03-19 (Phase 7.11 planned)
+**Last Updated:** 2026-03-23 (Phase 7.11 complete)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -29,7 +29,7 @@
 | **Phase 6.7** | ✅ Complete | 2026-03-04 | CMS Content Migration — tests & documentation |
 | **Phase 6.8** | ✅ Complete | 2026-03-17 | Infrastructure as Code & Management (Bicep IaC, script cleanup, Infrastructure .NET project) |
 | **Phase 7** | ✅ Complete | 2026-03-19 | Quality & Hardening Evaluation (10-area audit: deps, security, infra, CI/CD, containers, tests, docs, observability) |
-| **Phase 7.11** | 📋 Planned | TBD | Infrastructure Drift Resolution & Live Hardening (30 drift items, 6 tracks) |
+| **Phase 7.11** | ✅ Complete | 2026-03-23 | Infrastructure Drift Resolution & Live Hardening (30 drift items, 6 tracks — Bicep corrections, resource locks, KV diagnostics, MySQL SSL, alert email) |
 | Phase 8 | 📋 Future | TBD | Community features, exports, performance, advanced content |
 | Phase 9 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
 
@@ -157,31 +157,29 @@ Systematic 10-area audit ensuring enterprise best-in-class standards. Each area 
 | 7.9 | Documentation Completeness & Accuracy | Light | ✅ Complete — archived stale test results, IaC cross-refs in 4 ops docs, CMS phase status, auth guide header, dead links, Decision 61 |
 | 7.10 | Production Readiness & Observability | Medium | ✅ Complete — robots.txt/sitemap, metadataBase fix, IaC health probes, web env vars, business telemetry, Lighthouse a11y gate, Decision 62 |
 
-**Key deliverables:** 62 technical decisions logged; 114 backend tests / 396 frontend tests passing; all 5 tracks complete (alert action group, SEO, IaC health probes, business telemetry, docs/CI). System confirmed production-ready for a learning project on Azure Container Apps.
+**Key deliverables:** 62 technical decisions logged (63 with Phase 7.11); 114 backend tests / 396 frontend tests passing; all 5 tracks complete (alert action group, SEO, IaC health probes, business telemetry, docs/CI). System confirmed production-ready for a learning project on Azure Container Apps.
 
 **Implementation plan:** [PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md)
 
 ---
 
-### Phase 7.11 — Infrastructure Drift Resolution & Live Hardening (Planned)
-**Priority:** HIGH | **Dependencies:** Phase 7 complete | **Status:** 📋 Planned
+### Phase 7.11 — Infrastructure Drift Resolution & Live Hardening (2026-03-23) ✅
+**Priority:** HIGH | **Dependencies:** Phase 7 complete | **Status:** ✅ Complete
 
 Live Azure subscription audit revealed **30 configuration drift items** between the Bicep IaC (written in Phase 6.8) and the actual deployed resources (provisioned earlier via scripts/portal). The Bicep was never fully applied to the live environment.
 
-**Key findings (security impact):**
-- Key Vault using legacy access policies instead of RBAC; purge protection disabled
-- Storage Account allows TLS 1.0 (Bicep specifies TLS 1.2)
-- API Container App has no health probes; CMS uses ACR admin creds instead of managed identity
-- No metric alerts deployed; no resource locks; no tags on any resource
-- SQL/MySQL admin usernames differ between Bicep and live
+**6 implementation tracks (all complete):**
 
-**6 implementation tracks:**
-1. Fix Bicep to match live reality (prevent destructive drift on redeploy)
-2. Apply critical security fixes to live (TLS 1.2, KV RBAC, purge protection, probes)
-3. IaC hardening (resource locks, KV diagnostics, explicit backup/SSL policies)
-4. Tags + cleanup (orphaned test MySQL server, resource tagging)
-5. Documentation + Decision 63
-6. Alert email configuration
+| Track | Scope | Status |
+|-------|-------|--------|
+| 1 | Fix Bicep to match live (admin logins, DB size, maxReplicas, CMS env vars, storage location) | ✅ |
+| 2 | Security hardening (KV RBAC, purge protection, Storage TLS 1.2, MySQL SSL enforcement) | ✅ |
+| 3 | IaC hardening (resource locks on KV/SQL/MySQL/Storage, KV audit diagnostics, SQL backup policy) | ✅ |
+| 4 | Tags + cleanup (tags via Bicep, orphaned MySQL test server deletion documented) | ✅ |
+| 5 | Documentation (Decision 63, `.github/CODEOWNERS`, `.github/SECURITY.md`) | ✅ |
+| 6 | Alert email (`sandropetterle@hotmail.com` in `main.parameters.prod.json`) | ✅ |
+
+**Key deliverables:** 63 technical decisions logged; Bicep IaC now accurately reflects live state; resource locks prevent accidental deletion; KV audit trail enabled; MySQL SSL enforced; alert notifications wired.
 
 **Implementation plan:** [PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md](PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md)
 
@@ -214,5 +212,5 @@ Sub-phases:
 
 - Phase timelines may be adjusted based on business needs and user feedback
 - Technical decisions for each phase are recorded in [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md)
-- Active phase implementation plans: [PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md) (Phase 7)
+- Completed phase implementation plans: [PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md) (Phase 7), [PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md](PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md) (Phase 7.11)
 - Test results per phase are in [../test_results/](../test_results/)

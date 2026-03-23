@@ -13,7 +13,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
 - **CMS:** Strapi 5 (headless, `cms/` directory), MySQL (production), Azure Blob Storage (media)
-- **Current Phase:** 7.1–7.10 complete (Quality & Hardening); Phase 7.11 planned (Infrastructure Drift Resolution — 30 live-vs-Bicep drift items, 6 tracks); Phase 8 next
+- **Current Phase:** 7.1–7.11 complete (Quality & Hardening + Infrastructure Drift Resolution); Phase 8 next
 
 ## Development Commands
 

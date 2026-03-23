@@ -75,7 +75,7 @@ module acr 'modules/acr.bicep' = {
   }
 }
 
-// ── 3. Key Vault (no dependencies) ───────────────────────────────────────────
+// ── 3. Key Vault (depends on monitoring for diagnostic settings) ──────────────
 // Secrets are NOT stored in Bicep. Set them post-deploy:
 //   az keyvault secret set --vault-name kv-aipatterns-0754755 --name sql-connection-string --value "..."
 
@@ -84,6 +84,7 @@ module keyvault 'modules/keyvault.bicep' = {
   params: {
     location: location
     tags: tags
+    logAnalyticsId: monitoring.outputs.logAnalyticsId
   }
 }
 

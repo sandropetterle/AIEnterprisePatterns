@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-03-19 (Phase 7.10)
+**Last Updated:** 2026-03-23 (Phase 7.11)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**62 active decisions | 0 archived**
+**63 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,67 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 63: Phase 7.11 — Infrastructure Drift Resolution & Live Hardening
+
+**Date:** 2026-03-23
+**Title:** Phase 7.11 Infrastructure Drift — 30 Drift Items Resolved Across 6 Tracks
+**Category:** Infrastructure / Security / IaC
+
+### Summary
+
+A comprehensive audit comparing the live Azure subscription against the Bicep IaC definitions (written in Phase 6.8 but never fully applied) revealed 30 drift items. This phase resolves all actionable drift via Bicep corrections, IaC hardening additions, and documentation. Critical security gaps addressed: KV RBAC mode, KV purge protection, Storage TLS 1.2, MySQL SSL enforcement, CMS managed identity for ACR pull.
+
+### Decisions Made
+
+**Track 1 — Fix Bicep to Match Live Reality:**
+Corrected 6 Bicep drift items that would cause destructive conflicts on redeploy:
+- `sql.bicep`: `sqlAdminLogin` changed from `sqladmin` → `aipatterns-admin` (matches live SQL Server admin)
+- `sql.bicep`: `maxSizeBytes` changed from 32 GiB → 1 GiB (matches live database; increase when approaching limit)
+- `cms.bicep`: `mysqlAdminLogin` changed from `mysqladmin` → `strapiAdmin` (matches live MySQL admin and provision-cms.ps1)
+- `cms.bicep`: `storageLocation` param added (defaults `centralus`) so Storage Account deploys to correct region
+- `cms.bicep`: `autoGrow` changed from `Enabled` → `Disabled` (matches live MySQL server config)
+- `containerApps.bicep`: `DATABASE_USERNAME` corrected to `strapiAdmin`; `maxReplicas` on API and Web raised from 5 → 10; 7 missing CMS secrets added (API token salt, transfer token salt, JWT secret, storage account key) with KV references; missing CMS env vars added (`API_TOKEN_SALT`, `TRANSFER_TOKEN_SALT`, `JWT_SECRET`, `AZURE_STORAGE_ACCOUNT`, `AZURE_STORAGE_ACCOUNT_KEY`, `AZURE_STORAGE_CONTAINER`, `AZURE_STORAGE_URL`, `PUBLIC_URL`)
+
+**Track 2 — Security Hardening:**
+- Key Vault RBAC mode (`enableRbacAuthorization: true`) and purge protection (`enablePurgeProtection: true`) were already correctly set in `keyvault.bicep` — confirmed no change needed
+- `cms.bicep` already has `minimumTlsVersion: 'TLS1_2'` on Storage Account — live fix (TLS 1.0 → 1.2) is an operational step
+- Added MySQL SSL enforcement: `require_secure_transport = ON` configuration resource in `cms.bicep`
+- CMS Container App already uses `identity: 'system'` for ACR pull in Bicep — live drift (using admin creds) is operational
+
+**Track 3 — IaC Hardening (New Additions):**
+- `keyvault.bicep`: Added `logAnalyticsId` param; added `AuditEvent` diagnostic settings resource (conditional on Log Analytics ID); added `CanNotDelete` resource lock
+- `sql.bicep`: Added `backupShortTermRetentionPolicies` (7 days, 24h diff backup interval); added `CanNotDelete` resource lock on SQL Server
+- `cms.bicep`: Added `CanNotDelete` resource locks on MySQL Server and Storage Account; backup retention raised from 7 → 14 days
+- `main.bicep`: Wired `logAnalyticsId` into `keyvault` module; updated dependency comment
+
+**Track 4 — Tags + Cleanup:**
+Tags (`project: AIEnterprisePatterns`, `environment`, `managedBy: bicep`) already defined in `main.bicep` and passed to all modules. Applied via Bicep redeploy resolves D3, D5, D9, D12–D14, D27. Orphaned `mysql-aipatterns-cms-test` server (D28) must be deleted manually: `az mysql flexible-server delete --name mysql-aipatterns-cms-test -g rg-aipatterns-prod --yes`.
+
+**Track 5 — Documentation + GitHub Community Files:**
+- This decision entry
+- Created `.github/CODEOWNERS` (frontend → web team, backend → backend team)
+- Created `.github/SECURITY.md` (private vulnerability disclosure via GitHub Security Advisories)
+
+**Track 6 — Alert Email:**
+Added `alertEmail` parameter with value `sandropetterle@hotmail.com` to `infrastructure/main.parameters.prod.json`. This activates the alert action group and wires all 4 metric alerts to send email notifications.
+
+### Alternatives Evaluated
+
+- **Full Bicep redeploy to fix live drift:** Too risky without careful parameter alignment first. Incremental approach — fix Bicep, then apply operational fixes via `az` CLI — is safer.
+- **VNet integration to address public SQL/MySQL:** Cost prohibitive at this scale (Premium CAE ~$150+/month). Azure services firewall rule + TLS + SSL enforcement accepted as sufficient.
+- **Container image signing / SBOM:** Deferred to Phase 8. ACR Basic lacks scanning; upgrade path exists.
+
+### Accepted Risks
+
+| # | Risk | Rationale |
+|---|------|-----------|
+| 1 | Public SQL/MySQL endpoints | Azure services firewall, TLS 1.2, SQL minTLS, MySQL SSL — sufficient at this scale; VNet deferred to Phase 8+ |
+| 2 | ACR Basic (no vulnerability scanning) | Accepted in Phase 7.5; upgrade deferred |
+| 3 | Full Bicep redeploy not executed | IaC corrections applied; operational live fixes documented but not automated — requires manual `az` CLI steps |
+| 4 | Orphaned MySQL test server not deleted in code | Must be deleted manually; cannot be represented in Bicep without risk of unintended deletion |
 
 ---
 

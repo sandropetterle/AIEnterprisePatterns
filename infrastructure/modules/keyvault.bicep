@@ -12,6 +12,9 @@ param tags object
 @description('Key Vault resource name')
 param kvName string = 'kv-aipatterns-0754755'
 
+@description('Log Analytics workspace resource ID for KV audit diagnostics (empty = diagnostics disabled)')
+param logAnalyticsId string = ''
+
 // ── Key Vault ─────────────────────────────────────────────────────────────────
 
 resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
@@ -31,6 +34,33 @@ resource keyVault 'Microsoft.KeyVault/vaults@2023-02-01' = {
     enabledForDeployment: false
     enabledForDiskEncryption: false
     enabledForTemplateDeployment: false
+  }
+}
+
+// ── KV Diagnostic Settings (conditional — only when Log Analytics ID provided) ─
+
+resource kvDiagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' = if (!empty(logAnalyticsId)) {
+  name: 'kv-diagnostics'
+  scope: keyVault
+  properties: {
+    workspaceId: logAnalyticsId
+    logs: [
+      {
+        category: 'AuditEvent'
+        enabled: true
+      }
+    ]
+  }
+}
+
+// ── Resource Lock (CanNotDelete) ──────────────────────────────────────────────
+
+resource kvLock 'Microsoft.Authorization/locks@2020-05-01' = {
+  name: 'kv-delete-lock'
+  scope: keyVault
+  properties: {
+    level: 'CanNotDelete'
+    notes: 'Prevents accidental deletion of Key Vault and its secrets'
   }
 }
 

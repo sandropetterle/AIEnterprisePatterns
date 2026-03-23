@@ -175,7 +175,7 @@ resource apiApp 'Microsoft.App/containerApps@2023-05-01' = {
       ]
       scale: {
         minReplicas: 0
-        maxReplicas: 5
+        maxReplicas: 10
       }
     }
   }
@@ -323,7 +323,7 @@ resource webApp 'Microsoft.App/containerApps@2023-05-01' = {
       ]
       scale: {
         minReplicas: 0
-        maxReplicas: 5
+        maxReplicas: 10
       }
     }
   }
@@ -380,6 +380,26 @@ resource cmsApp 'Microsoft.App/containerApps@2023-05-01' = {
           keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/mysql-admin-password'
           identity: 'system'
         }
+        {
+          name: 'strapi-api-token-salt'
+          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-api-token-salt'
+          identity: 'system'
+        }
+        {
+          name: 'strapi-transfer-token-salt'
+          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-transfer-token-salt'
+          identity: 'system'
+        }
+        {
+          name: 'strapi-jwt-secret'
+          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-jwt-secret'
+          identity: 'system'
+        }
+        {
+          name: 'strapi-storage-account-key'
+          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-storage-account-key'
+          identity: 'system'
+        }
       ]
     }
     template: {
@@ -414,7 +434,7 @@ resource cmsApp 'Microsoft.App/containerApps@2023-05-01' = {
             }
             {
               name: 'DATABASE_USERNAME'
-              value: 'mysqladmin'
+              value: 'strapiAdmin'
             }
             {
               name: 'DATABASE_PASSWORD'
@@ -431,6 +451,38 @@ resource cmsApp 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'ADMIN_JWT_SECRET'
               secretRef: 'strapi-admin-jwt-secret'
+            }
+            {
+              name: 'API_TOKEN_SALT'
+              secretRef: 'strapi-api-token-salt'
+            }
+            {
+              name: 'TRANSFER_TOKEN_SALT'
+              secretRef: 'strapi-transfer-token-salt'
+            }
+            {
+              name: 'JWT_SECRET'
+              secretRef: 'strapi-jwt-secret'
+            }
+            {
+              name: 'AZURE_STORAGE_ACCOUNT'
+              value: 'staipatternsmedia'
+            }
+            {
+              name: 'AZURE_STORAGE_ACCOUNT_KEY'
+              secretRef: 'strapi-storage-account-key'
+            }
+            {
+              name: 'AZURE_STORAGE_CONTAINER'
+              value: 'strapi-media'
+            }
+            {
+              name: 'AZURE_STORAGE_URL'
+              value: 'https://staipatternsmedia${environment().suffixes.storage}'
+            }
+            {
+              name: 'PUBLIC_URL'
+              value: strapiUrl
             }
           ]
         }
