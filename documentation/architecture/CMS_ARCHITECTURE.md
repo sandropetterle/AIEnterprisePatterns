@@ -33,7 +33,7 @@ As of Phase CMS Cold Storage (2026-04-09), Strapi runs **local-only**. Azure CMS
 **CMS Phase Status:**
 - ✅ Phase 5.5: CMS Infrastructure deployed to Azure (2026-02-26)
 - ✅ Phase 6.4–6.7: All 10 Single Types seeded and integrated (2026-03-03)
-- 🔄 Phase CMS Cold Storage: local-only migration — Phase 1 complete (backup/restore scripts + initial bundle)
+- 🔄 Phase CMS Cold Storage: local-only migration — Phases 1 & 2 complete (backup/restore scripts, initial bundle, generate-fallbacks script, queries.ts refreshed from production content)
 
 ---
 
@@ -133,7 +133,15 @@ bash scripts/cms/restore.sh backups/cms/2026-04-09
 
 # Backup against remote Strapi (e.g. during initial capture)
 STRAPI_URL=https://... STRAPI_API_TOKEN=<token> SKIP_SQL_DUMP=1 bash scripts/cms/backup.sh
+
+# Refresh compile-time fallbacks in lib/cms/queries.ts from latest backup
+npx tsx scripts/cms/generate-fallbacks.ts
+
+# Refresh from a specific backup date
+BACKUP_DATE=2026-04-09 npx tsx scripts/cms/generate-fallbacks.ts
 ```
+
+The `generate-fallbacks.ts` script reads `content.json` from the backup, strips Strapi internal fields (id, documentId, timestamps), and rewrites the delimited `// --- fallback:<name>:start/end ---` regions in `lib/cms/queries.ts`. After running, review the diff, run `npx tsc --noEmit && npm test`, then commit.
 
 ### Initial production backup (committed)
 
@@ -246,9 +254,10 @@ These are hard-won lessons from the CMS deployment. Ignoring them will cause cry
 | `cms/Dockerfile` | Production container build (retained; used for local dev) |
 | `scripts/cms/backup.sh` | Creates a dated backup bundle from a running local Strapi |
 | `scripts/cms/restore.sh` | Restores a backup bundle into a running local Strapi |
+| `scripts/cms/generate-fallbacks.ts` | Refreshes compile-time fallbacks in `lib/cms/queries.ts` from a backup's `content.json` |
 | `backups/cms/` | Git-committed backup bundles (authoritative content archive) |
 | `lib/cms/client.ts` | Frontend CMS HTTP client |
-| `lib/cms/queries.ts` | Content type query functions with compile-time fallbacks |
+| `lib/cms/queries.ts` | Content type query functions with delimited compile-time fallback regions |
 
 ---
 
