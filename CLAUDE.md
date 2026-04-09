@@ -12,8 +12,8 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Database:** SQLite (development), Azure SQL (production)
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
-- **CMS:** Strapi 5 (headless, `cms/` directory), MySQL (production), Azure Blob Storage (media)
-- **Current Phase:** 7.1–7.11 complete (Quality & Hardening + Infrastructure Drift Resolution); Phase 8 next
+- **CMS:** Strapi 5 local-only (`cms/` directory) with git-committed backups (`backups/cms/`); compile-time fallbacks in `lib/cms/queries.ts`; media references retained in Azure Blob Storage (`staipatternsmedia`)
+- **Current Phase:** Phase CMS Cold Storage in progress (Phase 1 complete — backup/restore scripts + initial bundle committed); Phase 8 after CMS Cold Storage
 
 ## Development Commands
 
@@ -45,7 +45,7 @@ docker compose --profile cms down      # Stop CMS containers when not needed
 docker compose down                    # Stop all containers
 ```
 
-> MySQL and Strapi are `cms`-profiled — they don't start with plain `docker compose up`. Start them only when working on CMS content. WSL2 is capped at 2.5 GB via `~/.wslconfig`; container limits: SQL Server 1 GB, MySQL 512 MB, Strapi 512 MB.
+> MySQL and Strapi are `cms`-profiled — they don't start with plain `docker compose up`. Start them only when working on CMS content. Strapi is **local-only** (Azure CMS resources are being removed in Phase CMS Cold Storage). WSL2 is capped at 2.5 GB via `~/.wslconfig`; container limits: SQL Server 1 GB, MySQL 512 MB, Strapi 512 MB.
 
 ## Architecture
 
@@ -127,9 +127,9 @@ AUTH_API_SCOPE_READ=api://aipatterns-api/patterns.read
 AUTH_API_SCOPE_WRITE=api://aipatterns-api/patterns.write
 # Backend: ConnectionString:DefaultConnection (empty=SQLite dev), FrontendUrl (CORS)
 # Backend auth: Authentication:Authority, Authentication:Audience, Authentication:RequireHttpsMetadata
-# CMS (server-only, no NEXT_PUBLIC_ prefix)
-STRAPI_URL=http://localhost:1337
-STRAPI_API_TOKEN=<read-only-api-token>
+# CMS (server-only, no NEXT_PUBLIC_ prefix — local dev only; not set in production)
+STRAPI_URL=http://localhost:1337       # local Strapi only; unset in production (fallbacks used)
+STRAPI_API_TOKEN=<read-only-api-token> # local dev only; not needed in production
 ```
 
 ## API Endpoints
@@ -200,6 +200,30 @@ npm run test:ci   # stmt/branch/fn/line must all be ≥ 70%
 
 Fix any breach **before** committing — do not rely on CI to catch it.
 
+### Testing Gotchas
+
+**Jest / React Testing Library:**
+- Use `jest.spyOn(apiClient, 'get')` not `jest.mock` factory for plain-object module exports (SWC compat)
+- Mock ESM packages (react-markdown, remark-gfm, rehype-sanitize, isomorphic-dompurify) at test-file level. `isomorphic-dompurify` has nested ESM deps (`@exodus/bytes`) — do NOT add to `transformIgnorePatterns`; always mock at file level
+- `next-auth/react`: mocked globally in jest.setup.ts (unauthenticated default); override per-test with `(useSession as jest.Mock).mockReturnValue(...)`
+- **Radix UI DropdownMenu / AlertDialog**: mock inline — portals don't render in jsdom
+- **Radix UI Select**: context-based mock; `TS2347` fix: cast context defaults instead of using generic `React.createContext<T>()` inside factory
+- **localStorage hooks**: split add + clear into separate `act()` calls (React 18 batching)
+- **Dialog mock for SavedSearches**: don't gate rendering on `open` prop
+- **Moq + optional params**: specify ALL params explicitly with `It.IsAny<T>()` — expression trees can't use optional defaults
+- **CardTitle renders as div**: use `<h1>` directly where heading role matters
+- **Slow userEvent.type loops**: adding many tags in a loop can exceed 5000ms; add explicit timeout as 3rd arg: `it('...', async () => {...}, 15000)`
+
+**E2E / Playwright:**
+- **Vote mocking**: use `page.addInitScript` (not `page.route`) to intercept client-side fetch
+- **E2E CI**: build needs `NEXT_PUBLIC_API_BASE_URL` baked in; explicit `npm run start &` + health-poll before e2e
+- Avoid `waitForLoadState('networkidle')` for filtered/search URLs — use element-based waiting instead
+- **webkit date inputs**: `page.fill()` on `type="date"` can be intercepted by webkit's native picker; use `fillDateInput()` helper in `e2e/critical-flows.spec.ts`
+- **Hydration race**: don't use heading visibility as sole wait signal — wait for the specific input element
+- **`toHaveURL` vs `waitForURL`**: use `expect(page).toHaveURL()` for Next.js App Router pushState navigation — `waitForURL` never fires for `history.pushState`
+- **WebKit URL-encodes commas**: WebKit encodes `,` as `%2C`; regex must handle both: `/param=[^&]*(%2C|,)/i`
+- **Lighthouse CI cold-start**: `warmupRuns: 1` eliminates the first-run ~40% latency outlier
+
 ## Documentation Rules
 
 Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
@@ -219,7 +243,7 @@ Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 | Azure deployment guides | `deployment/` |
 | Visual diagrams (Mermaid) | `documentation/diagrams/` |
 
-**Key docs:** `documentation/EXECUTIVE_SUMMARY.md` (CTO-facing overview), `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (53 decisions), `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Key docs:** `documentation/EXECUTIVE_SUMMARY.md` (CTO-facing overview), `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (63 decisions), `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** All 15 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
 
@@ -235,8 +259,8 @@ This is not optional — it preserves architectural knowledge across sessions.
 
 ## Important Notes
 
-- **CMS project:** `cms/` (Strapi 5) — content model, Dockerfile, seed script. Architecture: `documentation/architecture/CMS_ARCHITECTURE.md`
-- **CMS provisioning:** `deployment/scripts/provision-cms.ps1` (Azure MySQL + Container App + Blob Storage)
+- **CMS project:** `cms/` (Strapi 5) — local-only content authoring; content model, Dockerfile, seed script. Architecture: `documentation/architecture/CMS_ARCHITECTURE.md`
+- **CMS cold storage:** Strapi is local-only. Backups in `backups/cms/`. Scripts: `scripts/cms/backup.sh`, `scripts/cms/restore.sh`. Azure MySQL + Container App being deleted (Phase CMS Cold Storage). `deployment/scripts/provision-cms.ps1` retained for historical reference / rollback only.
 - **Infrastructure project** — `AddInfrastructure()` extension registers AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter (extracted from Program.cs in Phase 6.8)
 - **DELETE endpoint** exists in controller but frontend doesn't wire it up yet
 - **Vote endpoint** uses atomic `ExecuteUpdateAsync` for relational providers (SQLite/SQL Server), with InMemory fallback for tests

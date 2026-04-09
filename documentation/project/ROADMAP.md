@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-03-23 (Phase 7.11 complete)
+**Last Updated:** 2026-04-09 (Phase CMS Cold Storage — Phase 1 in progress)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -30,6 +30,7 @@
 | **Phase 6.8** | ✅ Complete | 2026-03-17 | Infrastructure as Code & Management (Bicep IaC, script cleanup, Infrastructure .NET project) |
 | **Phase 7** | ✅ Complete | 2026-03-19 | Quality & Hardening Evaluation (10-area audit: deps, security, infra, CI/CD, containers, tests, docs, observability) |
 | **Phase 7.11** | ✅ Complete | 2026-03-23 | Infrastructure Drift Resolution & Live Hardening (30 drift items, 6 tracks — Bicep corrections, resource locks, KV diagnostics, MySQL SSL, alert email) |
+| **Phase CMS Cold Storage** | 🔄 In Progress | 2026-04-09 | Move Strapi from live Azure to local-only; git-committed backups; compile-time fallback content; delete Azure MySQL + Container App (~€14-16/mo saved) |
 | Phase 8 | 📋 Future | TBD | Community features, exports, performance, advanced content |
 | Phase 9 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
 
@@ -183,6 +184,25 @@ Live Azure subscription audit revealed **30 configuration drift items** between 
 
 **Implementation plan:** [PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md](PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md)
 
+### Phase CMS Cold Storage — Cost Reduction & Cold Recovery Mode (2026-04-09, In Progress)
+
+Moves Strapi CMS from live Azure hosting to local-only with git-committed backups and compile-time fallback content. All 10 frontend CMS queries already use `safeFetch()` with hardcoded fallbacks — production renders identically with or without a live Strapi instance.
+
+**Cost impact:** ~€14-16/mo saved (MySQL Flexible Server B1ms deletion).
+
+**7 sub-phases:**
+| Phase | Status | Deliverable |
+|-------|--------|------------|
+| Phase 1 | ✅ Complete | `scripts/cms/backup.sh`, `scripts/cms/restore.sh`, initial backup bundle in `backups/cms/2026-04-09/` |
+| Phase 2 | 📋 Pending | `scripts/cms/generate-fallbacks.ts`, refresh `lib/cms/queries.ts` fallbacks from live content |
+| Phase 3 | 📋 Pending | 3 GitHub Actions workflows (`cms-backup`, `cms-restore-bundle`, `cms-sync-fallbacks`) |
+| Phase 4 | 📋 Pending | Azure cleanup — delete MySQL, Strapi CA, 8 KV secrets |
+| Phase 5 | 📋 Pending | IaC + code changes — remove `cms.bicep`, `cms-container-deploy.yml`, STRAPI_* env refs |
+| Phase 6 | 📋 Pending | Documentation — Decision 64, CMS architecture rewrite, runbook, DR, CLAUDE.md |
+| Phase 7 | 📋 Pending | Verification — build without STRAPI_URL, backup round-trip, E2E, cost confirmation |
+
+**Implementation plan:** [PHASE_CMS_COLD_STORAGE_PLAN.md](PHASE_CMS_COLD_STORAGE_PLAN.md)
+
 ---
 
 ## Planned Phases
@@ -213,4 +233,5 @@ Sub-phases:
 - Phase timelines may be adjusted based on business needs and user feedback
 - Technical decisions for each phase are recorded in [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md)
 - Completed phase implementation plans: [PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md) (Phase 7), [PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md](PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md) (Phase 7.11)
+- Active phase implementation plan: [PHASE_CMS_COLD_STORAGE_PLAN.md](PHASE_CMS_COLD_STORAGE_PLAN.md) (CMS Cold Storage)
 - Test results per phase are in [../test_results/](../test_results/)
