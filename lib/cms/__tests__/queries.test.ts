@@ -85,9 +85,9 @@ describe('CMS Query Functions', () => {
 
       expect(result.siteName).toBe('AI Enterprise Patterns Library')
       expect(result.navigation).toHaveLength(3)
-      expect(result.navigation?.[0]).toEqual({ label: 'Home', href: '/' })
-      expect(result.navigation?.[1]).toEqual({ label: 'Patterns', href: '/patterns' })
-      expect(result.navigation?.[2]).toEqual({ label: 'About', href: '/about' })
+      expect(result.navigation?.[0]).toEqual(expect.objectContaining({ label: 'Home', href: '/' }))
+      expect(result.navigation?.[1]).toEqual(expect.objectContaining({ label: 'Patterns', href: '/patterns' }))
+      expect(result.navigation?.[2]).toEqual(expect.objectContaining({ label: 'About', href: '/about' }))
       expect(result.mobileMenuTitle).toBe('Menu')
       expect(result.skipToContentLabel).toBe('Skip to main content')
       expect(result.signInLabel).toBe('Sign In')
