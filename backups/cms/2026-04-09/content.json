@@ -1,0 +1,424 @@
+{
+  "global": {
+    "id": 1,
+    "documentId": "nu19mf4g1njp50wb45umiyvf",
+    "siteName": "AI Enterprise Patterns Library",
+    "siteDescription": "A centralized repository of AI-driven recipes, prompts, and blueprints for enterprise software architecture patterns.",
+    "mobileMenuTitle": "Menu",
+    "skipToContentLabel": "Skip to main content",
+    "signInLabel": "Sign In",
+    "signOutLabel": "Sign Out",
+    "userMenuLabel": "User menu",
+    "newPatternButtonLabel": "+ New Pattern",
+    "createdAt": "2026-02-26T18:27:17.635Z",
+    "updatedAt": "2026-02-26T18:27:17.635Z",
+    "publishedAt": "2026-02-26T18:27:15.810Z",
+    "navigation": [
+      {
+        "id": 1,
+        "label": "Home",
+        "href": "/",
+        "icon": null,
+        "isExternal": false
+      },
+      {
+        "id": 2,
+        "label": "Patterns",
+        "href": "/patterns",
+        "icon": null,
+        "isExternal": false
+      },
+      {
+        "id": 3,
+        "label": "About",
+        "href": "/about",
+        "icon": null,
+        "isExternal": false
+      }
+    ],
+    "footer": {
+      "id": 1,
+      "copyrightTemplate": "© {year} AI Enterprise Patterns. All rights reserved.",
+      "links": [
+        {
+          "id": 4,
+          "label": "GitHub",
+          "href": "https://github.com/sandropetterle/AIEnterprisePatterns",
+          "icon": null,
+          "isExternal": true
+        },
+        {
+          "id": 5,
+          "label": "Documentation",
+          "href": "/docs",
+          "icon": null,
+          "isExternal": false
+        }
+      ]
+    }
+  },
+  "home-page": {
+    "id": 4,
+    "documentId": "im759x2ij64ux1cxjd56mc1b",
+    "createdAt": "2026-02-26T18:27:22.783Z",
+    "updatedAt": "2026-02-26T18:56:38.934Z",
+    "publishedAt": "2026-02-26T18:56:48.927Z",
+    "seo": {
+      "id": 8,
+      "title": "Home",
+      "description": "Discover curated AI-driven enterprise patterns, prompts, and architectural blueprints. Browse featured patterns and join the community.",
+      "keywords": null,
+      "ogTitle": null,
+      "ogDescription": null
+    },
+    "content": [
+      {
+        "__component": "sections.hero",
+        "id": 4,
+        "heading": "AI Enterprise Patterns Library",
+        "subheading": "Curated AI-driven recipes, prompts, and blueprints for enterprise software architecture. Discover proven patterns, best practices, and innovative solutions to accelerate your development.",
+        "primaryCTA": {
+          "id": 16,
+          "label": "Browse Patterns",
+          "href": "/patterns",
+          "variant": "primary",
+          "icon": null
+        },
+        "secondaryCTA": {
+          "id": 18,
+          "label": "Learn More",
+          "href": "#featured",
+          "variant": "outline",
+          "icon": null
+        },
+        "backgroundImage": null
+      },
+      {
+        "__component": "sections.stats-bar",
+        "id": 4,
+        "stats": [
+          {
+            "id": 10,
+            "value": "{totalPatterns}",
+            "label": "Patterns Available",
+            "icon": "BookOpen"
+          },
+          {
+            "id": 11,
+            "value": "{totalCategories}",
+            "label": "Categories",
+            "icon": "Folder"
+          },
+          {
+            "id": 12,
+            "value": "{totalContributors}",
+            "label": "Contributors",
+            "icon": "Users"
+          }
+        ]
+      },
+      {
+        "__component": "sections.featured-patterns",
+        "id": 4,
+        "heading": "Featured Patterns",
+        "subheading": "Explore our most popular and recently added enterprise patterns",
+        "viewAllLabel": "View all patterns",
+        "mobileViewAllLabel": "View all"
+      },
+      {
+        "__component": "sections.cta-banner",
+        "id": 4,
+        "heading": "Ready to explore enterprise patterns?",
+        "description": "Join our community and discover proven solutions for your next project. Contribute your own patterns and help others build better software.",
+        "variant": "highlighted",
+        "primaryCTA": {
+          "id": 17,
+          "label": "Get Started",
+          "href": "/patterns",
+          "variant": "secondary",
+          "icon": null
+        },
+        "secondaryCTA": {
+          "id": 19,
+          "label": "Star on GitHub",
+          "href": "https://github.com/sandropetterle/AIEnterprisePatterns",
+          "variant": "outline",
+          "icon": "Github"
+        }
+      }
+    ]
+  },
+  "about-page": {
+    "id": 2,
+    "documentId": "nwkn7luco01bbzpkhx43m4jy",
+    "createdAt": "2026-02-26T18:27:42.595Z",
+    "updatedAt": "2026-02-26T18:27:42.595Z",
+    "publishedAt": "2026-02-26T18:27:45.021Z",
+    "header": {
+      "id": 2,
+      "badge": "About the Platform",
+      "title": "AI Enterprise Patterns Library",
+      "subtitle": "A centralized repository of AI-driven recipes, prompts, and blueprints for enterprise software architecture patterns. Curated by developers, for developers."
+    },
+    "seo": {
+      "id": 5,
+      "title": "About | AI Enterprise Patterns",
+      "description": "Learn about AI Enterprise Patterns Library - a curated collection of AI-driven implementation patterns, prompts, and architectural blueprints for modern software development.",
+      "keywords": "about, AI patterns, enterprise architecture, software patterns, AI-assisted development, pattern library",
+      "ogTitle": "About | AI Enterprise Patterns",
+      "ogDescription": "A curated collection of AI-driven implementation patterns for modern software development."
+    },
+    "content": [
+      {
+        "__component": "sections.mission-block",
+        "id": 2,
+        "title": "Our Mission",
+        "content": "In the rapidly evolving landscape of AI-assisted software development, developers need proven patterns and strategies to effectively leverage AI tools in enterprise contexts. Our mission is to bridge that gap.\n\nWe curate, document, and share battle-tested patterns that help teams integrate AI into their development workflows—from architectural decisions and design patterns to prompt engineering and best practices.\n\nWhether you're building microservices, implementing clean architecture, or exploring AI-assisted code generation, you'll find practical, production-ready patterns here."
+      },
+      {
+        "__component": "sections.feature-grid",
+        "id": 2,
+        "heading": "What We Offer",
+        "columns": "3",
+        "features": [
+          {
+            "id": 7,
+            "icon": "Code2",
+            "title": "Design Patterns",
+            "description": "Architectural blueprints and implementation guides for enterprise software development"
+          },
+          {
+            "id": 8,
+            "icon": "Sparkles",
+            "title": "AI Prompts",
+            "description": "Curated prompts for AI-assisted development, code review, and refactoring"
+          },
+          {
+            "id": 9,
+            "icon": "BookOpen",
+            "title": "Best Practices",
+            "description": "Industry-standard practices for security, performance, and code quality"
+          },
+          {
+            "id": 10,
+            "icon": "Zap",
+            "title": "Architecture Guides",
+            "description": "Comprehensive guides for building scalable, maintainable systems"
+          },
+          {
+            "id": 11,
+            "icon": "Users",
+            "title": "Community Driven",
+            "description": "Patterns contributed and validated by real enterprise developers"
+          },
+          {
+            "id": 12,
+            "icon": "Lightbulb",
+            "title": "Continuous Learning",
+            "description": "Stay updated with the latest AI-assisted development practices"
+          }
+        ]
+      },
+      {
+        "__component": "sections.tech-stack",
+        "id": 2,
+        "heading": "Built With",
+        "groups": [
+          {
+            "id": 3,
+            "title": "Frontend"
+          },
+          {
+            "id": 4,
+            "title": "Backend"
+          }
+        ]
+      },
+      {
+        "__component": "sections.open-source-info",
+        "id": 2,
+        "title": "Open Source",
+        "description": "This project is open source and welcomes contributions from the community. Whether you want to add new patterns, improve documentation, or fix bugs — all contributions are appreciated.",
+        "links": [
+          {
+            "id": 10,
+            "label": "View on GitHub",
+            "href": "https://github.com/sandropetterle/AIEnterprisePatterns",
+            "variant": "primary",
+            "icon": "Github"
+          }
+        ]
+      }
+    ]
+  },
+  "login-page": {
+    "id": 1,
+    "documentId": "arikf4xzixgknjzik097c20j",
+    "cardTitle": "Sign in",
+    "cardDescription": "Access the AI Enterprise Patterns Library",
+    "signInButtonLabel": "Continue with Microsoft",
+    "signInLoadingLabel": "Redirecting...",
+    "footerNotice": "Sign-in is managed securely by Microsoft Entra. Only authorized users may access this application.",
+    "errorMessages": {
+      "Default": "An unexpected error occurred during sign-in. Please try again.",
+      "Callback": "Sign-in callback failed. Please try again.",
+      "OAuthSignin": "Could not start the sign-in flow. Please try again.",
+      "AccessDenied": "Access denied. You may not have permission to access this application.",
+      "Verification": "The sign-in link has expired. Please request a new one.",
+      "OAuthCallback": "Sign-in failed during callback. Please try again.",
+      "OAuthCreateAccount": "Could not create your account. Please try again."
+    },
+    "createdAt": "2026-02-26T18:27:59.447Z",
+    "updatedAt": "2026-02-26T18:27:59.447Z",
+    "publishedAt": "2026-02-26T18:27:59.221Z",
+    "seo": {
+      "id": 6,
+      "title": "Sign In | AI Enterprise Patterns",
+      "description": null,
+      "keywords": null,
+      "ogTitle": null,
+      "ogDescription": null,
+      "noIndex": false
+    }
+  },
+  "not-found-page": {
+    "id": 1,
+    "documentId": "nxqb7fh3ddpjnqdlnqoj6e3e",
+    "errorCode": "404",
+    "heading": "Page Not Found",
+    "message": "The page you are looking for does not exist or has been moved.",
+    "createdAt": "2026-02-26T18:28:01.413Z",
+    "updatedAt": "2026-02-26T18:28:01.413Z",
+    "publishedAt": "2026-02-26T18:28:01.101Z",
+    "backButton": {
+      "id": 11,
+      "label": "Back to Home",
+      "href": "/",
+      "variant": "primary",
+      "icon": "Home"
+    }
+  },
+  "error-page": {
+    "id": 1,
+    "documentId": "dl18siviv6t44qh4cwuw94sb",
+    "title": "Something went wrong",
+    "description": "We encountered an error while loading this page. This could be due to a temporary connection issue or a problem with our servers.",
+    "retryButtonLabel": "Try again",
+    "homeButtonLabel": "Go home",
+    "createdAt": "2026-02-26T18:28:02.533Z",
+    "updatedAt": "2026-02-26T18:28:02.533Z",
+    "publishedAt": "2026-02-26T18:28:02.531Z"
+  },
+  "pattern-listing-labels": {
+    "id": 1,
+    "documentId": "axzd5ce7g4a192y3pwv5z0uh",
+    "pageTitle": "Browse Patterns",
+    "pageDescription": "Discover {count} {pattern|patterns} across AI, architecture, and engineering disciplines.",
+    "searchPlaceholder": "Search patterns...",
+    "clearSearchLabel": "Clear search",
+    "sortByLabel": "Sort by:",
+    "sortOptions": [
+      {
+        "label": "Most Recent",
+        "value": "newest"
+      },
+      {
+        "label": "Most Popular",
+        "value": "popular"
+      },
+      {
+        "label": "Title A-Z",
+        "value": "title"
+      }
+    ],
+    "filterSectionHeader": "Filters",
+    "clearAllLabel": "Clear all",
+    "categoryLabel": "Category",
+    "allCategoriesLabel": "All Categories",
+    "tagsLabel": "Tags",
+    "tagModeLabel": "Match:",
+    "anyLabel": "Any",
+    "allLabel": "All",
+    "dateRangeHeader": "Date Range",
+    "clearDatesLabel": "Clear dates",
+    "fromLabel": "From",
+    "toLabel": "To",
+    "activeFiltersLabel": "Active Filters",
+    "filtersButtonLabel": "Filters",
+    "filterSheetTitle": "Filter Patterns",
+    "filterSheetDescription": "Refine your search by category and tags",
+    "savedSearchesHeader": "Saved Searches",
+    "saveCurrentLabel": "Save current",
+    "saveDialogTitle": "Save Search",
+    "saveDialogDescription": "Give this search a name to quickly access it later.",
+    "searchNameLabel": "Search name",
+    "searchNamePlaceholder": "e.g. Architecture with CQRS",
+    "cancelLabel": "Cancel",
+    "saveLabel": "Save",
+    "recentlyViewedHeader": "Recently Viewed",
+    "clearLabel": "Clear",
+    "previousLabel": "Previous",
+    "nextLabel": "Next",
+    "emptyFilteredHeading": "No patterns found",
+    "emptyUnfilteredHeading": "No patterns available",
+    "emptyFilteredDescription": "Try adjusting your filters or search query to find what you're looking for.",
+    "emptyUnfilteredDescription": "There are no patterns yet. Check back later.",
+    "clearFiltersLabel": "Clear all filters",
+    "createdAt": "2026-02-26T18:28:03.540Z",
+    "updatedAt": "2026-02-26T18:28:03.540Z",
+    "publishedAt": "2026-02-26T18:28:03.531Z"
+  },
+  "pattern-detail-labels": {
+    "id": 1,
+    "documentId": "b85ja7wtlni0xpul59sx7rra",
+    "breadcrumbAriaLabel": "Breadcrumb",
+    "voteAriaTemplate": "Vote for this pattern. {count} votes",
+    "votesLabel": "votes",
+    "voteAnnouncementTemplate": "Voted! {count} total votes",
+    "noContentMessage": "No content available for this pattern.",
+    "relatedPatternsTitle": "Related Patterns",
+    "noRelatedMessage": "No related patterns found",
+    "editLabel": "Edit",
+    "deleteLabel": "Delete",
+    "deleteDialogTitle": "Delete Pattern?",
+    "deleteDialogDescription": "This action cannot be undone. The pattern will be permanently removed.",
+    "cancelLabel": "Cancel",
+    "deleteConfirmLabel": "Delete",
+    "deletingLabel": "Deleting...",
+    "createdAt": "2026-02-26T18:28:04.547Z",
+    "updatedAt": "2026-02-26T18:28:04.547Z",
+    "publishedAt": "2026-02-26T18:28:04.545Z"
+  },
+  "pattern-form-labels": {
+    "id": 1,
+    "documentId": "z3389avcianxabs8gcfl588v",
+    "createTitle": "New Pattern",
+    "editTitle": "Edit Pattern",
+    "titleLabel": "Title *",
+    "titlePlaceholder": "e.g. CQRS Pattern for Event-Driven Systems",
+    "slugPreviewTemplate": "Slug preview: {slug}",
+    "shortDescLabel": "Short Description *",
+    "shortDescPlaceholder": "A brief summary of the pattern (shown in listings)",
+    "categoryLabel": "Category *",
+    "categoryPlaceholder": "Select a category",
+    "tagsLabel": "Tags",
+    "tagPlaceholder": "Add a tag and press Enter",
+    "addTagLabel": "Add",
+    "tagCountTemplate": "{count}/{max} tags",
+    "contentLabel": "Full Content (Markdown)",
+    "contentPlaceholder": "Write the full pattern content in Markdown...",
+    "authorLabel": "Author",
+    "authorPlaceholder": "Your name (optional)",
+    "adminSettingsLabel": "Admin Settings",
+    "featuredLabel": "Featured pattern",
+    "trendingLabel": "Trending pattern",
+    "cancelLabel": "Cancel",
+    "createLabel": "Create Pattern",
+    "creatingLabel": "Creating...",
+    "saveLabel": "Save Changes",
+    "savingLabel": "Saving...",
+    "createdAt": "2026-02-26T18:28:05.549Z",
+    "updatedAt": "2026-02-26T18:28:05.549Z",
+    "publishedAt": "2026-02-26T18:28:05.546Z"
+  }
+}

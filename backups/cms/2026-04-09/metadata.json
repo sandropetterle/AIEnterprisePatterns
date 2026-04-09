@@ -1,0 +1,13 @@
+{
+  "date": "2026-04-09",
+  "strapiUrl": "https://ca-aipatterns-cms-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io",
+  "strapiVersion": "^5.40.0",
+  "nodeVersion": "v24.13.0",
+  "notes": "docs-page not present in production Strapi (404); uploads.tar.gz empty — no media in Azure Blob Storage",
+  "createdAt": "2026-04-09T17:14:23.238Z",
+  "checksums": {
+    "dump.sql": "0bcb02705461e409631519124ba704945844b2940906f98fda7bd6c5f319dddd",
+    "uploads.tar.gz": "59869db34853933b239f1e2219cf7d431da006aa919635478511fabbfc8849d2",
+    "content.json": "10172f720620613e14726a1a2936466568c253a7a47090c917cb776857cdd908"
+  }
+}
