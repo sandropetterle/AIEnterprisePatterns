@@ -1,8 +1,8 @@
 # CMS Architecture
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-09
 **Audience:** Frontend Developers, Solutions Architects, Infrastructure Engineers
-**Purpose:** Document the Strapi 5 CMS integration — content model, deployment, ISR revalidation webhook, and known operational gotchas.
+**Purpose:** Document the Strapi 5 CMS integration — content model, cold storage model, backup/restore workflow, and known operational gotchas.
 
 ---
 
@@ -10,9 +10,30 @@
 
 Strapi 5 (headless CMS) manages all **static site content** — page copy, labels, navigation text, and marketing sections. Pattern data (the application's core domain entities) is stored in Azure SQL and managed via the API, not Strapi.
 
+### Cold Storage Model (current)
+
+As of Phase CMS Cold Storage (2026-04-09), Strapi runs **local-only**. Azure CMS resources (MySQL, Container App) are being removed for cost savings (~€14-16/mo). The frontend already had a full fallback pathway — production renders identically with or without a live Strapi instance.
+
+| Concern | Before | After |
+|---------|--------|-------|
+| Strapi hosting | Azure Container App (live) | Local Docker only (`--profile cms`) |
+| Content database | Azure MySQL Flexible Server | Local MySQL (Docker), backed up to git |
+| Content source (production) | Live Strapi REST API | Compile-time fallback objects in `lib/cms/queries.ts` |
+| Content archive | Not committed | `backups/cms/YYYY-MM-DD/` in git |
+| Media storage | Azure Blob Storage (`staipatternsmedia`) | Retained — historical references |
+| Monthly cost | ~€14-16 | ~€0.02 (storage only) |
+
+**How content updates work in cold storage mode:**
+1. `docker compose --profile cms up -d` — start local Strapi
+2. Edit content in http://localhost:1337/admin
+3. Run `scripts/cms/backup.sh` — creates dated bundle in `backups/cms/`
+4. Run `scripts/cms/generate-fallbacks.ts` — updates compile-time fallbacks in `lib/cms/queries.ts`
+5. Open PR → merge → frontend deploys automatically
+
 **CMS Phase Status:**
-- ✅ Phase 1 (CMS.1–CMS.3): Infrastructure, home page Dynamic Zone, global layout, on-demand revalidation — complete and deployed to production
-- ✅ Phase 2 (6.4–6.6): About, Docs, Login, Error, Not-Found pages + pattern UI labels — complete (2026-03-03)
+- ✅ Phase 5.5: CMS Infrastructure deployed to Azure (2026-02-26)
+- ✅ Phase 6.4–6.7: All 10 Single Types seeded and integrated (2026-03-03)
+- 🔄 Phase CMS Cold Storage: local-only migration — Phase 1 complete (backup/restore scripts + initial bundle)
 
 ---
 
@@ -22,18 +43,20 @@ Strapi content types and their purpose:
 
 | Content Type | Purpose |
 |-------------|---------|
+| `global` | Shared navigation, footer, site-wide labels |
 | `home-page` | Home page content (Dynamic Zone: hero, featured patterns, stats) |
-| `global-layout` | Shared navigation, footer, site-wide labels |
-| `about-page` | About page Dynamic Zone (Phase 6.4) |
-| `docs-page` | Documentation page Dynamic Zone (Phase 6.4) |
-| `login-page` | Login page labels (Phase 6.4) |
-| `error-page` | Error page content with fallback (Phase 6.4) |
-| `not-found-page` | 404 page content (Phase 6.4) |
-| `pattern-listing-labels` | Labels for SearchBar, FilterPanel, SortSelector, EmptyState, Pagination (Phase 6.5) |
-| `pattern-detail-labels` | Labels for all pattern detail sub-components (Phase 6.5) |
-| `pattern-form-labels` | Labels for PatternForm create/edit (Phase 6.5) |
+| `about-page` | About page Dynamic Zone |
+| `docs-page` | Documentation page Dynamic Zone |
+| `login-page` | Login page labels |
+| `error-page` | Error page content with fallback |
+| `not-found-page` | 404 page content |
+| `pattern-listing-labels` | Labels for SearchBar, FilterPanel, SortSelector, EmptyState, Pagination |
+| `pattern-detail-labels` | Labels for all pattern detail sub-components |
+| `pattern-form-labels` | Labels for PatternForm create/edit |
 
 **Dynamic Zones** allow page-specific component sections to be managed from the CMS without code changes.
+
+> **Note:** `docs-page` was never seeded in the production Strapi instance. Its fallback in `lib/cms/queries.ts` (empty object `{}`) is the production source of truth.
 
 For the full component schema reference (field tables, dependency map, reuse guide), see [documentation/cms-components/COMPONENT_INDEX.md](../cms-components/COMPONENT_INDEX.md).
 
@@ -41,19 +64,24 @@ For the full component schema reference (field tables, dependency map, reuse gui
 
 ## 3. Infrastructure
 
+### Current (Cold Storage — Phase CMS Cold Storage in progress)
+
+| Component | Value |
+|-----------|-------|
+| Local CMS | `docker compose --profile cms up -d` → http://localhost:1337/admin |
+| Local DB | MySQL (Docker, `aipatterns-mysql` container) |
+| Content backups | `backups/cms/YYYY-MM-DD/` committed to git |
+| Media references | Azure Blob Storage (`staipatternsmedia.blob.core.windows.net`, `strapi-media` container) — retained |
+| Azure CMS hosting | Being deleted (Phase 4 of CMS Cold Storage) |
+
+### Historical (was live until Phase CMS Cold Storage)
+
 | Component | Value |
 |-----------|-------|
 | CMS Framework | Strapi 5 |
-| CMS Database (Production) | Azure MySQL Flexible Server (`mysql-aipatterns-cms.mysql.database.azure.com`), francecentral region |
-| CMS Database (Development) | SQLite (via Docker Compose) |
-| Media Storage | Azure Blob Storage (`staipatternsmedia.blob.core.windows.net`, `strapi-media` container, public read) |
+| CMS Database | Azure MySQL Flexible Server (`mysql-aipatterns-cms.mysql.database.azure.com`), francecentral, B1ms, 20 GB |
 | Hosting | Azure Container App (`ca-aipatterns-cms-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io`) |
-| CMS Admin | https://ca-aipatterns-cms-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io/admin |
-
-**MySQL configuration:**
-- SKU: `Standard_B1ms` (francecentral — `Standard_B1s` rejected at creation on this subscription)
-- Storage: 20 GB (Azure minimum), auto-grow **disabled**, auto-IO scaling **disabled**
-- Region: francecentral (centralus has no MySQL Flexible Server SKUs on this subscription)
+| Media Storage | Azure Blob Storage (`staipatternsmedia.blob.core.windows.net`, `strapi-media` container, public read) |
 
 ---
 
@@ -70,16 +98,54 @@ docker compose --profile cms down
 http://localhost:1337/admin
 # Credentials: admin@aipatterns.dev / Admin12345
 
-# Seed content
+# Seed content from scratch
 STRAPI_API_TOKEN=<full-access-token> npx tsx cms/data/seed.ts
 # Note: use full-access token for seeding (read-only token can't PUT); revoke after seeding
+
+# Restore from most recent git backup
+bash scripts/cms/restore.sh                     # auto-picks latest bundle
+bash scripts/cms/restore.sh backups/cms/2026-04-09  # specific date
 ```
 
-> **Note:** MySQL and Strapi are assigned the `cms` profile to avoid running them by default — they each consume ~512 MB RAM. Only start them when actively working on CMS content. SQLite is used for the backend API in development; SQL Server (`docker compose up -d`) is separate and only needed if testing against SQL Server locally.
+> **WSL2 memory cap:** `~/.wslconfig` — `memory=2560MB`, `swap=1GB`; container limits: sqlserver 1 GB, mysql 512 MB, strapi 512 MB. Only start `--profile cms` when actively working on CMS content.
 
 ---
 
-## 5. Frontend CMS Client
+## 5. Backup & Restore
+
+### Bundle structure (`backups/cms/YYYY-MM-DD/`)
+
+| File | Source | Purpose |
+|------|--------|---------|
+| `dump.sql` | `docker exec aipatterns-mysql mysqldump` | Full MySQL schema + data |
+| `uploads.tar.gz` | `strapi-uploads` docker volume | Locally-uploaded media |
+| `content.json` | Strapi REST API `GET /api/{uid}` × 10 single types | Portable, version-diffable content |
+| `metadata.json` | Script | Strapi URL, Node version, date, SHA-256 checksums |
+
+### Scripts
+
+```bash
+# Create a backup of the running local Strapi
+STRAPI_API_TOKEN=<token> bash scripts/cms/backup.sh
+
+# Restore from a backup bundle
+bash scripts/cms/restore.sh backups/cms/2026-04-09
+
+# Backup against remote Strapi (e.g. during initial capture)
+STRAPI_URL=https://... STRAPI_API_TOKEN=<token> SKIP_SQL_DUMP=1 bash scripts/cms/backup.sh
+```
+
+### Initial production backup (committed)
+
+The `backups/cms/2026-04-09/` bundle was captured from the live Azure production Strapi before deletion:
+- `dump.sql`: 3,159 lines, 96 tables — authoritative MySQL dump from `mysql-aipatterns-cms`
+- `content.json`: 9/10 single types (docs-page absent — never seeded in production)
+- `uploads.tar.gz`: empty — no media was uploaded to Azure Blob Storage
+- All SHA-256 checksums verified in `metadata.json`
+
+---
+
+## 6. Frontend CMS Client
 
 **`lib/cms/client.ts`** — `fetchStrapi(path, options)`:
 - Wraps `fetch()` with error handling
@@ -87,8 +153,10 @@ STRAPI_API_TOKEN=<full-access-token> npx tsx cms/data/seed.ts
 - Enables graceful fallback to hardcoded defaults when Strapi is unavailable
 
 **`lib/cms/queries.ts`** — Content type query functions:
-- `getHomePage()`, `getGlobalLayout()`, etc.
-- Each uses `populate` parameters to include nested components
+- `getHomePage()`, `getGlobal()`, etc.
+- Each uses `safeFetch()` which catches `CmsUnavailableError` and returns a fallback object
+- **In cold storage mode:** the fallback objects are the authoritative production content
+- Uses `populate` parameters to include nested components (see §9 for quirks)
 
 **`lib/cms/types.ts`** — TypeScript types for all Strapi responses
 
@@ -96,7 +164,9 @@ STRAPI_API_TOKEN=<full-access-token> npx tsx cms/data/seed.ts
 
 ---
 
-## 6. ISR Revalidation
+## 7. ISR Revalidation
+
+> **Note:** ISR on-demand revalidation applies only when a live Strapi instance is running (local dev or future cloud restore). In cold storage mode, content changes flow through `lib/cms/queries.ts` fallbacks and deploy on PR merge.
 
 On-demand revalidation ensures Next.js ISR cache is cleared when content changes in Strapi.
 
@@ -106,14 +176,6 @@ On-demand revalidation ensures Next.js ISR cache is cleared when content changes
 - Validates the `secret` query parameter
 - Calls `revalidatePath()` for the affected page(s)
 - Returns `{revalidated: true, paths: [...]}` on success
-- Returns `{message: "Model not handled"}` for unknown content types
-
-**Expected responses:**
-| Scenario | Response |
-|----------|---------|
-| Wrong/missing secret | 401 |
-| Valid secret + known model | 200 `{revalidated: true, paths: [...]}` |
-| Valid secret + unknown model | 200 `{message: "Model not handled"}` |
 
 **ISR revalidation times:**
 | Route | Time-based TTL | On-demand |
@@ -123,37 +185,9 @@ On-demand revalidation ensures Next.js ISR cache is cleared when content changes
 | Pattern listings | 120s | — |
 | Pattern details | 600s | — |
 
-```mermaid
-%%{init: {'theme': 'base', 'themeVariables': {'primaryColor': '#EDE9FE', 'primaryBorderColor': '#7C3AED', 'primaryTextColor': '#3B0764', 'noteBkgColor': '#FEF3C7', 'noteTextColor': '#78350F'}}}%%
-sequenceDiagram
-    actor Editor as ✏️ Content Editor
-    participant Strapi as 📝 Strapi CMS
-    participant Route as ⚡ /api/revalidate
-    participant Cache as 🔄 ISR Cache
-    actor User as 👤 End User
-
-    Editor->>Strapi: Publish / update content
-    Strapi->>Route: POST /api/revalidate?secret=***
-
-    alt Secret invalid
-        Route-->>Strapi: 401 Unauthorized
-    else Secret valid
-        Route->>Cache: revalidatePath(affected paths)
-        Cache-->>Route: Paths invalidated
-        Route-->>Strapi: 200 {revalidated: true, paths: [...]}
-    end
-
-    Note over Cache: Stale pages rebuild<br/>on the next request
-
-    User->>Cache: GET / (any CMS-driven route)
-    Cache->>Strapi: Fetch fresh content
-    Strapi-->>Cache: Updated content
-    Cache-->>User: Fresh rebuilt page
-```
-
 ---
 
-## 7. Populate API Quirks
+## 8. Populate API Quirks
 
 > ⚠️ **Known gotcha:** `populate[component]=*` fails with HTTP 400 if the component has a Media relation field (e.g., `seo.ogImage`). Use explicit field selection instead:
 
@@ -169,7 +203,7 @@ Wildcard `*` only works for scalar fields within a component.
 
 ---
 
-## 8. Deployment Gotchas
+## 9. Deployment Gotchas
 
 These are hard-won lessons from the CMS deployment. Ignoring them will cause cryptic failures.
 
@@ -193,22 +227,49 @@ These are hard-won lessons from the CMS deployment. Ignoring them will cause cry
 
 10. **On-demand revalidation webhook local URL** uses `host.docker.internal:3000`, not `localhost:3000`.
 
+11. **`az provider register --namespace Microsoft.Storage --wait`** required before first provisioning run.
+
+12. **Docker dev stage (`target: dev`) skips `strapi build`** — `npm run develop` handles build+watch automatically.
+
+13. **Admin user creation (first time only):** `POST /admin/register-admin` with initial credentials.
+
+14. **API token creation:** `POST /admin/api-tokens` with an admin JWT in the Authorization header. `lifespan` must be one of `null`, `604800000`, `2592000000`, or `7776000000` (not arbitrary ms values).
+
 ---
 
-## 9. Key Files
+## 10. Key Files
 
 | File | Purpose |
 |------|---------|
-| `cms/` | Strapi 5 project root |
+| `cms/` | Strapi 5 project root (retained for local authoring) |
 | `cms/data/seed.ts` | Seeds all hardcoded content into Strapi |
-| `cms/Dockerfile` | Production container build |
-| `deployment/scripts/provision-cms.ps1` | Provisions Azure MySQL + Container App + Blob Storage |
-| `.github/workflows/cms-container-deploy.yml` | CI/CD workflow for CMS deployment |
+| `cms/Dockerfile` | Production container build (retained; used for local dev) |
+| `scripts/cms/backup.sh` | Creates a dated backup bundle from a running local Strapi |
+| `scripts/cms/restore.sh` | Restores a backup bundle into a running local Strapi |
+| `backups/cms/` | Git-committed backup bundles (authoritative content archive) |
 | `lib/cms/client.ts` | Frontend CMS HTTP client |
-| `lib/cms/queries.ts` | Content type query functions |
+| `lib/cms/queries.ts` | Content type query functions with compile-time fallbacks |
 
 ---
 
-## 10. Related Decisions
+## 11. Rollback to Live CMS
 
-See [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md) Decisions 28–39 for the full CMS implementation history (provider choice, MySQL region constraints, storage sizing, image deployment, webhook setup).
+If the cold storage model needs to be reversed:
+
+1. Restore `infrastructure/modules/cms.bicep` from git history
+2. Restore the `module cms` call in `infrastructure/main.bicep` and `mysqlAdminPassword` parameter
+3. Recreate KV secrets (from backup metadata or manually)
+4. `az deployment group create` with updated parameters
+5. Run `bash scripts/cms/restore.sh` against new Azure MySQL (SSH tunnel or temporary public access)
+6. Restore `STRAPI_URL` / `STRAPI_API_TOKEN` env on the web Container App
+7. Deploy frontend
+
+Expected restoration time: ~2-3 hours (dominated by MySQL Flexible Server provisioning).
+
+---
+
+## 12. Related Decisions
+
+See [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md):
+- Decisions 28–39: CMS implementation history (provider choice, MySQL region constraints, storage sizing, image deployment, webhook setup)
+- Decision 64: CMS Cold Storage Architecture (cost reduction rationale, alternatives evaluated, trade-offs)
