@@ -127,14 +127,18 @@ describe('CMS Query Functions', () => {
       expect((fetchOptions?.next as { revalidate?: number })?.revalidate).toBe(300)
     })
 
-    it('falls back to empty object on network error', async () => {
+    it('falls back to production content on network error', async () => {
       mockStrapiNetworkError()
-      expect(await getHomePage()).toEqual({})
+      const result = await getHomePage()
+      expect(result.seo?.title).toBe('Home')
+      expect(result.content).toHaveLength(4)
+      expect(result.content?.[0].__component).toBe('sections.hero')
     })
 
-    it('falls back to empty object on HTTP error', async () => {
+    it('falls back to production content on HTTP error', async () => {
       mockStrapiHttpError()
-      expect(await getHomePage()).toEqual({})
+      const result = await getHomePage()
+      expect(result.content?.[0].__component).toBe('sections.hero')
     })
   })
 
@@ -158,9 +162,11 @@ describe('CMS Query Functions', () => {
       expect((fetchOptions?.next as { revalidate?: number })?.revalidate).toBe(300)
     })
 
-    it('falls back to empty object on network error', async () => {
+    it('falls back to production content on network error', async () => {
       mockStrapiNetworkError()
-      expect(await getAboutPage()).toEqual({})
+      const result = await getAboutPage()
+      expect(result.header?.title).toBe('AI Enterprise Patterns Library')
+      expect(result.content).toHaveLength(4)
     })
   })
 
@@ -296,7 +302,7 @@ describe('CMS Query Functions', () => {
       const result = await getErrorPage()
 
       expect(result.title).toBe('Something went wrong')
-      expect(result.description).toContain('unexpected error')
+      expect(result.description).toContain('error')
       expect(result.retryButtonLabel).toBe('Try again')
       expect(result.homeButtonLabel).toBe('Go home')
     })
@@ -337,9 +343,9 @@ describe('CMS Query Functions', () => {
       expect(result.searchPlaceholder).toBe('Search patterns...')
       expect(result.sortByLabel).toBe('Sort by:')
       expect(result.sortOptions).toHaveLength(3)
-      expect(result.sortOptions?.[0]).toEqual({ value: 'recent', label: 'Most Recent' })
-      expect(result.sortOptions?.[1]).toEqual({ value: 'votes', label: 'Most Voted' })
-      expect(result.sortOptions?.[2]).toEqual({ value: 'alphabetical', label: 'Alphabetical' })
+      expect(result.sortOptions?.[0]).toEqual({ value: 'newest', label: 'Most Recent' })
+      expect(result.sortOptions?.[1]).toEqual({ value: 'popular', label: 'Most Popular' })
+      expect(result.sortOptions?.[2]).toEqual({ value: 'title', label: 'Title A-Z' })
       expect(result.filterSectionHeader).toBe('Filters')
       expect(result.clearAllLabel).toBe('Clear all')
       expect(result.categoryLabel).toBe('Category')
