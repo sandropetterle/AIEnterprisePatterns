@@ -281,4 +281,4 @@ Expected restoration time: ~2-3 hours (dominated by MySQL Flexible Server provis
 
 See [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md):
 - Decisions 28–39: CMS implementation history (provider choice, MySQL region constraints, storage sizing, image deployment, webhook setup)
-- Decision 64: CMS Cold Storage Architecture (cost reduction rationale, alternatives evaluated, trade-offs)
+- Decision 65: CMS Cold Storage Architecture (cost reduction rationale, alternatives evaluated, trade-offs)

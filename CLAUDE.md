@@ -13,7 +13,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
 - **CMS:** Strapi 5 local-only (`cms/` directory) with git-committed backups (`backups/cms/`); compile-time fallbacks in `lib/cms/queries.ts`; media references retained in Azure Blob Storage (`staipatternsmedia`)
-- **Current Phase:** Phase CMS Cold Storage in progress (Phases 1–3 complete — backup/restore scripts, generate-fallbacks, 3 GHA workflows); Phase 8 after CMS Cold Storage
+- **Current Phase:** Phase CMS Cold Storage in progress (Phases 1–6 complete — backup/restore scripts, generate-fallbacks, 3 GHA workflows, Azure CMS deleted, IaC cleanup, docs/Decision 65); Phase 7 (verification) pending; Phase 8 after CMS Cold Storage
 
 ## Development Commands
 
@@ -45,7 +45,7 @@ docker compose --profile cms down      # Stop CMS containers when not needed
 docker compose down                    # Stop all containers
 ```
 
-> MySQL and Strapi are `cms`-profiled — they don't start with plain `docker compose up`. Start them only when working on CMS content. Strapi is **local-only** (Azure CMS resources are being removed in Phase CMS Cold Storage). WSL2 is capped at 2.5 GB via `~/.wslconfig`; container limits: SQL Server 1 GB, MySQL 512 MB, Strapi 512 MB.
+> MySQL and Strapi are `cms`-profiled — they don't start with plain `docker compose up`. Start them only when working on CMS content. Strapi is **local-only** (Azure CMS resources deleted in Phase CMS Cold Storage, 2026-04-10). WSL2 is capped at 2.5 GB via `~/.wslconfig`; container limits: SQL Server 1 GB, MySQL 512 MB, Strapi 512 MB.
 
 ## Architecture
 
@@ -243,7 +243,7 @@ Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
 | Azure deployment guides | `deployment/` |
 | Visual diagrams (Mermaid) | `documentation/diagrams/` |
 
-**Key docs:** `documentation/EXECUTIVE_SUMMARY.md` (CTO-facing overview), `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (63 decisions), `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Key docs:** `documentation/EXECUTIVE_SUMMARY.md` (CTO-facing overview), `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (65 decisions), `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** All 15 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
 
@@ -260,7 +260,7 @@ This is not optional — it preserves architectural knowledge across sessions.
 ## Important Notes
 
 - **CMS project:** `cms/` (Strapi 5) — local-only content authoring; content model, Dockerfile, seed script. Architecture: `documentation/architecture/CMS_ARCHITECTURE.md`
-- **CMS cold storage:** Strapi is local-only. Backups in `backups/cms/`. Scripts: `scripts/cms/backup.sh`, `scripts/cms/restore.sh`. Azure MySQL + Container App being deleted (Phase CMS Cold Storage). `deployment/scripts/provision-cms.ps1` retained for historical reference / rollback only.
+- **CMS cold storage:** Strapi is local-only. Backups in `backups/cms/`. Scripts: `scripts/cms/backup.sh`, `scripts/cms/restore.sh`. Azure MySQL + Container App deleted (Phase CMS Cold Storage, 2026-04-10). `deployment/scripts/provision-cms.ps1` retained for historical reference / rollback only.
 - **Infrastructure project** — `AddInfrastructure()` extension registers AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter (extracted from Program.cs in Phase 6.8)
 - **DELETE endpoint** exists in controller but frontend doesn't wire it up yet
 - **Vote endpoint** uses atomic `ExecuteUpdateAsync` for relational providers (SQLite/SQL Server), with InMemory fallback for tests

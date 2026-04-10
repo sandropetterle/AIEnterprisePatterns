@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-04-10 (CI hardening — E2E SSR duplicate DOM + Lighthouse URL scope)
+**Last Updated:** 2026-04-10 (CMS Cold Storage Architecture)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**64 active decisions | 0 archived**
+**65 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,48 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 65: CMS Cold Storage Architecture
+
+**Date:** 2026-04-10
+**Title:** Move Strapi CMS from Live Azure Hosting to Local-Only with Git-Committed Backups
+**Category:** Infrastructure / Cost
+
+### What Was Decided
+
+Moved Strapi CMS from live-hosted (Azure MySQL Flexible Server + Container App) to a cold storage model:
+- **Local-only Strapi** for content authoring (`docker compose --profile cms`)
+- **Git-committed backups** (`backups/cms/YYYY-MM-DD/`) as the authoritative content archive
+- **Compile-time fallback objects** in `lib/cms/queries.ts` as the production content source (delimited regions refreshed via `scripts/cms/generate-fallbacks.ts`)
+- **GitHub Actions workflows** (`cms-backup.yml`, `cms-restore-bundle.yml`, `cms-sync-fallbacks.yml`) for operator-driven content lifecycle
+- **All Azure CMS resources deleted** — MySQL Flexible Server (`mysql-aipatterns-cms`), Strapi Container App (`ca-aipatterns-cms-prod`), 8 KV secrets
+- **Storage Account retained** (`staipatternsmedia`) for historical media references
+
+### Why
+
+The frontend already had a complete `safeFetch()` fallback mechanism — production renders identically with or without a live Strapi instance. The live Azure MySQL was costing ~€14-16/mo for content that is almost entirely static UI labels. The runtime dependency on Strapi was notional: live Strapi was unreachable during Docker builds and all 10 query functions already returned hardcoded fallbacks on `CmsUnavailableError`.
+
+### Alternatives Evaluated
+
+- **Keep live MySQL:** Rejected — ongoing cost with no runtime benefit; frontend functioned entirely on fallback content.
+- **Static JSON files in repo:** Rejected — loses the structured Strapi authoring experience (Dynamic Zones, content type admin UI).
+- **Serverless/free-tier MySQL:** Rejected — Azure MySQL Flexible Server has no free tier; serverless tiers would be more expensive per-transaction for near-zero traffic.
+- **PlanetScale / Neon (external free MySQL):** Not evaluated — adds external dependency and security surface without meaningful benefit over git-committed backups.
+
+### Trade-offs
+
+- (+) ~€14-16/mo cost savings (MySQL line item drops to €0)
+- (+) Versioned, reviewable content — `git blame` on fallback changes; PR-based content review
+- (+) Zero runtime external dependency — production has no live CMS network calls
+- (+) Backup bundles are portable and restorable locally in minutes
+- (−) Content updates require a local workflow + PR cycle (minutes instead of seconds in Strapi admin)
+- (−) Media uploads limited — no live blob upload path; media handled manually into `staipatternsmedia`
+
+### Rollback
+
+Backup bundles in git are authoritative. To restore live cloud CMS: restore `infrastructure/modules/cms.bicep` from git history, restore `module cms` call and `mysqlAdminPassword` param in `main.bicep`, recreate KV secrets, run `az deployment group create`, run `scripts/cms/restore.sh` against new Azure MySQL, re-add `STRAPI_URL`/`STRAPI_API_TOKEN` env on web Container App. Expected time: ~2-3 hours (dominated by MySQL provisioning).
 
 ---
 

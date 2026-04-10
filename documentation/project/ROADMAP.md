@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-04-10 (Phase CMS Cold Storage — Phases 1–5 complete)
+**Last Updated:** 2026-04-10 (Phase CMS Cold Storage — Phases 1–6 complete; Phase 7 verification pending)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -30,7 +30,7 @@
 | **Phase 6.8** | ✅ Complete | 2026-03-17 | Infrastructure as Code & Management (Bicep IaC, script cleanup, Infrastructure .NET project) |
 | **Phase 7** | ✅ Complete | 2026-03-19 | Quality & Hardening Evaluation (10-area audit: deps, security, infra, CI/CD, containers, tests, docs, observability) |
 | **Phase 7.11** | ✅ Complete | 2026-03-23 | Infrastructure Drift Resolution & Live Hardening (30 drift items, 6 tracks — Bicep corrections, resource locks, KV diagnostics, MySQL SSL, alert email) |
-| **Phase CMS Cold Storage** | 🔄 In Progress | 2026-04-09– | Move Strapi from live Azure to local-only; git-committed backups; compile-time fallback content; Azure MySQL + Container App deleted; IaC/code cleanup complete (Phases 1–5 done, ~€14-16/mo saved) |
+| **Phase CMS Cold Storage** | 🔄 In Progress | 2026-04-09– | Move Strapi from live Azure to local-only; git-committed backups; compile-time fallback content; Azure MySQL + Container App deleted; IaC/code cleanup + docs/Decision 65 complete (Phases 1–6 done, ~€14-16/mo saved); Phase 7 verification pending |
 | Phase 8 | 📋 Future | TBD | Community features, exports, performance, advanced content |
 | Phase 9 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
 
@@ -198,8 +198,8 @@ Moves Strapi CMS from live Azure hosting to local-only with git-committed backup
 | Phase 3 | ✅ Complete | 3 GitHub Actions workflows (`cms-backup`, `cms-restore-bundle`, `cms-sync-fallbacks`) — `workflow_dispatch`, SHA-pinned, no third-party actions |
 | Phase 4 | ✅ Complete | Azure cleanup — `ca-aipatterns-cms-prod` + `mysql-aipatterns-cms` deleted; 8 KV secrets were already purged; `staipatternsmedia` retained |
 | Phase 5 | ✅ Complete | IaC + code changes — `cms.bicep` deleted, `cms-container-deploy.yml` deleted, STRAPI_* refs removed from containerApps.bicep + frontend workflow |
-| Phase 6 | 📋 Pending | Documentation — Decision 64, CMS architecture rewrite, runbook, DR, CLAUDE.md |
-| Phase 7 | 📋 Pending | Verification — build without STRAPI_URL, backup round-trip, E2E, cost confirmation |
+| Phase 6 | ✅ Complete | Documentation — Decision 65 (CMS Cold Storage), CMS runbook section, DR §12 (CMS Recovery), CMS_ARCHITECTURE.md §12 ref updated, CLAUDE.md updated |
+| Phase 7 | 📋 Pending | Verification — backup round-trip, fallback generator idempotency, live smoke tests, cost confirmation (48h post-deletion) |
 
 **Implementation plan:** [PHASE_CMS_COLD_STORAGE_PLAN.md](PHASE_CMS_COLD_STORAGE_PLAN.md)
 

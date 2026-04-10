@@ -768,7 +768,62 @@ Thank you for your patience.
 
 ---
 
-## 12. Additional Resources
+## 12. CMS Recovery (Cold Storage Mode)
+
+As of Phase CMS Cold Storage (2026-04-10), the Strapi CMS runs local-only. Azure MySQL and Container App are deleted. Recovery of CMS content works through git-committed backup bundles.
+
+### 12.1 CMS Backup Location
+
+- **Primary archive:** `backups/cms/YYYY-MM-DD/` in git (e.g. `backups/cms/2026-04-09/`)
+- **Bundle contents:** `dump.sql` (MySQL schema+data), `content.json` (10 single types), `uploads.tar.gz` (media), `metadata.json` (SHA-256 checksums)
+- **Production content fallbacks:** `lib/cms/queries.ts` (compile-time fallback objects — authoritative production source)
+
+### 12.2 Restore Local Strapi from Backup
+
+```bash
+# 1. Start local CMS containers
+docker compose --profile cms up -d
+
+# 2. Restore from most recent backup (auto-picks latest)
+bash scripts/cms/restore.sh
+
+# 3. Restore from specific date
+bash scripts/cms/restore.sh backups/cms/2026-04-09
+
+# 4. Verify — open http://localhost:1337/admin and spot-check content
+```
+
+### 12.3 Obtain a Downloadable Restore Bundle (GitHub Actions)
+
+1. Go to **Actions → cms-restore-bundle** in GitHub
+2. Click **Run workflow**, enter `backup_date` (e.g. `2026-04-09`)
+3. Download the artifact — contains the full backup bundle for offline restore
+
+### 12.4 Restore Live Cloud CMS (Full Rollback)
+
+If cold storage needs to be fully reversed (expected time: ~2-3 hours):
+
+1. Restore `infrastructure/modules/cms.bicep` from git history:
+   ```bash
+   git show <pre-cold-storage-sha>:infrastructure/modules/cms.bicep > infrastructure/modules/cms.bicep
+   ```
+2. Restore `module cms` call and `mysqlAdminPassword` param in `infrastructure/main.bicep`
+3. Recreate the 8 KV secrets (from backup metadata or manually)
+4. Deploy infrastructure: `az deployment group create --resource-group rg-aipatterns-prod --template-file infrastructure/main.bicep --parameters @infrastructure/main.parameters.prod.json`
+5. Run `bash scripts/cms/restore.sh` against new Azure MySQL (SSH tunnel or temporary public access)
+6. Re-add `STRAPI_URL` / `STRAPI_API_TOKEN` env vars on the web Container App
+7. Deploy frontend with new env vars
+
+See [Decision 65](../decisions/TECHNICAL_DECISIONS_LOG.md) for full context.
+
+### 12.5 What Does NOT Need Recovery
+
+- **Production frontend content** — served from compile-time fallbacks in `lib/cms/queries.ts`; unaffected by CMS unavailability
+- **Media references** — `staipatternsmedia` Storage Account retained; no recovery needed
+
+---
+
+## 13. Additional Resources
 
 **Azure Documentation:**
 - [Azure SQL Automated Backups](https://docs.microsoft.com/en-us/azure/azure-sql/database/automated-backups-overview)
@@ -786,5 +841,5 @@ Thank you for your patience.
 **Document Owner:** DR Coordinator
 **Approval:** IT Management
 **Review Schedule:** Quarterly
-**Last Reviewed:** 2026-02-13
+**Last Reviewed:** 2026-04-10
 **Next Review:** 2026-05-13
