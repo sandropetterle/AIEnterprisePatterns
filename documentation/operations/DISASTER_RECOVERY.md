@@ -304,7 +304,53 @@ For scenarios requiring a complete environment rebuild (e.g., full regional fail
 ./infrastructure/deploy.ps1 -ResourceGroup rg-aipatterns-prod -Location centralus
 ```
 
-This redeploys all modules: Container Apps Environment, Container Apps, SQL Server, Key Vault, ACR, Application Insights, and CMS resources. See [INFRASTRUCTURE_MANAGEMENT.md](INFRASTRUCTURE_MANAGEMENT.md) for the full validate/what-if/deploy workflow and required parameters.
+This redeploys all modules: Container Apps Environment, Container Apps, SQL Server, Key Vault, ACR, and Application Insights. See [INFRASTRUCTURE_MANAGEMENT.md](INFRASTRUCTURE_MANAGEMENT.md) for the full validate/what-if/deploy workflow and required parameters.
+
+> **Note:** CMS resources (`cms.bicep`) are intentionally excluded as of Phase CMS Cold Storage — Strapi is local-only. See §5.5 for CMS content recovery.
+
+### 5.5 CMS Content Recovery (Cold Storage Mode)
+
+**When to Use:**
+- CMS content fallbacks in `lib/cms/queries.ts` need to be restored or re-derived
+- Local Strapi database is lost or corrupted and needs rebuilding from a backup
+- You want to restore Strapi to a known-good state for content editing
+
+**Recovery path: git backup bundle → local Strapi**
+
+```bash
+# 1. List available backup bundles
+ls backups/cms/
+
+# 2. Verify bundle integrity
+cd backups/cms/<date>
+sha256sum -c <(python3 -c "import json,sys; [print(v['sha256']+'  '+k) for k,v in json.load(sys.stdin)['files'].items()]" < metadata.json)
+
+# 3. Start local Strapi stack
+docker compose --profile cms up -d
+
+# 4. Restore the bundle
+bash scripts/cms/restore.sh backups/cms/<date>
+
+# 5. Verify in Strapi admin
+open http://localhost:1337/admin
+```
+
+**To regenerate compile-time fallbacks from the restored Strapi:**
+```bash
+STRAPI_API_TOKEN=<read-token> npx tsx scripts/cms/generate-fallbacks.ts
+git diff lib/cms/queries.ts   # review the diff
+```
+
+**To restore live Azure CMS (only if reverting cold storage):**
+1. Restore `infrastructure/modules/cms.bicep` from git history
+2. Restore the `module cms` call in `infrastructure/main.bicep`
+3. Re-create the 8 KV secrets manually
+4. `./infrastructure/deploy.ps1`
+5. Run `scripts/cms/restore.sh` against the new Azure MySQL
+6. Re-add `STRAPI_URL` / `STRAPI_API_TOKEN` env vars to the web Container App
+
+**Estimated Time:** 30 minutes (local restore) / 2-3 hours (full Azure re-provision)
+**Content Loss:** None — backup bundles in git are the authoritative archive
 
 ---
 
