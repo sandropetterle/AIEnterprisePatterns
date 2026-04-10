@@ -146,6 +146,10 @@ jobs:
         run: |
           npm run start &
           timeout 60 bash -c 'until curl -sf http://localhost:3000 > /dev/null; do sleep 2; done'
+          # Warm up the /patterns page so the backend connection and SSR cache are
+          # primed before Lighthouse runs. Without this, the first Lighthouse request
+          # hits cold Next.js + cold backend, pushing LCP well above the 2500ms threshold.
+          curl -sf http://localhost:3000/patterns > /dev/null || true
 
       - name: Run Lighthouse CI
         run: npx lhci autorun
