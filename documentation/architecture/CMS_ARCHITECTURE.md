@@ -33,7 +33,7 @@ As of Phase CMS Cold Storage (2026-04-09), Strapi runs **local-only**. Azure CMS
 **CMS Phase Status:**
 - ✅ Phase 5.5: CMS Infrastructure deployed to Azure (2026-02-26)
 - ✅ Phase 6.4–6.7: All 10 Single Types seeded and integrated (2026-03-03)
-- 🔄 Phase CMS Cold Storage: local-only migration — Phases 1 & 2 complete (backup/restore scripts, initial bundle, generate-fallbacks script, queries.ts refreshed from production content)
+- 🔄 Phase CMS Cold Storage: Phases 1–4 complete — backup/restore scripts, initial bundle, generate-fallbacks, 3 GHA workflows, Azure MySQL + Container App deleted (2026-04-10)
 
 ---
 

@@ -247,6 +247,56 @@ dotnet ef database update --connection "$CONNECTION_STRING"
 
 ---
 
+## CMS Content Update (Cold Storage Mode)
+
+Strapi is local-only as of Phase CMS Cold Storage (2026-04-10). Content changes require a local authoring cycle followed by a PR.
+
+### Update CMS Content
+
+```bash
+# 1. Start local Strapi
+docker compose --profile cms up -d
+# → http://localhost:1337/admin (admin@aipatterns.dev / Admin12345)
+
+# 2. Edit content in the Strapi admin UI
+
+# 3. Create a backup bundle
+STRAPI_API_TOKEN=<read-only-token> bash scripts/cms/backup.sh
+# → writes to backups/cms/YYYY-MM-DD/
+
+# 4. Regenerate compile-time fallbacks
+STRAPI_API_TOKEN=<read-only-token> npx tsx scripts/cms/generate-fallbacks.ts
+
+# 5. Review the diff and commit
+git diff lib/cms/queries.ts
+git add backups/cms/YYYY-MM-DD/ lib/cms/queries.ts
+git commit -m "feat(cms): update CMS content - <description>"
+
+# 6. Push and open PR → merge → frontend deploys automatically
+```
+
+**Alternatively**, trigger via GitHub Actions:
+- `cms-backup` workflow → creates backup bundle and commits/PRs
+- `cms-sync-fallbacks` workflow → restores, generates, and opens a PR against `lib/cms/queries.ts`
+
+### Restore Local Strapi from Backup
+
+```bash
+# List available backups
+ls backups/cms/
+
+# Start Strapi stack (fresh)
+docker compose --profile cms down -v
+docker compose --profile cms up -d
+
+# Restore from a specific date
+bash scripts/cms/restore.sh backups/cms/2026-04-09
+```
+
+See [DISASTER_RECOVERY.md §5.5](DISASTER_RECOVERY.md) for full CMS recovery procedures including Azure re-provision.
+
+---
+
 ## Troubleshooting
 
 ### Issue 1: Application Not Responding (503/504 Errors)

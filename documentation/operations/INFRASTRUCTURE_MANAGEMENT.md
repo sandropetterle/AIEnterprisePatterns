@@ -1,6 +1,6 @@
 # Infrastructure Management
 
-**Last Updated:** 2026-03-23
+**Last Updated:** 2026-04-10
 **Audience:** DevOps, Infrastructure Engineers, Solutions Architects
 **Purpose:** Single source of truth for Azure infrastructure management — how it's structured, how to deploy changes, and how secrets flow from Key Vault to application configuration.
 
@@ -17,15 +17,15 @@ All Azure infrastructure for AI Enterprise Patterns is managed declaratively usi
 | Container Apps Environment | Microsoft.App/managedEnvironments | cae-aipatterns-prod | centralus |
 | API Container App | Microsoft.App/containerApps | ca-aipatterns-api-prod | centralus |
 | Web Container App | Microsoft.App/containerApps | ca-aipatterns-web-prod | centralus |
-| CMS Container App | Microsoft.App/containerApps | ca-aipatterns-cms-prod | centralus |
 | Container Registry | Microsoft.ContainerRegistry/registries | craipatternssp54426 | centralus |
 | Azure SQL Server | Microsoft.Sql/servers | sql-aipatterns-sandr-1770754196 | centralus |
 | Azure SQL Database | Microsoft.Sql/servers/databases | sqldb-aipatterns-prod | centralus |
 | Key Vault | Microsoft.KeyVault/vaults | kv-aipatterns-0754755 | centralus |
 | Application Insights | Microsoft.Insights/components | appi-aipatterns-prod | centralus |
 | Log Analytics Workspace | Microsoft.OperationalInsights/workspaces | log-aipatterns-prod | centralus |
-| MySQL Flexible Server | Microsoft.DBforMySQL/flexibleServers | mysql-aipatterns-cms | francecentral |
 | Blob Storage Account | Microsoft.Storage/storageAccounts | staipatternsmedia | centralus |
+
+> **Note:** CMS resources removed in Phase CMS Cold Storage (2026-04-10) — `ca-aipatterns-cms-prod` (Strapi Container App) and `mysql-aipatterns-cms` (MySQL Flexible Server) deleted. See [Decision 64](../decisions/TECHNICAL_DECISIONS_LOG.md). `staipatternsmedia` is retained for historical media references.
 
 ---
 
@@ -154,14 +154,9 @@ Key Vault secrets (set once via az keyvault secret set)
 | `auth-audience` | ca-aipatterns-api-prod | API app registration audience |
 | `auth-secret` | ca-aipatterns-web-prod | Auth.js session signing secret |
 | `auth-entra-client-secret` | ca-aipatterns-web-prod | Entra frontend app client secret |
-| `strapi-app-keys` | ca-aipatterns-cms-prod | Strapi APP_KEYS (comma-separated) |
-| `strapi-admin-jwt-secret` | ca-aipatterns-cms-prod | Strapi ADMIN_JWT_SECRET |
-| `mysql-admin-password` | ca-aipatterns-cms-prod + Bicep param | MySQL admin password |
-| `strapi-api-token-salt` | ca-aipatterns-cms-prod | Strapi API_TOKEN_SALT |
-| `strapi-transfer-token-salt` | ca-aipatterns-cms-prod | Strapi TRANSFER_TOKEN_SALT |
-| `strapi-jwt-secret` | ca-aipatterns-cms-prod | Strapi JWT_SECRET |
-| `strapi-storage-account-key` | ca-aipatterns-cms-prod | Azure Blob Storage account key for media uploads |
 | `appinsights-connection-string` | ca-aipatterns-api-prod | Application Insights connection string (recommended over InstrumentationKey) |
+
+> **CMS secrets removed (Phase CMS Cold Storage, 2026-04-10):** `strapi-app-keys`, `strapi-admin-jwt-secret`, `mysql-admin-password`, `strapi-api-token-salt`, `strapi-transfer-token-salt`, `strapi-jwt-secret`, `strapi-storage-account-key`, `strapi-api-token` — all deleted and purged from Key Vault.
 
 ### Setting Secrets
 
@@ -236,8 +231,9 @@ Phase 7.11 (2026-03-23) resolved 30 live-vs-Bicep drift items and added new hard
 
 **Operational steps still required (not automatable in Bicep):**
 - Apply Storage Account TLS 1.2 to live: `az storage account update --name staipatternsmedia -g rg-aipatterns-prod --min-tls-version TLS1_2`
-- Delete orphaned test MySQL server: `az mysql flexible-server delete --name mysql-aipatterns-cms-test -g rg-aipatterns-prod --yes`
 - Apply resource tags to live (applied on next Bicep redeploy with `--mode Incremental`)
+
+> **Completed (2026-04-10, Phase CMS Cold Storage Phase 4):** `mysql-aipatterns-cms` and `ca-aipatterns-cms-prod` deleted. Orphaned test MySQL server (`mysql-aipatterns-cms-test`) was already removed. 8 CMS KV secrets deleted and purged. Bicep IaC cleanup pending in Phase 5.
 
 See [Decision 63](../decisions/TECHNICAL_DECISIONS_LOG.md) for full rationale and accepted risks.
 
