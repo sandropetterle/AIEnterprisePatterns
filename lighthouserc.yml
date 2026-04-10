@@ -24,10 +24,7 @@ ci:
     assertions:
       largest-contentful-paint:
         - error
-        # 4000ms accommodates the /patterns page on CI runners where SSR fetches
-        # the live backend over the network; the home page consistently measures
-        # <2000ms. Raised from 2500ms after consistent CI failures since March 2026.
-        - maxNumericValue: 4000
+        - maxNumericValue: 2500
       first-contentful-paint:
         - error
         - maxNumericValue: 1800
