@@ -42,9 +42,8 @@ infrastructure/
     acr.bicep                       # Azure Container Registry (Basic, admin disabled)
     keyvault.bicep                  # Key Vault (Standard, RBAC mode)
     sql.bicep                       # Azure SQL Serverless (GP_S_Gen5_1, auto-pause 15 min)
-    cms.bicep                       # MySQL Flexible Server + Blob Storage (francecentral)
     containerAppsEnvironment.bicep  # Container Apps Environment linked to Log Analytics
-    containerApps.bicep             # All 3 Container Apps with managed identity + ACR pull
+    containerApps.bicep             # API + Web Container Apps with managed identity + ACR pull
 ```
 
 ---
@@ -169,7 +168,7 @@ az keyvault secret set \
 
 ### Role Assignment
 
-Each Container App uses system-assigned managed identity. `main.bicep` assigns the `Key Vault Secrets User` role to all three apps after they are provisioned.
+Each Container App uses system-assigned managed identity. `main.bicep` assigns the `Key Vault Secrets User` role to the API and Web apps after they are provisioned.
 
 ---
 
@@ -183,7 +182,7 @@ Each Container App uses system-assigned managed identity. `main.bicep` assigns t
 | `setup-github-oidc.ps1` | `deployment/` | One-time OIDC federated identity setup for GitHub Actions | One-time per repo |
 | `configure-acr-access.ps1` | `deployment/` | One-time managed identity ACR access setup | One-time |
 | `azure-cleanup.ps1` | `deployment/` | Full resource group teardown (disaster recovery) | Emergency only |
-| `provision-cms.ps1` | `deployment/scripts/` | CMS-specific provisioning (MySQL + Blob Storage) | CMS re-provision |
+| `provision-cms.ps1` | `deployment/scripts/` | CMS provisioning (MySQL + Blob Storage) — retained for historical reference / rollback only | CMS rollback only |
 | `configure-alerts.ps1` | `deployment/scripts/` | Application Insights alert setup | Per alert change |
 | `create-monitoring-dashboard.ps1` | `deployment/scripts/` | Dashboard creation | Per dashboard change |
 

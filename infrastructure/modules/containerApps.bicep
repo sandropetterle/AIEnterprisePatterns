@@ -36,9 +36,6 @@ param authApiScopeRead string = 'api://aipatterns-api/patterns.read'
 @description('Auth.js API scope for write access')
 param authApiScopeWrite string = 'api://aipatterns-api/patterns.write'
 
-@description('Strapi CMS public URL (Container App FQDN)')
-param strapiUrl string = 'https://ca-aipatterns-cms-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io'
-
 @description('Resource tags applied to all resources in this module')
 param tags object
 
@@ -48,9 +45,6 @@ param apiImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:la
 
 @description('Web container image (including tag). Set to placeholder on first deploy.')
 param webImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
-
-@description('CMS container image (including tag). Set to placeholder on first deploy.')
-param cmsImage string = 'mcr.microsoft.com/azuredocs/containerapps-helloworld:latest'
 
 // Built-in role definition IDs
 var acrPullRoleId = '7f951dda-4ed3-4680-a7ca-43fe172d538d'
@@ -227,11 +221,6 @@ resource webApp 'Microsoft.App/containerApps@2023-05-01' = {
           keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/auth-entra-client-secret'
           identity: 'system'
         }
-        {
-          name: 'strapi-api-token'
-          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-api-token'
-          identity: 'system'
-        }
       ]
     }
     template: {
@@ -279,14 +268,6 @@ resource webApp 'Microsoft.App/containerApps@2023-05-01' = {
             {
               name: 'AUTH_API_SCOPE_WRITE'
               value: authApiScopeWrite
-            }
-            {
-              name: 'STRAPI_URL'
-              value: strapiUrl
-            }
-            {
-              name: 'STRAPI_API_TOKEN'
-              secretRef: 'strapi-api-token'
             }
           ]
           probes: [
@@ -340,172 +321,6 @@ resource webAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
   }
 }
 
-// ── CMS Container App ─────────────────────────────────────────────────────────
-
-resource cmsApp 'Microsoft.App/containerApps@2023-05-01' = {
-  name: 'ca-aipatterns-cms-prod'
-  location: location
-  tags: tags
-  identity: {
-    type: 'SystemAssigned'
-  }
-  properties: {
-    managedEnvironmentId: caeId
-    configuration: {
-      activeRevisionsMode: 'Single'
-      ingress: {
-        external: true
-        targetPort: 1337
-        transport: 'http'
-      }
-      registries: [
-        {
-          server: acrLoginServer
-          identity: 'system'
-        }
-      ]
-      secrets: [
-        {
-          name: 'strapi-app-keys'
-          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-app-keys'
-          identity: 'system'
-        }
-        {
-          name: 'strapi-admin-jwt-secret'
-          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-admin-jwt-secret'
-          identity: 'system'
-        }
-        {
-          name: 'database-password'
-          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/mysql-admin-password'
-          identity: 'system'
-        }
-        {
-          name: 'strapi-api-token-salt'
-          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-api-token-salt'
-          identity: 'system'
-        }
-        {
-          name: 'strapi-transfer-token-salt'
-          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-transfer-token-salt'
-          identity: 'system'
-        }
-        {
-          name: 'strapi-jwt-secret'
-          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-jwt-secret'
-          identity: 'system'
-        }
-        {
-          name: 'strapi-storage-account-key'
-          keyVaultUrl: 'https://${kvName}${environment().suffixes.keyvaultDns}/secrets/strapi-storage-account-key'
-          identity: 'system'
-        }
-      ]
-    }
-    template: {
-      containers: [
-        {
-          name: 'cms'
-          image: cmsImage
-          resources: {
-            cpu: json('0.25')
-            memory: '0.5Gi'
-          }
-          env: [
-            {
-              name: 'NODE_ENV'
-              value: 'production'
-            }
-            {
-              name: 'DATABASE_CLIENT'
-              value: 'mysql2'
-            }
-            {
-              name: 'DATABASE_HOST'
-              value: 'mysql-aipatterns-cms.mysql.database.azure.com'
-            }
-            {
-              name: 'DATABASE_PORT'
-              value: '3306'
-            }
-            {
-              name: 'DATABASE_NAME'
-              value: 'strapi_cms'
-            }
-            {
-              name: 'DATABASE_USERNAME'
-              value: 'strapiAdmin'
-            }
-            {
-              name: 'DATABASE_PASSWORD'
-              secretRef: 'database-password'
-            }
-            {
-              name: 'DATABASE_SSL'
-              value: 'true'
-            }
-            {
-              name: 'APP_KEYS'
-              secretRef: 'strapi-app-keys'
-            }
-            {
-              name: 'ADMIN_JWT_SECRET'
-              secretRef: 'strapi-admin-jwt-secret'
-            }
-            {
-              name: 'API_TOKEN_SALT'
-              secretRef: 'strapi-api-token-salt'
-            }
-            {
-              name: 'TRANSFER_TOKEN_SALT'
-              secretRef: 'strapi-transfer-token-salt'
-            }
-            {
-              name: 'JWT_SECRET'
-              secretRef: 'strapi-jwt-secret'
-            }
-            {
-              name: 'AZURE_STORAGE_ACCOUNT'
-              value: 'staipatternsmedia'
-            }
-            {
-              name: 'AZURE_STORAGE_ACCOUNT_KEY'
-              secretRef: 'strapi-storage-account-key'
-            }
-            {
-              name: 'AZURE_STORAGE_CONTAINER'
-              value: 'strapi-media'
-            }
-            {
-              name: 'AZURE_STORAGE_URL'
-              value: 'https://staipatternsmedia${environment().suffixes.storage}'
-            }
-            {
-              name: 'PUBLIC_URL'
-              value: strapiUrl
-            }
-          ]
-        }
-      ]
-      scale: {
-        minReplicas: 0
-        maxReplicas: 2
-      }
-    }
-  }
-}
-
-// ACR pull role for CMS app
-resource cmsAcrPull 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(cmsApp.id, acrResourceId, acrPullRoleId)
-  scope: resourceGroup()
-  properties: {
-    principalId: cmsApp.identity.principalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', acrPullRoleId)
-    principalType: 'ServicePrincipal'
-  }
-}
-
 // ── Outputs ───────────────────────────────────────────────────────────────────
 
 @description('API Container App managed identity principal ID (for KV Secrets User role)')
@@ -513,6 +328,3 @@ output apiPrincipalId string = apiApp.identity.principalId
 
 @description('Web Container App managed identity principal ID')
 output webPrincipalId string = webApp.identity.principalId
-
-@description('CMS Container App managed identity principal ID')
-output cmsPrincipalId string = cmsApp.identity.principalId
