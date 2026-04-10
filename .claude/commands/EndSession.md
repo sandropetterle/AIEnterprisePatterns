@@ -1,0 +1,1 @@
+/verify then /document then Then commit all changes and push to remote.

@@ -56,7 +56,26 @@
       "Bash(cd /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/backend && dotnet list package --vulnerable 2>&1)",
       "Bash(cd /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/backend && dotnet list package --outdated 2>&1)",
       "Bash(cd /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/backend && dotnet list package --outdated --highest-minor 2>&1)",
-      "Bash(cd /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/backend && dotnet list src/AIEnterprisePatterns.Infrastructure/AIEnterprisePatterns.Infrastructure.csproj package --outdated --highest-minor 2>&1)"
+      "Bash(cd /c/Users/sandr/Documents/Projects/AIEnterprisePatterns/backend && dotnet list src/AIEnterprisePatterns.Infrastructure/AIEnterprisePatterns.Infrastructure.csproj package --outdated --highest-minor 2>&1)",
+      "Bash(az login:*)",
+      "WebFetch(domain:planetscale.com)",
+      "WebFetch(domain:turso.tech)",
+      "WebFetch(domain:neon.com)",
+      "WebFetch(domain:supabase.com)",
+      "WebFetch(domain:aiven.io)",
+      "WebFetch(domain:www.koyeb.com)",
+      "WebFetch(domain:render.com)",
+      "Bash(wait)",
+      "Bash(mysqldump --host=mysql-aipatterns-cms.mysql.database.azure.com --port=3306 --user=strapiAdmin --password=StrapiDb2026! --ssl-mode=REQUIRED --single-transaction --routines --triggers --no-tablespaces strapi_cms)",
+      "Bash(docker exec:*)",
+      "Bash(\"/c/Program Files/Docker/Docker/Docker Desktop.exe\")",
+      "Bash(bash -n scripts/cms/backup.sh)",
+      "Bash(bash -n scripts/cms/restore.sh)",
+      "Bash(node_modules/.bin/next lint:*)",
+      "Bash(node_modules/.bin/eslint lib/cms/queries.ts scripts/cms/generate-fallbacks.ts)",
+      "Bash(npx tsx:*)",
+      "Bash(npx js-yaml:*)",
+      "Bash(npm ci:*)"
     ],
     "additionalDirectories": [
       "c:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\deployment"
