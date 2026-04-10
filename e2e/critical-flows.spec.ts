@@ -378,14 +378,20 @@ test.describe('Advanced Search — Date Range Filter', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Advanced Search — Tag Mode Toggle', () => {
+  // SSR renders both desktop FilterPanel and the Sheet's FilterPanel, producing
+  // duplicate checkbox ids/roles in the DOM. Scope all interactions to the desktop
+  // panel via data-testid="desktop-filter-panel" to avoid strict-mode violations
+  // and ensure clicks land on the visible, interactive instance.
+
   test('selecting two tags reveals the Any / All toggle', async ({ page }) => {
     await page.goto('/patterns')
+    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
     await expect(
-      page.getByRole('heading', { name: 'Filters' })
+      desktopPanel.getByRole('heading', { name: 'Filters' })
     ).toBeVisible({ timeout: 10_000 })
 
     // Select first tag (Clean Architecture)
-    const firstTag = page.getByRole('checkbox', { name: 'Clean Architecture' })
+    const firstTag = desktopPanel.getByRole('checkbox', { name: 'Clean Architecture' })
     await expect(firstTag).toBeVisible({ timeout: 5_000 })
     await firstTag.click()
     // Use toHaveURL (assertion-based polling) instead of waitForURL (navigation event)
@@ -398,7 +404,7 @@ test.describe('Advanced Search — Tag Mode Toggle', () => {
     await expect(firstTag).toBeChecked({ timeout: 5_000 })
 
     // Select a second tag (CQRS) — toggles comma-separated tags list
-    const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
+    const secondTag = desktopPanel.getByRole('checkbox', { name: 'CQRS' })
     await expect(secondTag).toBeVisible({ timeout: 5_000 })
     await secondTag.click()
     // Wait for URL to reflect both tags before checking toggle
@@ -408,33 +414,34 @@ test.describe('Advanced Search — Tag Mode Toggle', () => {
 
     // With 2+ tags the Any / All buttons should appear
     await expect(
-      page.getByRole('button', { name: 'Any', exact: true })
+      desktopPanel.getByRole('button', { name: 'Any', exact: true })
     ).toBeVisible({ timeout: 5_000 })
     await expect(
-      page.getByRole('button', { name: 'All', exact: true })
+      desktopPanel.getByRole('button', { name: 'All', exact: true })
     ).toBeVisible({ timeout: 5_000 })
   })
 
   test('clicking "All" sets tagMode=all in the URL', async ({ page }) => {
     await page.goto('/patterns')
+    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
     await expect(
-      page.getByRole('heading', { name: 'Filters' })
+      desktopPanel.getByRole('heading', { name: 'Filters' })
     ).toBeVisible({ timeout: 10_000 })
 
     // Pre-select two tags then switch to All mode
-    const firstTag = page.getByRole('checkbox', { name: 'Clean Architecture' })
+    const firstTag = desktopPanel.getByRole('checkbox', { name: 'Clean Architecture' })
     await expect(firstTag).toBeVisible({ timeout: 5_000 })
     await firstTag.click()
     await expect(page).toHaveURL(/tags=/, { timeout: 10_000 })
     // Wait for checkbox checked state before clicking second tag (see flakiness note above)
     await expect(firstTag).toBeChecked({ timeout: 5_000 })
 
-    const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
+    const secondTag = desktopPanel.getByRole('checkbox', { name: 'CQRS' })
     await expect(secondTag).toBeVisible({ timeout: 5_000 })
     await secondTag.click()
     await expect(page).toHaveURL(/tags=[^&]*(%2C|,)/i, { timeout: 10_000 })
 
-    const allBtn = page.getByRole('button', { name: 'All', exact: true })
+    const allBtn = desktopPanel.getByRole('button', { name: 'All', exact: true })
     await expect(allBtn).toBeVisible({ timeout: 5_000 })
     await allBtn.click()
 
