@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-04-09 (Phase CMS Cold Storage — Phases 1 & 2 complete)
+**Last Updated:** 2026-04-10 (Phase CMS Cold Storage — Phases 1, 2 & 3 complete)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -195,7 +195,7 @@ Moves Strapi CMS from live Azure hosting to local-only with git-committed backup
 |-------|--------|------------|
 | Phase 1 | ✅ Complete | `scripts/cms/backup.sh`, `scripts/cms/restore.sh`, initial backup bundle in `backups/cms/2026-04-09/` |
 | Phase 2 | ✅ Complete | `scripts/cms/generate-fallbacks.ts`, `lib/cms/queries.ts` fallbacks refreshed from live content with delimited marker regions |
-| Phase 3 | 📋 Pending | 3 GitHub Actions workflows (`cms-backup`, `cms-restore-bundle`, `cms-sync-fallbacks`) |
+| Phase 3 | ✅ Complete | 3 GitHub Actions workflows (`cms-backup`, `cms-restore-bundle`, `cms-sync-fallbacks`) — `workflow_dispatch`, SHA-pinned, no third-party actions |
 | Phase 4 | 📋 Pending | Azure cleanup — delete MySQL, Strapi CA, 8 KV secrets |
 | Phase 5 | 📋 Pending | IaC + code changes — remove `cms.bicep`, `cms-container-deploy.yml`, STRAPI_* env refs |
 | Phase 6 | 📋 Pending | Documentation — Decision 64, CMS architecture rewrite, runbook, DR, CLAUDE.md |

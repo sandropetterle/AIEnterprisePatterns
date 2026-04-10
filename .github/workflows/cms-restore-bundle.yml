@@ -1,0 +1,87 @@
+name: CMS — Package Restore Bundle
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_date:
+        description: 'Backup date to package (YYYY-MM-DD, e.g. 2026-04-09)'
+        required: true
+        type: string
+
+# Deny all permissions by default; each job grants only what it needs
+permissions: {}
+
+concurrency:
+  group: cms-restore-bundle-${{ github.event.inputs.backup_date }}
+  cancel-in-progress: false
+
+jobs:
+  package:
+    name: Package Restore Bundle
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code (full history for backups/)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Validate backup bundle exists
+        run: |
+          BUNDLE_DIR="backups/cms/${{ inputs.backup_date }}"
+          if [[ ! -d "${BUNDLE_DIR}" ]]; then
+            echo "ERROR: Bundle directory not found: ${BUNDLE_DIR}" >&2
+            exit 1
+          fi
+          if [[ ! -f "${BUNDLE_DIR}/metadata.json" ]]; then
+            echo "ERROR: metadata.json not found in bundle." >&2
+            exit 1
+          fi
+          echo "Bundle directory found: ${BUNDLE_DIR}"
+
+      - name: Verify checksums
+        run: |
+          BUNDLE_DIR="backups/cms/${{ inputs.backup_date }}"
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const crypto = require('crypto');
+            const bundleDir = '${BUNDLE_DIR}';
+            const meta = JSON.parse(fs.readFileSync(path.join(bundleDir, 'metadata.json'), 'utf8'));
+            let allOk = true;
+            for (const [file, expected] of Object.entries(meta.checksums ?? {})) {
+              if (!expected) { console.log('SKIP  ' + file + ' (no checksum)'); continue; }
+              const fp = path.join(bundleDir, file);
+              if (!fs.existsSync(fp)) {
+                console.error('FAIL  ' + file + ' — file missing');
+                allOk = false;
+                continue;
+              }
+              const actual = crypto.createHash('sha256').update(fs.readFileSync(fp)).digest('hex');
+              if (actual !== expected) {
+                console.error('FAIL  ' + file + ' — checksum mismatch');
+                allOk = false;
+              } else {
+                console.log('OK    ' + file);
+              }
+            }
+            if (!allOk) { console.error('Checksum verification FAILED'); process.exit(1); }
+            console.log('All checksums verified.');
+          "
+
+      - name: Package bundle as archive
+        run: |
+          tar czf cms-restore-bundle-${{ inputs.backup_date }}.tar.gz \
+            -C backups/cms \
+            ${{ inputs.backup_date }}
+          echo "Archive created: cms-restore-bundle-${{ inputs.backup_date }}.tar.gz"
+          ls -lh cms-restore-bundle-${{ inputs.backup_date }}.tar.gz
+
+      - name: Upload restore bundle artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: cms-restore-bundle-${{ inputs.backup_date }}
+          path: cms-restore-bundle-${{ inputs.backup_date }}.tar.gz
+          retention-days: 30

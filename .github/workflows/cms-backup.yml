@@ -1,0 +1,144 @@
+name: CMS — Backup Content
+
+on:
+  workflow_dispatch:
+    inputs:
+      seed:
+        description: 'Run seed script before backup (true/false)'
+        required: false
+        default: false
+        type: boolean
+      commit_strategy:
+        description: 'Commit strategy: direct (push to main) or pr (open PR)'
+        required: false
+        default: 'pr'
+        type: choice
+        options:
+          - pr
+          - direct
+
+# Deny all permissions by default; each job grants only what it needs
+permissions: {}
+
+concurrency:
+  group: cms-backup
+  cancel-in-progress: false
+
+jobs:
+  backup:
+    name: Backup CMS Content
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Start CMS stack
+        run: docker compose --profile cms up -d
+
+      - name: Wait for Strapi health
+        run: |
+          timeout 120 bash -c '
+            until curl -sf http://localhost:1337/_health > /dev/null 2>&1; do
+              echo "Waiting for Strapi..."
+              sleep 5
+            done
+          '
+          echo "Strapi is ready."
+
+      - name: Create Strapi API tokens
+        run: |
+          ADMIN_JWT=$(curl -sf -X POST http://localhost:1337/admin/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@aipatterns.dev","password":"Admin12345"}' \
+            | node -e "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).data.token))")
+
+          # Full-access token for seeding (seed step only; deleted after use)
+          FULL_TOKEN=$(curl -sf -X POST http://localhost:1337/admin/api-tokens \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer ${ADMIN_JWT}" \
+            -d '{"name":"ci-seed","type":"full-access","lifespan":null}' \
+            | node -e "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).data.accessKey))")
+
+          # Read-only token for backup
+          READ_TOKEN=$(curl -sf -X POST http://localhost:1337/admin/api-tokens \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer ${ADMIN_JWT}" \
+            -d '{"name":"ci-backup","type":"read-only","lifespan":null}' \
+            | node -e "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).data.accessKey))")
+
+          echo "STRAPI_ADMIN_JWT=${ADMIN_JWT}" >> "$GITHUB_ENV"
+          echo "STRAPI_FULL_TOKEN=${FULL_TOKEN}" >> "$GITHUB_ENV"
+          echo "STRAPI_READ_TOKEN=${READ_TOKEN}" >> "$GITHUB_ENV"
+
+      - name: Seed content (optional)
+        if: ${{ inputs.seed == true }}
+        run: STRAPI_URL=http://localhost:1337 STRAPI_API_TOKEN="${STRAPI_FULL_TOKEN}" npx tsx cms/data/seed.ts
+
+      - name: Run backup
+        run: STRAPI_URL=http://localhost:1337 STRAPI_API_TOKEN="${STRAPI_READ_TOKEN}" bash scripts/cms/backup.sh
+
+      - name: Verify checksums
+        run: |
+          DATE_LABEL=$(date +%Y-%m-%d)
+          BUNDLE_DIR="backups/cms/${DATE_LABEL}"
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const crypto = require('crypto');
+            const bundleDir = '${BUNDLE_DIR}';
+            const meta = JSON.parse(fs.readFileSync(path.join(bundleDir, 'metadata.json'), 'utf8'));
+            let allOk = true;
+            for (const [file, expected] of Object.entries(meta.checksums ?? {})) {
+              if (!expected) { console.log('SKIP  ' + file); continue; }
+              const fp = path.join(bundleDir, file);
+              if (!fs.existsSync(fp)) { console.error('FAIL  ' + file + ' — missing'); allOk = false; continue; }
+              const actual = crypto.createHash('sha256').update(fs.readFileSync(fp)).digest('hex');
+              if (actual !== expected) { console.error('FAIL  ' + file); allOk = false; }
+              else { console.log('OK    ' + file); }
+            }
+            if (!allOk) { console.error('Checksum verification FAILED'); process.exit(1); }
+            console.log('All checksums verified.');
+          "
+
+      - name: Commit and push (direct)
+        if: ${{ inputs.commit_strategy == 'direct' }}
+        run: |
+          DATE_LABEL=$(date +%Y-%m-%d)
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add backups/cms/
+          git diff --cached --quiet && echo "Nothing to commit." && exit 0
+          git commit -m "chore(cms): backup bundle ${DATE_LABEL}"
+          git push
+
+      - name: Open PR (pr strategy)
+        if: ${{ inputs.commit_strategy == 'pr' }}
+        run: |
+          DATE_LABEL=$(date +%Y-%m-%d)
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "cms/backup-${DATE_LABEL}"
+          git add backups/cms/
+          git diff --cached --quiet && echo "Nothing to commit." && exit 0
+          git commit -m "chore(cms): backup bundle ${DATE_LABEL}"
+          git push -u origin "cms/backup-${DATE_LABEL}"
+          printf 'Automated CMS backup triggered by workflow dispatch.\n\n- Backup date: %s\n- Checksums verified in CI\n\nReview the bundle diff and merge to archive this backup.\n' "${DATE_LABEL}" > /tmp/pr-body.txt
+          gh pr create \
+            --title "chore(cms): CMS backup bundle ${DATE_LABEL}" \
+            --body-file /tmp/pr-body.txt \
+            --label "cms,automated"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
