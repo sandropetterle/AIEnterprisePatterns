@@ -10,7 +10,7 @@
  *   - Frontend running on http://localhost:3000
  */
 
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page, type Locator } from '@playwright/test'
 
 /**
  * Set a date input value in a way that reliably triggers React's synthetic
@@ -20,9 +20,12 @@ import { test, expect, type Page } from '@playwright/test'
  * the synthetic change event from firing. Using the native HTMLInputElement
  * value setter + manual event dispatch bypasses that and correctly signals
  * React that the controlled value changed.
+ *
+ * Accepts a Page or a scoped Locator (e.g. desktop-panel container) to avoid
+ * strict-mode violations when the same id appears in multiple DOM subtrees.
  */
-async function fillDateInput(page: Page, selector: string, value: string) {
-  await page.locator(selector).evaluate((el, val: string) => {
+async function fillDateInput(root: Page | Locator, selector: string, value: string) {
+  await root.locator(selector).evaluate((el, val: string) => {
     Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!.call(el, val)
     el.dispatchEvent(new Event('input', { bubbles: true }))
     el.dispatchEvent(new Event('change', { bubbles: true }))
@@ -316,18 +319,24 @@ test.describe('Error Handling', () => {
 test.describe('Advanced Search — Date Range Filter', () => {
   // DateRangeFilter lives inside FilterPanel which is desktop-only (lg:block).
   // Desktop Chrome viewport (1280×720) satisfies the lg breakpoint.
+  //
+  // SSR renders both the desktop FilterPanel and the Sheet's FilterPanel into the
+  // HTML, producing two #date-from / #date-to inputs in the DOM. We scope all
+  // locators to data-testid="desktop-filter-panel" to avoid strict-mode violations.
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/patterns')
+    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
     // Wait for #date-from to be visible — stronger signal than the heading alone.
     // The heading appears in server-rendered HTML before React hydrates, but
     // #date-from visible confirms FilterPanel is mounted with event handlers
     // attached. This prevents a race where page.fill() runs before onChange is wired.
-    await expect(page.locator('#date-from')).toBeVisible({ timeout: 10_000 })
+    await expect(desktopPanel.locator('#date-from')).toBeVisible({ timeout: 10_000 })
   })
 
   test('setting a From date updates the URL with dateFrom parameter', async ({ page }) => {
-    await fillDateInput(page, '#date-from', '2024-01-01')
+    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
+    await fillDateInput(desktopPanel, '#date-from', '2024-01-01')
     await page.waitForURL(/dateFrom=2024-01-01/, { timeout: 10_000 })
     expect(page.url()).toContain('dateFrom=2024-01-01')
   })
@@ -337,9 +346,10 @@ test.describe('Advanced Search — Date Range Filter', () => {
     // Without a valid min, Chromium silently rejects fill() on type="date" inputs
     // and the React onChange never fires.
     await page.goto('/patterns?dateFrom=2024-01-01')
-    await expect(page.locator('#date-to')).toBeVisible({ timeout: 10_000 })
+    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
+    await expect(desktopPanel.locator('#date-to')).toBeVisible({ timeout: 10_000 })
 
-    await fillDateInput(page, '#date-to', '2024-12-31')
+    await fillDateInput(desktopPanel, '#date-to', '2024-12-31')
     await page.waitForURL(/dateTo=2024-12-31/, { timeout: 10_000 })
     expect(page.url()).toContain('dateTo=2024-12-31')
   })
@@ -348,11 +358,12 @@ test.describe('Advanced Search — Date Range Filter', () => {
     // Navigate directly with both params pre-set — avoids relying on fill()
     // to set up state; only tests the Clear button interaction itself.
     await page.goto('/patterns?dateFrom=2024-01-01&dateTo=2024-12-31')
+    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
     await expect(
-      page.getByRole('heading', { name: 'Filters' })
+      desktopPanel.getByRole('heading', { name: 'Filters' })
     ).toBeVisible({ timeout: 10_000 })
 
-    const clearDatesBtn = page.getByRole('button', { name: /Clear dates/i })
+    const clearDatesBtn = desktopPanel.getByRole('button', { name: /Clear dates/i })
     await expect(clearDatesBtn).toBeVisible({ timeout: 5_000 })
     await clearDatesBtn.click()
 
@@ -380,6 +391,11 @@ test.describe('Advanced Search — Tag Mode Toggle', () => {
     // Use toHaveURL (assertion-based polling) instead of waitForURL (navigation event)
     // — more reliable with Next.js pushState soft-navigation across all browsers
     await expect(page).toHaveURL(/tags=/, { timeout: 10_000 })
+    // Wait for the checkbox to reflect checked state — confirms FilterPanel has
+    // re-rendered with the new URL's selectedTags before we click the second tag.
+    // Without this, the second click fires while selectedTags is still [], causing
+    // the handler to set tags=CQRS only instead of tags=Clean+Architecture,CQRS.
+    await expect(firstTag).toBeChecked({ timeout: 5_000 })
 
     // Select a second tag (CQRS) — toggles comma-separated tags list
     const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
@@ -410,6 +426,8 @@ test.describe('Advanced Search — Tag Mode Toggle', () => {
     await expect(firstTag).toBeVisible({ timeout: 5_000 })
     await firstTag.click()
     await expect(page).toHaveURL(/tags=/, { timeout: 10_000 })
+    // Wait for checkbox checked state before clicking second tag (see flakiness note above)
+    await expect(firstTag).toBeChecked({ timeout: 5_000 })
 
     const secondTag = page.getByRole('checkbox', { name: 'CQRS' })
     await expect(secondTag).toBeVisible({ timeout: 5_000 })

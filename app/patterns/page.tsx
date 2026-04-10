@@ -181,7 +181,7 @@ export default async function PatternsPage(props: {
         {/* Main Content Grid */}
         <div className="flex gap-8">
           {/* Desktop Filter Panel */}
-          <div className="hidden lg:block">
+          <div className="hidden lg:block" data-testid="desktop-filter-panel">
             <Suspense
               fallback={
                 <div className="w-64 h-96 bg-muted animate-pulse rounded" />
