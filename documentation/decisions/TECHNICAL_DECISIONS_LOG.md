@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-03-23 (Phase 7.11)
+**Last Updated:** 2026-04-10 (CI hardening — E2E SSR duplicate DOM + Lighthouse URL scope)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**63 active decisions | 0 archived**
+**64 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,41 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 64: E2E SSR Duplicate DOM — Scope Filter Interactions to Desktop Panel
+
+**Date:** 2026-04-10
+**Title:** Scope E2E Locators to `data-testid="desktop-filter-panel"` to Avoid SSR Duplicate ID Violations
+**Category:** Testing / CI
+
+### Problem
+
+Next.js SSR renders both the desktop `FilterPanel` (always visible at `lg:block`) and the `FilterSheet`'s inner `FilterPanel` into the initial HTML. Even though the Sheet panel is hidden via CSS and its React portal would reposition the DOM post-hydration, Playwright evaluates locators against the full server-rendered HTML before hydration completes. This produces:
+
+- **Strict-mode violations** on `#date-from` / `#date-to` — two `<input>` elements with the same `id` in the DOM
+- **Wrong-target clicks** on tag checkboxes — clicking the hidden Sheet instance leaves the URL unchanged (handler runs against a stale, uninteractive component)
+
+Symptoms: `E2E Tests (webkit)` failing with "strict mode violation: locator('#date-to') resolved to 2 elements"; `E2E Tests (chromium)` flaky with `tags=` URL never updating after tag checkbox click.
+
+### Decision
+
+1. Add `data-testid="desktop-filter-panel"` to the desktop wrapper `<div>` in `app/patterns/page.tsx`.
+2. Scope all date filter and tag toggle E2E locators to `page.locator('[data-testid="desktop-filter-panel"]')`.
+3. Update `fillDateInput()` signature to accept `Page | Locator` so it can be called with the scoped container.
+4. Between sequential tag checkbox clicks, wait for `toBeChecked` on the first checkbox — confirms React has re-rendered with the updated URL params before the second click fires.
+
+### Rationale
+
+- The `data-testid` attribute is a non-behavioral, zero-cost production change. It makes tests semantically correct (they should target the visible interactive panel) and eliminates the flakiness root cause.
+- Waiting for `toBeChecked` is the correct Playwright idiom for confirming state propagation between interactions — it replaces brittle timing assumptions with an observable state signal.
+
+### Alternatives Evaluated
+
+- **`.first()` on duplicate locators** — rejected: relies on DOM order (Sheet renders before desktop panel in source), which is fragile and may invert across environments.
+- **`waitForLoadState('networkidle')`** — rejected: Next.js production prefetching prevents `networkidle` from ever resolving in CI.
+- **Disable SSR for FilterSheet** — rejected: over-engineering; the testid approach is the minimal correct fix.
 
 ---
 

@@ -288,7 +288,7 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 | Frontend | Jest + RTL | 396 | 76.04% lines | 70% all metrics |
 | Backend | xUnit + Moq | 105 | ~85% testable | Pass/fail only |
 | E2E | Playwright | 42 x 3 browsers | Critical flows | Cross-browser matrix |
-| Performance | Lighthouse CI | 2 URLs x 3 runs | LCP/FCP/TTI | Threshold gates |
+| Performance | Lighthouse CI | 1 URL (`/`) x 3 runs | LCP/FCP/TTI | Threshold gates |
 | Visual | Chromatic | 38 stories | Snapshot diff | exit-zero (baseline pending) |
 | Accessibility | jest-axe + axe-playwright | 4 suites | WCAG 2.1 AA | Jest suite |
 
