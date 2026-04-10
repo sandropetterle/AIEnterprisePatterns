@@ -718,5 +718,4 @@ az containerapp show --name ca-aipatterns-api-prod -g rg-aipatterns-prod --query
 
 **Document Owner:** DevOps Team
 **Review Schedule:** Monthly
-**Last Reviewed:** 2026-02-13
-**Next Review:** 2026-03-13
+**Last Reviewed:** 2026-04-10
