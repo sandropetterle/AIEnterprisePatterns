@@ -27,7 +27,6 @@ concurrency:
 env:
   AZURE_CONTAINER_APP: 'ca-aipatterns-web-prod'
   BACKEND_CONTAINER_APP: 'ca-aipatterns-api-prod'
-  CMS_CONTAINER_APP: 'ca-aipatterns-cms-prod'
   RESOURCE_GROUP: 'rg-aipatterns-prod'
   CONTAINER_REGISTRY: 'craipatternssp54426'
   IMAGE_NAME: 'aipatterns-frontend'
@@ -215,13 +214,6 @@ jobs:
             --output tsv)
           echo "backend_url=https://$BACKEND_FQDN/api" >> $GITHUB_OUTPUT
 
-          CMS_FQDN=$(az containerapp show \
-            --name ${{ env.CMS_CONTAINER_APP }} \
-            --resource-group ${{ env.RESOURCE_GROUP }} \
-            --query properties.configuration.ingress.fqdn \
-            --output tsv)
-          echo "strapi_url=https://$CMS_FQDN" >> $GITHUB_OUTPUT
-
           FRONTEND_FQDN=$(az containerapp show \
             --name ${{ env.AZURE_CONTAINER_APP }} \
             --resource-group ${{ env.RESOURCE_GROUP }} \
@@ -245,8 +237,6 @@ jobs:
               "AUTH_API_SCOPE_WRITE=${{ secrets.AUTH_API_SCOPE_WRITE }}" \
               "AUTH_TRUST_HOST=true" \
               "AUTH_URL=${{ steps.get-backend-url.outputs.auth_url }}" \
-              "STRAPI_URL=${{ steps.get-backend-url.outputs.strapi_url }}" \
-              "STRAPI_API_TOKEN=secretref:strapi-api-token" \
               "REVALIDATE_SECRET=secretref:revalidate-secret"
 
       - name: Get Container App URL

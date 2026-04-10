@@ -19,11 +19,6 @@ param environment string = 'prod'
 @secure()
 param sqlAdminPassword string
 
-@description('MySQL administrator password')
-@minLength(12)
-@secure()
-param mysqlAdminPassword string
-
 @description('Email address for alert notifications (empty = alerts fire but no notifications sent)')
 param alertEmail string = ''
 
@@ -41,9 +36,6 @@ param authApiScopeRead string = 'api://aipatterns-api/patterns.read'
 
 @description('Auth.js API scope for write access')
 param authApiScopeWrite string = 'api://aipatterns-api/patterns.write'
-
-@description('Strapi CMS Container App FQDN')
-param strapiUrl string = 'https://ca-aipatterns-cms-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io'
 
 // ── Resource Tags ─────────────────────────────────────────────────────────────
 
@@ -100,17 +92,7 @@ module sql 'modules/sql.bicep' = {
   }
 }
 
-// ── 5. CMS — MySQL + Storage (no dependencies, separate region) ──────────────
-
-module cms 'modules/cms.bicep' = {
-  name: 'cms'
-  params: {
-    mysqlAdminPassword: mysqlAdminPassword
-    tags: tags
-  }
-}
-
-// ── 6. Container Apps Environment (depends on monitoring) ────────────────────
+// ── 5. Container Apps Environment (depends on monitoring) ────────────────────
 
 module cae 'modules/containerAppsEnvironment.bicep' = {
   name: 'containerAppsEnvironment'
@@ -137,7 +119,6 @@ module containerApps 'modules/containerApps.bicep' = {
     authEntraClientId: authEntraClientId
     authApiScopeRead: authApiScopeRead
     authApiScopeWrite: authApiScopeWrite
-    strapiUrl: strapiUrl
     tags: tags
   }
 }
@@ -171,12 +152,3 @@ resource kvSecretsUserWeb 'Microsoft.Authorization/roleAssignments@2022-04-01' =
   }
 }
 
-resource kvSecretsUserCms 'Microsoft.Authorization/roleAssignments@2022-04-01' = {
-  name: guid(resourceGroup().id, 'kv-aipatterns-0754755', 'ca-aipatterns-cms-prod', kvSecretsUserRoleId)
-  scope: resourceGroup()
-  properties: {
-    principalId: containerApps.outputs.cmsPrincipalId
-    roleDefinitionId: subscriptionResourceId('Microsoft.Authorization/roleDefinitions', kvSecretsUserRoleId)
-    principalType: 'ServicePrincipal'
-  }
-}
