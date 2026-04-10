@@ -1,0 +1,117 @@
+name: CMS — Sync Fallbacks
+
+on:
+  workflow_dispatch:
+    inputs:
+      backup_date:
+        description: 'Backup date to restore from (YYYY-MM-DD). Defaults to most recent bundle in backups/cms/.'
+        required: false
+        type: string
+
+# Deny all permissions by default; each job grants only what it needs
+permissions: {}
+
+concurrency:
+  group: cms-sync-fallbacks
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    name: Sync CMS Fallbacks
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code (full history for backups/)
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Resolve backup date
+        id: resolve
+        run: |
+          if [[ -n "${{ inputs.backup_date }}" ]]; then
+            echo "date=${{ inputs.backup_date }}" >> "$GITHUB_OUTPUT"
+          else
+            LATEST=$(ls -1d backups/cms/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9] 2>/dev/null | sort | tail -1 | xargs basename)
+            if [[ -z "${LATEST}" ]]; then
+              echo "ERROR: No backup bundles found under backups/cms/" >&2
+              exit 1
+            fi
+            echo "date=${LATEST}" >> "$GITHUB_OUTPUT"
+            echo "Resolved to most recent bundle: ${LATEST}"
+          fi
+
+      - name: Validate bundle exists
+        run: |
+          BUNDLE_DIR="backups/cms/${{ steps.resolve.outputs.date }}"
+          if [[ ! -d "${BUNDLE_DIR}" ]]; then
+            echo "ERROR: Bundle directory not found: ${BUNDLE_DIR}" >&2
+            exit 1
+          fi
+          echo "Using bundle: ${BUNDLE_DIR}"
+
+      - name: Start CMS stack
+        run: docker compose --profile cms up -d
+
+      - name: Restore bundle into local Strapi
+        run: bash scripts/cms/restore.sh "backups/cms/${{ steps.resolve.outputs.date }}"
+
+      - name: Create Strapi read-only API token
+        run: |
+          ADMIN_JWT=$(curl -sf -X POST http://localhost:1337/admin/login \
+            -H 'Content-Type: application/json' \
+            -d '{"email":"admin@aipatterns.dev","password":"Admin12345"}' \
+            | node -e "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).data.token))")
+
+          READ_TOKEN=$(curl -sf -X POST http://localhost:1337/admin/api-tokens \
+            -H 'Content-Type: application/json' \
+            -H "Authorization: Bearer ${ADMIN_JWT}" \
+            -d '{"name":"ci-sync","type":"read-only","lifespan":null}' \
+            | node -e "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).data.accessKey))")
+
+          echo "STRAPI_READ_TOKEN=${READ_TOKEN}" >> "$GITHUB_ENV"
+
+      - name: Generate fallbacks
+        run: STRAPI_URL=http://localhost:1337 STRAPI_API_TOKEN="${STRAPI_READ_TOKEN}" npx tsx scripts/cms/generate-fallbacks.ts
+
+      - name: Verify — TypeScript
+        run: npx tsc --noEmit
+
+      - name: Verify — Lint
+        run: npm run lint
+
+      - name: Verify — Tests
+        run: npm test -- --testPathPatterns=lib/cms --passWithNoTests
+        env:
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:5255/api
+          NEXT_PUBLIC_API_TIMEOUT: 30000
+
+      - name: Open PR with updated fallbacks
+        run: |
+          BACKUP_DATE="${{ steps.resolve.outputs.date }}"
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git checkout -b "cms/sync-fallbacks-${BACKUP_DATE}"
+          git add lib/cms/queries.ts
+          git diff --cached --quiet && echo "No fallback changes to commit." && exit 0
+          git commit -m "feat(cms): sync fallbacks from backup ${BACKUP_DATE}"
+          git push -u origin "cms/sync-fallbacks-${BACKUP_DATE}"
+          printf 'Automated fallback sync from CMS backup bundle `%s`.\n\n**Verified:**\n- `npx tsc --noEmit` ✓\n- `npm run lint` ✓\n- `npm test -- --testPathPattern=lib/cms` ✓\n\nReview the diff in `lib/cms/queries.ts` to confirm the content changes are expected, then merge.\n' "${BACKUP_DATE}" > /tmp/pr-body.txt
+          gh pr create \
+            --title "feat(cms): sync fallback content from ${BACKUP_DATE} backup" \
+            --body-file /tmp/pr-body.txt \
+            --label "cms,automated"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
