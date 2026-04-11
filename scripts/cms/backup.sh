@@ -71,6 +71,7 @@ if [[ -z "${STRAPI_API_TOKEN:-}" ]]; then
   if [[ -f "${LOCAL_TOKEN_FILE}" ]]; then
     # shellcheck source=/dev/null
     source "${LOCAL_TOKEN_FILE}"
+    export STRAPI_API_TOKEN
     echo "(loaded STRAPI_API_TOKEN from scripts/cms/.env.local-token)"
   fi
 fi
@@ -191,6 +192,10 @@ async function fetchUid(uid) {
   const res = await fetch(url, {
     headers: { 'Authorization': `Bearer ${token}` }
   });
+  if (res.status === 404) {
+    // Content type exists in schema but has no data — skip silently
+    return null;
+  }
   if (!res.ok) {
     throw new Error(`GET /api/${uid} → HTTP ${res.status}`);
   }
@@ -205,8 +210,13 @@ async function fetchUid(uid) {
 
   for (const uid of uids) {
     try {
-      content[uid] = await fetchUid(uid);
-      console.log(`      ✓ ${uid}`);
+      const data = await fetchUid(uid);
+      if (data === null) {
+        console.log(`      - ${uid} (no data — skipped)`);
+      } else {
+        content[uid] = data;
+        console.log(`      ✓ ${uid}`);
+      }
     } catch (err) {
       console.error(`      ✗ ${uid}: ${err.message}`);
       hasError = true;

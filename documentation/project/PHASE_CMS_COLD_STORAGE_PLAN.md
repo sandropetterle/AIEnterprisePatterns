@@ -1,6 +1,6 @@
 # Phase — CMS Cold Storage (Cost Reduction & Cold Recovery Mode)
 
-**Status:** 🔄 In Progress — Phases 1–6 + Script Fixes complete; Phase 7 (verification) pending
+**Status:** ✅ Complete — All phases (1–7) + Script Fixes done (2026-04-11)
 **Priority:** HIGH (cost reduction)
 **Dependencies:** Phase 7.11 complete
 **Created:** 2026-04-09
@@ -446,6 +446,14 @@ git diff lib/cms/queries.ts   # expect empty diff (idempotent)
 - Resource group resource count decreased by ~3 (MySQL server, Strapi CA, orphaned network artifacts if any)
 
 **Deliverables:** all verifications green, cost drop confirmed.
+
+**Results (2026-04-11):**
+- 7.1 ✅ Frontend build: success with no `STRAPI_*` env vars; all 13 routes generated
+- 7.2 ✅ Tests: 396/396 frontend, 114/114 backend
+- 7.3 ✅ Backup round-trip: restore from `2026-04-09` → backup to `2026-04-11`; content identical (field-order only diff); 2 script fixes applied (export token for Node subprocess; `full-access` token type; 404-tolerant fetch)
+- 7.4 ✅ Fallback generator: idempotent after first application; 41/41 CMS tests pass with generated fallbacks
+- 7.5 ✅ Live smoke tests: 200 on `/`, `/about`, `/docs`, `/login`, `/patterns`, `/patterns/[slug]`; 404 on unknown URL
+- 7.6 ⏳ Cost confirmation: Phase 4 deletion was 2026-04-10; check Azure Cost Management 48h+ later
 
 ---
 
