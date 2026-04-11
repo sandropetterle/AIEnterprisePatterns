@@ -13,7 +13,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
 - **CMS:** Strapi 5 local-only (`cms/` directory) with git-committed backups (`backups/cms/`); compile-time fallbacks in `lib/cms/queries.ts`; media references retained in Azure Blob Storage (`staipatternsmedia`)
-- **Current Phase:** Phase CMS Cold Storage in progress (Phases 1–6 complete — backup/restore scripts, generate-fallbacks, 3 GHA workflows, Azure CMS deleted, IaC cleanup, docs/Decision 65); Phase 7 (verification) pending; Phase 8 after CMS Cold Storage
+- **Current Phase:** Phase CMS Cold Storage ✅ complete (2026-04-11) — all 7 phases + Script Fixes done; next: Phase 8 (Community features)
 
 ## Development Commands
 
