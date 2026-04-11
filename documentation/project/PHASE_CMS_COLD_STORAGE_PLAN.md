@@ -453,7 +453,7 @@ git diff lib/cms/queries.ts   # expect empty diff (idempotent)
 - 7.3 ✅ Backup round-trip: restore from `2026-04-09` → backup to `2026-04-11`; content identical (field-order only diff); 2 script fixes applied (export token for Node subprocess; `full-access` token type; 404-tolerant fetch)
 - 7.4 ✅ Fallback generator: idempotent after first application; 41/41 CMS tests pass with generated fallbacks
 - 7.5 ✅ Live smoke tests: 200 on `/`, `/about`, `/docs`, `/login`, `/patterns`, `/patterns/[slug]`; 404 on unknown URL
-- 7.6 ⏳ Cost confirmation: Phase 4 deletion was 2026-04-10; check Azure Cost Management 48h+ later
+- 7.6 ✅ Cost confirmation: `az consumption usage list` shows `Cost: None` for `mysql-aipatterns-cms` and `ca-aipatterns-cms-prod`; storage account `staipatternsmedia` retained and present; all CMS Azure resources confirmed deleted (2026-04-11, 24h post-deletion)
 
 ---
 
@@ -531,13 +531,13 @@ Expected restoration time: ~2-3 hours (dominated by MySQL Flexible Server provis
 
 ## Success Criteria
 
-- [ ] Initial backup bundle committed to `backups/cms/<date>/` with verified SHA-256 checksums
-- [ ] `lib/cms/queries.ts` fallbacks refreshed from live Strapi content
-- [ ] 3 GitHub Actions workflows merged and runnable via workflow_dispatch
-- [ ] MySQL, Strapi Container App, 8 KV secrets deleted from Azure
-- [ ] `infrastructure/modules/cms.bicep` and `cms-container-deploy.yml` deleted
-- [ ] `npm run build` succeeds with no `STRAPI_*` env vars set
-- [ ] All tests passing: 396 frontend, 114 backend
-- [ ] Live frontend serves all pages with fallback content (manual + E2E verified)
-- [ ] Decision 64 logged, docs updated, CLAUDE.md + MEMORY.md reflect cold storage state
-- [ ] Azure Cost Management confirms ~€14-16/mo drop
+- [x] Initial backup bundle committed to `backups/cms/<date>/` with verified SHA-256 checksums
+- [x] `lib/cms/queries.ts` fallbacks refreshed from live Strapi content
+- [x] 3 GitHub Actions workflows merged and runnable via workflow_dispatch
+- [x] MySQL, Strapi Container App, 8 KV secrets deleted from Azure
+- [x] `infrastructure/modules/cms.bicep` and `cms-container-deploy.yml` deleted
+- [x] `npm run build` succeeds with no `STRAPI_*` env vars set
+- [x] All tests passing: 396 frontend, 114 backend
+- [x] Live frontend serves all pages with fallback content (manual + E2E verified)
+- [x] Decision 65 logged, docs updated, CLAUDE.md + MEMORY.md reflect cold storage state
+- [x] Azure Cost Management confirms ~€14-16/mo drop (`Cost: None` for all deleted CMS resources, confirmed 2026-04-11)
