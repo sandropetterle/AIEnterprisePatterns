@@ -1,6 +1,6 @@
 # Phase — CMS Cold Storage Script Fixes
 
-**Status:** Planned
+**Status:** ✅ Complete (2026-04-11)
 **Priority:** HIGH (blocks Phase 7 verification)
 **Created:** 2026-04-10
 **Context:** Phase 7 (verification) of the CMS Cold Storage plan exposed 6 bugs in `scripts/cms/backup.sh` and `scripts/cms/restore.sh`. The scripts were written targeting a Linux/GHA runner but never tested end-to-end on the local Windows + Git Bash + Docker Desktop environment. This plan catalogues every issue found and defines the fix for each, plus a post-restore token-minting step that the scripts currently lack.
