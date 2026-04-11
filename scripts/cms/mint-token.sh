@@ -128,7 +128,7 @@ TOKEN_RESPONSE=$(curl --silent --show-error \
   --request POST \
   --header "Content-Type: application/json" \
   --header "Authorization: Bearer ${ADMIN_JWT}" \
-  --data "{\"name\":\"${TOKEN_NAME}\",\"type\":\"read-only\",\"description\":\"Minted by mint-token.sh for local backup.sh use\"}" \
+  --data "{\"name\":\"${TOKEN_NAME}\",\"type\":\"full-access\",\"description\":\"Minted by mint-token.sh for local backup.sh use\"}" \
   "${STRAPI_ADMIN_URL}/admin/api-tokens")
 
 API_TOKEN=$(echo "${TOKEN_RESPONSE}" | node -e "

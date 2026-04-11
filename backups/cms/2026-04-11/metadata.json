@@ -1,0 +1,12 @@
+{
+  "date": "2026-04-11",
+  "strapiUrl": "http://localhost:1337",
+  "strapiVersion": "^5.40.0",
+  "nodeVersion": "v24.13.0",
+  "createdAt": "2026-04-11T11:16:36.694Z",
+  "checksums": {
+    "dump.sql": "ed85a556efe88601d1024925e8c71ae3e57c1c81b3b784ae2b0cba2d5bd00f25",
+    "uploads.tar.gz": "659b1b6ae1ec50f0a93d8da7d20364d2d2f5ae39d58b7032579e51a007a87786",
+    "content.json": "5bc8ea56dcbf8b69f05a92a69cd94f6c09824f3c12abb9c33fc30c89b5bc2ad1"
+  }
+}
