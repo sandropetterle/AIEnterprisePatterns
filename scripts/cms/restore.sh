@@ -18,7 +18,7 @@ set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-aipatterns-mysql}"
-UPLOADS_VOLUME="${UPLOADS_VOLUME:-aipatterns_strapi-uploads}"
+UPLOADS_VOLUME="${UPLOADS_VOLUME:-aienterprisepatterns_strapi-uploads}"
 STRAPI_HEALTH_URL="${STRAPI_HEALTH_URL:-http://localhost:1337/_health}"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-120}"
 SKIP_SQL_RESTORE="${SKIP_SQL_RESTORE:-0}"
@@ -39,6 +39,8 @@ else
   fi
 fi
 
+export BUNDLE_DIR
+
 echo ""
 echo "=== CMS Restore ==="
 echo "Bundle dir : ${BUNDLE_DIR}"
@@ -51,7 +53,7 @@ if [[ ! -d "${BUNDLE_DIR}" ]]; then
 fi
 
 # ── 0. Verify checksums ───────────────────────────────────────────────────────
-echo "[0/4] Verifying checksums..."
+echo "[0/5] Verifying checksums..."
 if [[ ! -f "${BUNDLE_DIR}/metadata.json" ]]; then
   echo "ERROR: metadata.json not found in bundle." >&2
   exit 1
@@ -89,11 +91,11 @@ NODESCRIPT
 
 # ── 1. Ensure docker compose CMS stack is up ─────────────────────────────────
 echo ""
-echo "[1/4] Ensuring CMS docker stack is running..."
+echo "[1/5] Ensuring CMS docker stack is running..."
 (cd "${REPO_ROOT}" && docker compose --profile cms up -d)
 
 # ── 2. Wait for Strapi healthcheck ────────────────────────────────────────────
-echo "[2/4] Waiting for Strapi at ${STRAPI_HEALTH_URL}..."
+echo "[2/5] Waiting for Strapi at ${STRAPI_HEALTH_URL}..."
 elapsed=0
 until curl --silent --fail "${STRAPI_HEALTH_URL}" > /dev/null 2>&1; do
   if [[ ${elapsed} -ge ${HEALTH_TIMEOUT} ]]; then
@@ -108,9 +110,9 @@ echo " ready (${elapsed}s)"
 
 # ── 3. MySQL restore ──────────────────────────────────────────────────────────
 if [[ "${SKIP_SQL_RESTORE}" == "1" ]]; then
-  echo "[3/4] MySQL restore skipped (SKIP_SQL_RESTORE=1)"
+  echo "[3/5] MySQL restore skipped (SKIP_SQL_RESTORE=1)"
 else
-  echo "[3/4] Restoring MySQL dump..."
+  echo "[3/5] Restoring MySQL dump..."
   DUMP_FILE="${BUNDLE_DIR}/dump.sql"
 
   if [[ ! -f "${DUMP_FILE}" ]]; then
@@ -122,35 +124,51 @@ else
     docker exec "${MYSQL_CONTAINER}" \
       mysql \
         --user=strapi \
-        --password=strapi \
+        --password=strapiPassword123 \
         -e "DROP DATABASE IF EXISTS strapi_cms; CREATE DATABASE strapi_cms CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;"
 
+    # Strip any leading mysqldump warning lines (lines before the first '--' SQL comment)
+    grep -v "^mysqldump:" "${DUMP_FILE}" | \
     docker exec -i "${MYSQL_CONTAINER}" \
       mysql \
         --user=strapi \
-        --password=strapi \
-        strapi_cms \
-      < "${DUMP_FILE}"
+        --password=strapiPassword123 \
+        strapi_cms
 
     echo "      → MySQL restored"
   fi
 fi
 
 # ── 4. Restore uploads volume ─────────────────────────────────────────────────
-echo "[4/4] Restoring uploads volume..."
+echo "[4/5] Restoring uploads volume..."
 UPLOADS_FILE="${BUNDLE_DIR}/uploads.tar.gz"
 
 if [[ ! -f "${UPLOADS_FILE}" ]]; then
   echo "WARNING: uploads.tar.gz not found — skipping uploads restore." >&2
-elif [[ ! -s "${UPLOADS_FILE}" ]]; then
+elif ! tar tf "${UPLOADS_FILE}" 2>/dev/null | grep -q .; then
   echo "      → uploads.tar.gz is empty — nothing to restore"
 else
-  docker run --rm \
+  # MSYS_NO_PATHCONV=1 prevents Git Bash from mangling /uploads /bundle paths on Windows
+  MSYS_NO_PATHCONV=1 docker run --rm \
     -v "${UPLOADS_VOLUME}:/uploads" \
     -v "${BUNDLE_DIR}:/bundle:ro" \
     alpine \
     sh -c "rm -rf /uploads/* && tar xzf /bundle/uploads.tar.gz -C /uploads"
   echo "      → uploads restored"
+fi
+
+# ── 5. Mint local API token ───────────────────────────────────────────────────
+echo "[5/5] Minting local API token..."
+MINT_SCRIPT="${REPO_ROOT}/scripts/cms/mint-token.sh"
+if [[ ! -f "${MINT_SCRIPT}" ]]; then
+  echo "WARNING: mint-token.sh not found — skipping token minting." >&2
+  echo "         Run scripts/cms/mint-token.sh manually before using backup.sh." >&2
+else
+  MINTED_TOKEN=$(bash "${MINT_SCRIPT}" --reset-password --restart)
+  echo "      → API token minted and written to scripts/cms/.env.local-token"
+  echo ""
+  echo "      STRAPI_API_TOKEN=${MINTED_TOKEN}"
+  echo "      (also saved to scripts/cms/.env.local-token for backup.sh auto-pickup)"
 fi
 
 echo ""

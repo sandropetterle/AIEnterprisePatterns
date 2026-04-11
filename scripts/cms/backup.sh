@@ -21,14 +21,15 @@
 
 set -euo pipefail
 
-STRAPI_URL="${STRAPI_URL:-http://localhost:1337}"
+export STRAPI_URL="${STRAPI_URL:-http://localhost:1337}"
 DATE_LABEL="${DATE:-$(date +%Y-%m-%d)}"
 MYSQL_CONTAINER="${MYSQL_CONTAINER:-aipatterns-mysql}"
 SKIP_SQL_DUMP="${SKIP_SQL_DUMP:-0}"
-UPLOADS_VOLUME="${UPLOADS_VOLUME:-aipatterns_strapi-uploads}"
+UPLOADS_VOLUME="${UPLOADS_VOLUME:-aienterprisepatterns_strapi-uploads}"
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-BUNDLE_DIR="${REPO_ROOT}/backups/cms/${DATE_LABEL}"
+export BUNDLE_DIR="${REPO_ROOT}/backups/cms/${DATE_LABEL}"
+export DATE_LABEL
 
 # Single-type UIDs matching cms/data/seed.ts
 SINGLE_TYPES=(
@@ -64,9 +65,22 @@ echo "Bundle dir : ${BUNDLE_DIR}"
 echo "Date label : ${DATE_LABEL}"
 echo ""
 
+# ── Auto-load token from .env.local-token if not already set ─────────────────
+if [[ -z "${STRAPI_API_TOKEN:-}" ]]; then
+  LOCAL_TOKEN_FILE="${REPO_ROOT}/scripts/cms/.env.local-token"
+  if [[ -f "${LOCAL_TOKEN_FILE}" ]]; then
+    # shellcheck source=/dev/null
+    source "${LOCAL_TOKEN_FILE}"
+    echo "(loaded STRAPI_API_TOKEN from scripts/cms/.env.local-token)"
+  fi
+fi
+
 # ── Guard: STRAPI_API_TOKEN required ──────────────────────────────────────────
 if [[ -z "${STRAPI_API_TOKEN:-}" ]]; then
   echo "ERROR: STRAPI_API_TOKEN is not set." >&2
+  echo "       Run: bash scripts/cms/restore.sh  (mints a token automatically)" >&2
+  echo "       Or:  bash scripts/cms/mint-token.sh  (standalone token mint)" >&2
+  echo "       Or:  export STRAPI_API_TOKEN=<your-token>" >&2
   exit 1
 fi
 
@@ -82,11 +96,12 @@ else
     docker exec "${MYSQL_CONTAINER}" \
       mysqldump \
         --user=strapi \
-        --password=strapi \
+        --password=strapiPassword123 \
         --single-transaction \
         --routines \
         --triggers \
         strapi_cms \
+      2>/dev/null \
       > "${BUNDLE_DIR}/dump.sql"
     echo "      → dump.sql written"
   else
@@ -99,7 +114,8 @@ fi
 # ── 2. Strapi uploads volume ──────────────────────────────────────────────────
 echo "[2/4] Uploads volume..."
 if docker volume ls --format '{{.Name}}' | grep -q "^${UPLOADS_VOLUME}$"; then
-  docker run --rm \
+  # MSYS_NO_PATHCONV=1 prevents Git Bash from mangling /uploads /out paths on Windows
+  MSYS_NO_PATHCONV=1 docker run --rm \
     -v "${UPLOADS_VOLUME}:/uploads:ro" \
     -v "${BUNDLE_DIR}:/out" \
     alpine \

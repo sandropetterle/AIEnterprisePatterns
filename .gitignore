@@ -67,3 +67,10 @@ deployment/github-secrets-values.txt
 # Playwright MCP logs
 /.playwright-mcp/
 storybook-static/
+
+# CMS local token (minted by mint-token.sh / restore.sh — never commit)
+scripts/cms/.env.local-token
+
+# CMS temporary backup bundles (round-trip verification dirs)
+backups/cms/*-roundtrip/
+backups/cms/*-verify/
