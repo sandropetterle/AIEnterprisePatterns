@@ -200,7 +200,7 @@ Moved Strapi CMS from live Azure hosting to local-only with git-committed backup
 | Phase 5 | ✅ | IaC + code — `cms.bicep` deleted, `cms-container-deploy.yml` deleted, STRAPI_* refs removed from containerApps.bicep + frontend workflow |
 | Phase 6 | ✅ | Docs — Decision 65 (CMS Cold Storage), CMS runbook section, DR §12 (CMS Recovery), CLAUDE.md updated |
 | **Script Fixes** | ✅ | 8 Windows/Git Bash bugs fixed; `scripts/cms/mint-token.sh` added (full-access token); `restore.sh` auto-mints token; `backup.sh` auto-sources `.env.local-token` |
-| Phase 7 | ✅ | Verification — build ✅, 396+114 tests ✅, backup round-trip ✅, fallback generator idempotent ✅, live smoke tests all 200 ✅ |
+| Phase 7 | ✅ | Verification — build ✅, 396+114 tests ✅, backup round-trip ✅, fallback generator idempotent ✅, live smoke tests all 200 ✅, cost confirmed ✅ (Cost=None via Azure consumption API, 2026-04-11) |
 
 **Implementation plans:** [PHASE_CMS_COLD_STORAGE_PLAN.md](PHASE_CMS_COLD_STORAGE_PLAN.md) · [PHASE_CMS_SCRIPT_FIXES_PLAN.md](PHASE_CMS_SCRIPT_FIXES_PLAN.md)
 
