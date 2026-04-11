@@ -1,10 +1,10 @@
 # Phase — CMS Cold Storage (Cost Reduction & Cold Recovery Mode)
 
-**Status:** 📋 Planned
+**Status:** 🔄 In Progress — Phases 1–6 + Script Fixes complete; Phase 7 (verification) pending
 **Priority:** HIGH (cost reduction)
 **Dependencies:** Phase 7.11 complete
 **Created:** 2026-04-09
-**Estimated Effort:** Medium (7 phases, ~15 work items)
+**Estimated Effort:** Medium (7 phases + Script Fixes interlude)
 
 ---
 
@@ -380,6 +380,22 @@ Body:
 
 ---
 
+### Script Fixes Interlude ✅ Complete (2026-04-11)
+
+Phase 7.3 backup round-trip testing exposed 8 bugs in `backup.sh` and `restore.sh` — all scripts were written targeting Linux/GHA but never end-to-end tested on the local Windows + Git Bash + Docker Desktop environment.
+
+**Bugs fixed:** wrong MySQL password (Bug 1), wrong Docker volume name (Bug 2), MSYS path conversion mangling (Bug 3), `mysqldump` warning contaminating `dump.sql` (Bug 4), unexported shell variables for Node heredocs (Bug 5), empty-tar size check using `-s` (Bug 7).
+
+**New feature — `scripts/cms/mint-token.sh`:** Resolves Bug 6 (API token salt mismatch after restore). Generates a bcrypt hash of the admin password via `cms/node_modules/bcryptjs`, updates MySQL directly via stdin pipe (avoids `$` expansion), restarts Strapi, logs in via `POST /admin/login`, creates a read-only API token via `POST /admin/api-tokens`, and writes it to `scripts/cms/.env.local-token` (gitignored).
+
+**Integration:**
+- `restore.sh` now calls `mint-token.sh --reset-password --restart` at step `[5/5]`
+- `backup.sh` auto-sources `scripts/cms/.env.local-token` — no manual `STRAPI_API_TOKEN` export required
+
+**Full plan:** [PHASE_CMS_SCRIPT_FIXES_PLAN.md](PHASE_CMS_SCRIPT_FIXES_PLAN.md)
+
+---
+
 ### Phase 7 — Verification
 
 **7.1 Frontend build (no Strapi required)**
@@ -404,9 +420,9 @@ cd backend && dotnet test           # 114/114 passing
 # Fresh local Strapi
 docker compose --profile cms down -v
 docker compose --profile cms up -d
-# Restore from most recent backup
+# Restore from most recent backup (auto-mints API token at step [5/5])
 bash scripts/cms/restore.sh backups/cms/<latest>
-# Re-run backup
+# Re-run backup (auto-sources token from scripts/cms/.env.local-token)
 bash scripts/cms/backup.sh
 # Diff the two backups — should be identical modulo timestamps
 ```

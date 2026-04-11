@@ -125,13 +125,19 @@ bash scripts/cms/restore.sh backups/cms/2026-04-09  # specific date
 ### Scripts
 
 ```bash
-# Create a backup of the running local Strapi
-STRAPI_API_TOKEN=<token> bash scripts/cms/backup.sh
-
-# Restore from a backup bundle
+# Standard round-trip: restore then backup (no token management needed)
 bash scripts/cms/restore.sh backups/cms/2026-04-09
+# restore.sh step [5/5] auto-mints a fresh API token and saves it to
+# scripts/cms/.env.local-token (gitignored)
 
-# Backup against remote Strapi (e.g. during initial capture)
+bash scripts/cms/backup.sh
+# backup.sh auto-sources .env.local-token — no STRAPI_API_TOKEN export needed
+
+# Mint a token standalone (e.g. after a manual docker restart)
+bash scripts/cms/mint-token.sh
+# Options: --no-reset-password, --no-restart
+
+# Backup against remote Strapi (e.g. during initial capture from a live instance)
 STRAPI_URL=https://... STRAPI_API_TOKEN=<token> SKIP_SQL_DUMP=1 bash scripts/cms/backup.sh
 
 # Refresh compile-time fallbacks in lib/cms/queries.ts from latest backup
