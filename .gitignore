@@ -71,6 +71,4 @@ storybook-static/
 # CMS local token (minted by mint-token.sh / restore.sh — never commit)
 scripts/cms/.env.local-token
 
-# CMS temporary backup bundles (round-trip verification dirs)
-backups/cms/*-roundtrip/
-backups/cms/*-verify/
+# CMS temporary backup bundles: *-roundtrip/ and *-verify/ patterns are in backups/cms/.gitignore

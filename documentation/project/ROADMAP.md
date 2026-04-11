@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-04-10 (Phase CMS Cold Storage — Phases 1–6 complete; Phase 7 verification pending)
+**Last Updated:** 2026-04-11 (Phase CMS Script Fixes complete — 8 Windows/Git Bash bugs fixed, mint-token.sh added; Phase 7 verification next)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -30,7 +30,7 @@
 | **Phase 6.8** | ✅ Complete | 2026-03-17 | Infrastructure as Code & Management (Bicep IaC, script cleanup, Infrastructure .NET project) |
 | **Phase 7** | ✅ Complete | 2026-03-19 | Quality & Hardening Evaluation (10-area audit: deps, security, infra, CI/CD, containers, tests, docs, observability) |
 | **Phase 7.11** | ✅ Complete | 2026-03-23 | Infrastructure Drift Resolution & Live Hardening (30 drift items, 6 tracks — Bicep corrections, resource locks, KV diagnostics, MySQL SSL, alert email) |
-| **Phase CMS Cold Storage** | 🔄 In Progress | 2026-04-09– | Move Strapi from live Azure to local-only; git-committed backups; compile-time fallback content; Azure MySQL + Container App deleted; IaC/code cleanup + docs/Decision 65 complete (Phases 1–6 done, ~€14-16/mo saved); Phase 7 verification pending |
+| **Phase CMS Cold Storage** | 🔄 In Progress | 2026-04-09– | Move Strapi from live Azure to local-only; git-committed backups; compile-time fallback content; Azure MySQL + Container App deleted; IaC/code cleanup + docs/Decision 65 complete (Phases 1–6 done, ~€14-16/mo saved); Script Fixes complete (8 bugs, mint-token.sh); Phase 7 verification next |
 | Phase 8 | 📋 Future | TBD | Community features, exports, performance, advanced content |
 | Phase 9 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
 
@@ -190,7 +190,7 @@ Moves Strapi CMS from live Azure hosting to local-only with git-committed backup
 
 **Cost impact:** ~€14-16/mo saved (MySQL Flexible Server B1ms deletion).
 
-**7 sub-phases:**
+**8 sub-phases:**
 | Phase | Status | Deliverable |
 |-------|--------|------------|
 | Phase 1 | ✅ Complete | `scripts/cms/backup.sh`, `scripts/cms/restore.sh`, initial backup bundle in `backups/cms/2026-04-09/` |
@@ -199,9 +199,10 @@ Moves Strapi CMS from live Azure hosting to local-only with git-committed backup
 | Phase 4 | ✅ Complete | Azure cleanup — `ca-aipatterns-cms-prod` + `mysql-aipatterns-cms` deleted; 8 KV secrets were already purged; `staipatternsmedia` retained |
 | Phase 5 | ✅ Complete | IaC + code changes — `cms.bicep` deleted, `cms-container-deploy.yml` deleted, STRAPI_* refs removed from containerApps.bicep + frontend workflow |
 | Phase 6 | ✅ Complete | Documentation — Decision 65 (CMS Cold Storage), CMS runbook section, DR §12 (CMS Recovery), CMS_ARCHITECTURE.md §12 ref updated, CLAUDE.md updated |
+| **Script Fixes** | ✅ Complete | 8 Windows/Git Bash bugs fixed; `scripts/cms/mint-token.sh` added; `restore.sh` auto-mints token at step [5/5]; `backup.sh` auto-sources `.env.local-token` |
 | Phase 7 | 📋 Pending | Verification — backup round-trip, fallback generator idempotency, live smoke tests, cost confirmation (48h post-deletion) |
 
-**Implementation plan:** [PHASE_CMS_COLD_STORAGE_PLAN.md](PHASE_CMS_COLD_STORAGE_PLAN.md)
+**Implementation plans:** [PHASE_CMS_COLD_STORAGE_PLAN.md](PHASE_CMS_COLD_STORAGE_PLAN.md) · [PHASE_CMS_SCRIPT_FIXES_PLAN.md](PHASE_CMS_SCRIPT_FIXES_PLAN.md)
 
 ---
 

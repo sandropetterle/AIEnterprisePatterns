@@ -1,3 +1,7 @@
-# Ignore nothing — backup bundles are intentionally committed to git.
+# Backup bundles are intentionally committed to git.
 # Binary files (dump.sql, uploads.tar.gz) are small and infrequent.
 !*
+
+# Exclude temporary round-trip verification directories (never commit these)
+*-roundtrip/
+*-verify/

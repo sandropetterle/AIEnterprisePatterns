@@ -59,14 +59,14 @@ const hash = bcrypt.hashSync(process.env.ADMIN_PASSWORD, 10);
 process.stdout.write(hash);
 ")
 
-  # Run the UPDATE inside the container via a here-string to avoid quote escaping issues
-  # We write the SQL to a temp file inside the container and execute it
-  docker exec "${MYSQL_CONTAINER}" \
+  # Pipe the SQL via stdin to avoid shell expansion of '$' characters in bcrypt hashes
+  printf "UPDATE admin_users SET password='%s' WHERE email='%s';\n" \
+    "${BCRYPT_HASH}" "${ADMIN_EMAIL}" | \
+  docker exec -i "${MYSQL_CONTAINER}" \
     mysql \
       --user=strapi \
       --password=strapiPassword123 \
-      strapi_cms \
-      -e "UPDATE admin_users SET password='${BCRYPT_HASH}' WHERE email='${ADMIN_EMAIL}';"
+      strapi_cms >&2
 
   echo "[mint-token] Admin password reset." >&2
 fi
@@ -74,7 +74,7 @@ fi
 # ── Step 2: Restart Strapi so it picks up fresh DB state ─────────────────────
 if [[ "${DO_RESTART}" == "1" ]]; then
   echo "[mint-token] Restarting Strapi container..." >&2
-  docker restart "${STRAPI_CONTAINER}"
+  docker restart "${STRAPI_CONTAINER}" >&2
   echo "[mint-token] Waiting for Strapi at ${STRAPI_HEALTH_URL}..." >&2
   elapsed=0
   until curl --silent --fail "${STRAPI_HEALTH_URL}" > /dev/null 2>&1; do
