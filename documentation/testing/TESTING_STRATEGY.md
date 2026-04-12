@@ -138,9 +138,8 @@ backend/
 documentation/
 ├── test_results/                  # Retention: current phase + 2 prior
 │   ├── COMPREHENSIVE_TEST_RESULTS.md  # Archived (exempt from retention)
-│   ├── phase5_1_auth_test_results.md  # Phase 5 (N-2)
-│   ├── phase6_test_results.md         # Phase 6 (N-1)
-│   └── phase7_8_testing_baseline.md   # Phase 7 (current)
+│   ├── phase6_test_results.md         # Phase 6 (N-2)
+│   └── phase7_8_testing_baseline.md   # Phase 7 (N-1, current baseline)
 ├── TESTING_STRATEGY.md            # This document
 └── MANUAL_TEST_PLAN.md            # Manual test cases
 ```

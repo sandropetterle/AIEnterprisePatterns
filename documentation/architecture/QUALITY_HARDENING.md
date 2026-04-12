@@ -558,17 +558,8 @@ All risks below were evaluated and explicitly accepted with documented rationale
 ## 8. References
 
 ### Individual Evaluation Plans
-- [PHASE_QUALITY_HARDENING_PLAN.md](../project/PHASE_QUALITY_HARDENING_PLAN.md) — Master evaluation coordinator
-- [PHASE_7_1_FRONTEND_DEPS_PLAN.md](../project/PHASE_7_1_FRONTEND_DEPS_PLAN.md) — Frontend dependency audit
-- [PHASE_7_2_BACKEND_DEPS_PLAN.md](../project/PHASE_7_2_BACKEND_DEPS_PLAN.md) — Backend dependency audit
-- [PHASE_7_3_FRONTEND_CODE_PLAN.md](../project/PHASE_7_3_FRONTEND_CODE_PLAN.md) — Frontend code quality & security
-- [PHASE_7_4_BACKEND_CODE_PLAN.md](../project/PHASE_7_4_BACKEND_CODE_PLAN.md) — Backend code quality & security
-- [PHASE_7_5_IAC_SECURITY_PLAN.md](../project/PHASE_7_5_IAC_SECURITY_PLAN.md) — IaC & Azure security
-- [PHASE_7_6_CICD_PLAN.md](../project/PHASE_7_6_CICD_PLAN.md) — CI/CD pipeline quality
-- [PHASE_7_7_DOCKER_PLAN.md](../project/PHASE_7_7_DOCKER_PLAN.md) — Docker & container security
-- [PHASE_7_8_TESTING_PLAN.md](../project/PHASE_7_8_TESTING_PLAN.md) — Testing coverage & quality
-- [PHASE_7_9_DOCUMENTATION_PLAN.md](../project/PHASE_7_9_DOCUMENTATION_PLAN.md) — Documentation completeness
-- [PHASE_7_10_PRODUCTION_READINESS_PLAN.md](../project/PHASE_7_10_PRODUCTION_READINESS_PLAN.md) — Production readiness & observability
+
+Phase 7.1–7.10 implementation plans have been deleted per governance (1 phase after completion). Key findings and decisions are preserved in [TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md) (Decisions 53–62) and in the sections above.
 
 ### Related Architecture Documents
 - [SECURITY_OVERVIEW.md](SECURITY_OVERVIEW.md) — Security architecture and protection measures

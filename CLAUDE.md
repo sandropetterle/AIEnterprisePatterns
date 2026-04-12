@@ -13,7 +13,6 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend w
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
 - **CMS:** Strapi 5 local-only (`cms/` directory) with git-committed backups (`backups/cms/`); compile-time fallbacks in `lib/cms/queries.ts`; media references retained in Azure Blob Storage (`staipatternsmedia`)
-- **Current Phase:** Phase CMS Cold Storage ✅ complete (2026-04-11) — all 7 phases + Script Fixes done; next: Phase 8 (Community features)
 
 ## Development Commands
 
@@ -64,24 +63,10 @@ Api/ (Controllers, DTOs, Middleware, Validators)
 - **Value Objects**: Slug with GeneratedRegex validation
 
 ### Frontend
-```
-app/patterns/page.tsx          # Listing (server component)
-app/patterns/[slug]/page.tsx   # Detail by slug (server component)
-app/login/page.tsx             # Login page (server component; redirects if authenticated)
-app/login/LoginForm.tsx        # Login form (client component; triggers Entra sign-in)
-app/api/auth/[...nextauth]/    # Auth.js route handler
-components/ui/                 # shadcn/ui primitives
-components/layout/UserMenu.tsx # User menu / sign-in button in header
-components/patterns/           # Pattern-specific components
-components/providers/          # SessionProvider wrapper
-lib/api/                       # client.ts, patterns.ts, mappers.ts, types.ts
-lib/cms/                       # Strapi CMS client (client.ts, queries.ts, types.ts, components.tsx)
-lib/types/                     # Frontend types (auth.ts: hasRole, roleLabel, Session extension)
-auth.ts                        # Auth.js configuration (OIDC provider, JWT callbacks)
-```
 - Server Components by default; `'use client'` only for hooks/events/browser APIs
 - VotingButton implements optimistic UI with revert-on-error
 - Revalidation: 5min home, 2min listing, 10min details
+- `lib/api/` — client, patterns, mappers, types; `lib/cms/` — Strapi client, queries, types, components; `auth.ts` — Auth.js config
 
 ### Authentication Architecture
 ```
@@ -136,25 +121,7 @@ STRAPI_API_TOKEN=<read-only-api-token> # local dev only; not needed in productio
 
 Base: `http://localhost:5255/api` | Full reference: `documentation/api/`
 
-| Method | Endpoint | Auth Required | Rate Limit |
-|--------|----------|---------------|------------|
-| GET | `/patterns` | None | api (50/min) |
-| GET | `/patterns/featured` | None | api |
-| GET | `/patterns/trending` | None | api |
-| GET | `/patterns/{slug}` | None | api |
-| GET | `/patterns/{slug}/related` | None | api |
-| POST | `/patterns/{id}/vote` | None | vote (10/min) |
-| POST | `/patterns` | RequireEditor | api |
-| PUT | `/patterns/{id}` | RequireEditor | api |
-| DELETE | `/patterns/{id}` | RequireAdmin | api |
-| GET | `/auth/me` | Authorize | — |
-| GET | `/health`, `/health/ready` | None | — |
-
-## Database
-
-- **Dev:** SQLite at `backend/src/AIEnterprisePatterns.Api/aipatterns.db`
-- **Prod:** SQL Server (migrations applied manually, not auto-applied)
-- **Entities:** `Pattern` (Title, Slug, Content, Category, Status, VoteCount, IsFeatured, IsTrending) + `Tag` + many-to-many
+All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (50/min), vote limit (10/min). POST/PUT patterns → RequireEditor; DELETE → RequireAdmin. `/auth/me` → Authorize. `/health`, `/health/ready` → public.
 
 ## Frontend Coding Standards
 
@@ -169,7 +136,7 @@ Base: `http://localhost:5255/api` | Full reference: `documentation/api/`
 - **Primary:** Azure Container Apps (scale-to-zero, ~$5-12/month)
 - **Frontend:** https://ca-aipatterns-web-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io
 - **Backend:** https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io
-- **Reference:** `deployment/CONTAINER_APPS_GUIDE.md`, `infrastructure/README.md` (Bicep IaC)
+- **Reference:** `deployment/CONTAINER_APPS_GUIDE.md`, `documentation/operations/INFRASTRUCTURE_MANAGEMENT.md` (Bicep IaC)
 - **Backend port:** 5255 local, 8080 in Docker (non-root user `appuser`)
 - **Health checks:** CI/CD verifies content ("Healthy" for backend, "next-size-adjust" for frontend)
 
@@ -226,28 +193,13 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 ## Documentation Rules
 
-Full governance rules in `documentation/GOVERNANCE.md`. Quick reference:
+Full governance in `documentation/GOVERNANCE.md` and `DOCUMENTATION_INDEX.md`. Folder purposes: `documentation/architecture/` (how built), `api/` (REST ref), `decisions/` (why), `testing/` (how to test), `operations/` (prod ops), `project/` (roadmap), `reviews/` (audit snapshots), `test_results/` (retention: current + 2 prior phases), `deployment/` (Azure guides).
 
-| Content Type | Folder |
-|-------------|--------|
-| How the system is built | `documentation/architecture/` |
-| REST API reference (endpoints, DTOs, examples) | `documentation/api/` |
-| CMS component schemas, field tables, dependency map | `documentation/cms-components/` |
-| What the system should do | `documentation/requirements/` |
-| Why we made a decision | `documentation/decisions/` |
-| How we test | `documentation/testing/` |
-| How to run in production | `documentation/operations/` |
-| Project roadmap and phase plans | `documentation/project/` |
-| Audit/review snapshots | `documentation/reviews/` |
-| Phase-specific test reports | `documentation/test_results/` |
-| Azure deployment guides | `deployment/` |
-| Visual diagrams (Mermaid) | `documentation/diagrams/` |
+**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (65 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
-**Key docs:** `documentation/EXECUTIVE_SUMMARY.md` (CTO-facing overview), `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (65 decisions), `documentation/testing/TESTING_STRATEGY.md`, `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Diagrams:** 15 Mermaid diagrams embedded in their target docs — see `documentation/diagrams/DIAGRAM_INDEX.md`. Color palette: blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure, gray=CI/CD.
 
-**Diagrams:** All 15 Mermaid diagrams are complete and embedded in their target docs. See `documentation/diagrams/DIAGRAM_INDEX.md` for the full inventory and the established color palette convention (blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure services, gray=CI/CD).
-
-**Storybook:** Stories are colocated with their components (`*.stories.tsx`). Config in `.storybook/`. Shared fixtures in `.storybook/fixtures.ts`. Mock for `next-auth/react` in `.storybook/mocks/next-auth-react.tsx`.
+**Storybook:** Stories colocated with components (`*.stories.tsx`). Shared fixtures in `.storybook/fixtures.ts`. next-auth mock in `.storybook/mocks/next-auth-react.tsx`.
 
 ## Technical Decision Log (MANDATORY)
 
@@ -261,10 +213,8 @@ This is not optional — it preserves architectural knowledge across sessions.
 
 - **CMS project:** `cms/` (Strapi 5) — local-only content authoring; content model, Dockerfile, seed script. Architecture: `documentation/architecture/CMS_ARCHITECTURE.md`
 - **CMS cold storage:** Strapi is local-only. Backups in `backups/cms/`. Scripts: `scripts/cms/backup.sh`, `scripts/cms/restore.sh`. Azure MySQL + Container App deleted (Phase CMS Cold Storage, 2026-04-10). `deployment/scripts/provision-cms.ps1` retained for historical reference / rollback only.
-- **Infrastructure project** — `AddInfrastructure()` extension registers AppInsights, MemoryCache, TimeProvider, HealthChecks, RateLimiter (extracted from Program.cs in Phase 6.8)
 - **DELETE endpoint** exists in controller but frontend doesn't wire it up yet
 - **Vote endpoint** uses atomic `ExecuteUpdateAsync` for relational providers (SQLite/SQL Server), with InMemory fallback for tests
-- **Swagger** is development-only, gated behind `IsDevelopment()` check
 - **Container security:** Non-root user in Docker requires port 8080 (ports <1024 need root)
 - **Docker base images:** All 3 Dockerfiles use SHA-pinned `FROM` lines (`@sha256:<digest>`) for supply chain security; Dependabot Docker ecosystem keeps pins current
 - **Backend runtime:** `aspnet:8.0-alpine` (not Debian) — ~90 MB image, no `curl`/`apt-get` layer; healthcheck uses BusyBox `wget -qO-`

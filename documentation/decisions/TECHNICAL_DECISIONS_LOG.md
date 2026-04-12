@@ -390,7 +390,7 @@ This entry.
 
 **Accepted risks:** `elliptic` (Storybook→crypto-browserify — no patched version available), `tmp` (LHCI→inquirer — no patched version available). Both are dev-only with no production exposure. Accepted until upstream maintainers release fixes.
 
-**Implementation plan:** [PHASE_7_1_FRONTEND_DEPS_PLAN.md](../project/PHASE_7_1_FRONTEND_DEPS_PLAN.md)
+**Implementation plan:** Deleted per governance (1 phase after completion).
 
 ---
 
@@ -416,7 +416,7 @@ This entry.
 
 **Accepted risks:** Unstructured frontend console logging (captured by Container Apps), no frontend App Insights SDK (server calls tracked by backend), no explicit Cache-Control headers on API (ISR handles caching), no bundle size budget (Lighthouse score gates growth), identical `/health` and `/health/ready` endpoints (health probes are the real fix).
 
-**Implementation plan:** [PHASE_7_10_PRODUCTION_READINESS_PLAN.md](../project/PHASE_7_10_PRODUCTION_READINESS_PLAN.md)
+**Implementation plan:** Deleted per governance (1 phase after completion).
 
 ---
 
@@ -444,7 +444,7 @@ This entry.
 
 **Accepted risks:** Hardcoded Azure resource names (low, rarely change), CMS has no test gate (managed CMS), E2E tests skip PRs (by design), fixed healthcheck delays (works reliably), `fail_ci_if_error: false` on Codecov (Jest enforces thresholds), Azure CLI via curl-pipe-bash (ephemeral runner).
 
-**Implementation plan:** [PHASE_7_6_CICD_PLAN.md](../project/PHASE_7_6_CICD_PLAN.md)
+**Implementation plan:** Deleted per governance (1 phase after completion).
 
 ---
 
@@ -470,7 +470,7 @@ This entry.
 
 **Accepted risks:** `'unsafe-inline'` in CSP (Next.js requirement), no `middleware.ts` auth centralization, `console.warn` in mappers (non-sensitive, useful for debugging), CMS `href` values without `javascript:` URL filtering (same trust boundary as CMS HTML content).
 
-**Implementation plan:** [PHASE_7_3_FRONTEND_CODE_PLAN.md](../project/PHASE_7_3_FRONTEND_CODE_PLAN.md)
+**Implementation plan:** Deleted per governance (1 phase after completion).
 
 ---
 

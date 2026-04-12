@@ -160,7 +160,7 @@ Systematic 10-area audit ensuring enterprise best-in-class standards. Each area 
 
 **Key deliverables:** 62 technical decisions logged (63 with Phase 7.11); 114 backend tests / 396 frontend tests passing; all 5 tracks complete (alert action group, SEO, IaC health probes, business telemetry, docs/CI). System confirmed production-ready for a learning project on Azure Container Apps.
 
-**Implementation plan:** [PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md)
+**Implementation plan:** Deleted per governance (1 phase after completion). Decisions preserved in [TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md) and [QUALITY_HARDENING.md](../architecture/QUALITY_HARDENING.md).
 
 ---
 
@@ -182,7 +182,7 @@ Live Azure subscription audit revealed **30 configuration drift items** between 
 
 **Key deliverables:** 63 technical decisions logged; Bicep IaC now accurately reflects live state; resource locks prevent accidental deletion; KV audit trail enabled; MySQL SSL enforced; alert notifications wired.
 
-**Implementation plan:** [PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md](PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md)
+**Implementation plan:** Deleted per governance (1 phase after completion). Decisions preserved in [TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md) and [INFRASTRUCTURE_MANAGEMENT.md](../operations/INFRASTRUCTURE_MANAGEMENT.md).
 
 ### Phase CMS Cold Storage — Cost Reduction & Cold Recovery Mode (2026-04-09–2026-04-11) ✅
 
@@ -202,7 +202,7 @@ Moved Strapi CMS from live Azure hosting to local-only with git-committed backup
 | **Script Fixes** | ✅ | 8 Windows/Git Bash bugs fixed; `scripts/cms/mint-token.sh` added (full-access token); `restore.sh` auto-mints token; `backup.sh` auto-sources `.env.local-token` |
 | Phase 7 | ✅ | Verification — build ✅, 396+114 tests ✅, backup round-trip ✅, fallback generator idempotent ✅, live smoke tests all 200 ✅, cost confirmed ✅ (Cost=None via Azure consumption API, 2026-04-11) |
 
-**Implementation plans:** [PHASE_CMS_COLD_STORAGE_PLAN.md](PHASE_CMS_COLD_STORAGE_PLAN.md) · [PHASE_CMS_SCRIPT_FIXES_PLAN.md](PHASE_CMS_SCRIPT_FIXES_PLAN.md)
+**Implementation plans:** Deleted per governance (1 phase after completion). Decisions preserved in [TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md) and [CMS_ARCHITECTURE.md](../architecture/CMS_ARCHITECTURE.md).
 
 ---
 
@@ -233,6 +233,5 @@ Sub-phases:
 
 - Phase timelines may be adjusted based on business needs and user feedback
 - Technical decisions for each phase are recorded in [../decisions/TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md)
-- Completed phase implementation plans: [PHASE_QUALITY_HARDENING_PLAN.md](PHASE_QUALITY_HARDENING_PLAN.md) (Phase 7), [PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md](PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md) (Phase 7.11)
-- Completed phase implementation plans also include: [PHASE_CMS_COLD_STORAGE_PLAN.md](PHASE_CMS_COLD_STORAGE_PLAN.md) + [PHASE_CMS_SCRIPT_FIXES_PLAN.md](PHASE_CMS_SCRIPT_FIXES_PLAN.md) (CMS Cold Storage)
+- Completed phase implementation plans are deleted per governance (1 phase after completion); key learnings preserved in architecture docs and decisions log
 - Test results per phase are in [../test_results/](../test_results/)

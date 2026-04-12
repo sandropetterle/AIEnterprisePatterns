@@ -1,6 +1,6 @@
 # Documentation Index
 
-**Last Updated:** 2026-03-21 (Phase 7 — Executive Summary added)
+**Last Updated:** 2026-04-12 (Phase CMS Cold Storage complete — phase plans deleted, stale test results pruned)
 **Audience:** All contributors
 **Purpose:** Central map of every documentation file in this project — what it contains, who it's for, and whether it's current.
 
@@ -104,7 +104,7 @@
 
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
-| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 62 active architectural decisions (newest first) | Architect, Senior Devs | Current |
+| [TECHNICAL_DECISIONS_LOG.md](documentation/decisions/TECHNICAL_DECISIONS_LOG.md) | 65 active architectural decisions (newest first) | Architect, Senior Devs | Current |
 | [DECISIONS_ARCHIVE.md](documentation/decisions/DECISIONS_ARCHIVE.md) | Compacted/superseded decisions (full text) | Architect | Current |
 | [DECISION_TEMPLATE.md](documentation/decisions/DECISION_TEMPLATE.md) | Standard format for new decision entries | All devs | Current |
 
@@ -131,18 +131,6 @@
 | File | Purpose | Audience | Status |
 |------|---------|----------|--------|
 | [ROADMAP.md](documentation/project/ROADMAP.md) | Phase plans, status summary table, deliverables, upcoming phases | PM, Architect, all | Current |
-| [PHASE_QUALITY_HARDENING_PLAN.md](documentation/project/PHASE_QUALITY_HARDENING_PLAN.md) | Phase 7 evaluation plan — 10-area quality & security audit | Architect, Security, All | Complete (Phase 7) |
-| [PHASE_7_1_FRONTEND_DEPS_PLAN.md](documentation/project/PHASE_7_1_FRONTEND_DEPS_PLAN.md) | Phase 7.1 — npm audit fixes, dependency updates, Dependabot, CI audit gate | DevOps, Frontend devs | Complete |
-| [PHASE_7_2_BACKEND_DEPS_PLAN.md](documentation/project/PHASE_7_2_BACKEND_DEPS_PLAN.md) | Phase 7.2 — CVE patch, NuGet updates, CI vulnerability gate, Dependabot | DevOps, Backend devs | Complete |
-| [PHASE_7_3_FRONTEND_CODE_PLAN.md](documentation/project/PHASE_7_3_FRONTEND_CODE_PLAN.md) | Phase 7.3 — CMS HTML sanitization, CSP hardening, 429 handling, ESLint security | Security, Frontend devs | Complete |
-| [PHASE_7_4_BACKEND_CODE_PLAN.md](documentation/project/PHASE_7_4_BACKEND_CODE_PLAN.md) | Phase 7.4 — CORS/HSTS hardening, vote atomicity, exception handling, validation | Security, Backend devs | Complete |
-| [PHASE_7_5_IAC_SECURITY_PLAN.md](documentation/project/PHASE_7_5_IAC_SECURITY_PLAN.md) | Phase 7.5 — resource tagging, KV purge protection, SQL diagnostics, alert groups | DevOps, Infra, Security | Complete |
-| [PHASE_7_6_CICD_PLAN.md](documentation/project/PHASE_7_6_CICD_PLAN.md) | Phase 7.6 — SHA pinning, concurrency controls, rollback fix, Dependabot | DevOps, Security | Complete |
-| [PHASE_7_7_DOCKER_PLAN.md](documentation/project/PHASE_7_7_DOCKER_PLAN.md) | Phase 7.7 — base image SHA pinning, Alpine migration, compose cleanup | DevOps, Security | Complete |
-| [PHASE_7_8_TESTING_PLAN.md](documentation/project/PHASE_7_8_TESTING_PLAN.md) | Phase 7.8 — test result docs, backend CI coverage, E2E auth strategy | QA, DevOps | Complete |
-| [PHASE_7_9_DOCUMENTATION_PLAN.md](documentation/project/PHASE_7_9_DOCUMENTATION_PLAN.md) | Phase 7.9 — archive stale test results, IaC cross-refs, CMS phase status | All contributors | Complete |
-| [PHASE_7_10_PRODUCTION_READINESS_PLAN.md](documentation/project/PHASE_7_10_PRODUCTION_READINESS_PLAN.md) | Phase 7.10 — SEO, health probes, business telemetry, a11y CI gate | DevOps, SRE, Architect | Complete |
-| [PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md](documentation/project/PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md) | Phase 7.11 — Live Azure drift resolution, security fixes, IaC hardening (30 items, 6 tracks) | DevOps, SRE, Architect | Planned |
 
 ---
 
@@ -178,9 +166,8 @@
 | File | Purpose | Status |
 |------|---------|--------|
 | [COMPREHENSIVE_TEST_RESULTS.md](documentation/test_results/COMPREHENSIVE_TEST_RESULTS.md) | Pre-Phase 4 test snapshot (archived — use phase7_8_testing_baseline.md for current metrics) | Archived (exempt from retention) |
-| [phase5_1_auth_test_results.md](documentation/test_results/phase5_1_auth_test_results.md) | Phase 5.1 auth test results | Historical (N-2) |
-| [phase6_test_results.md](documentation/test_results/phase6_test_results.md) | Phases 6.3–6.8 testing additions (Lighthouse CI, Chromatic, cross-browser E2E, auth E2E) | Historical (N-1) |
-| [phase7_8_testing_baseline.md](documentation/test_results/phase7_8_testing_baseline.md) | Phase 7.8 testing baseline — all six test layers, CI architecture, metrics snapshot | Current |
+| [phase6_test_results.md](documentation/test_results/phase6_test_results.md) | Phases 6.3–6.8 testing additions (Lighthouse CI, Chromatic, cross-browser E2E, auth E2E) | Historical (N-2) |
+| [phase7_8_testing_baseline.md](documentation/test_results/phase7_8_testing_baseline.md) | Phase 7.8 testing baseline — all six test layers, CI architecture, metrics snapshot | Historical (N-1, current baseline) |
 
 ---
 

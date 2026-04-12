@@ -2,7 +2,7 @@
 
 **Created:** 2026-03-19 (Phase 7.8 — Testing Coverage & Quality)
 **Covers:** Phases 6.3 through 6.8 testing additions
-**Purpose:** Audit trail for testing infrastructure added in Phase 6. The previous test results doc (`phase5_1_auth_test_results.md`) covered only through Phase 5.1; this document captures everything added in Phases 6.3–6.8.
+**Purpose:** Audit trail for testing infrastructure added in Phase 6. This document captures everything added in Phases 6.3–6.8 (phase5_1_auth_test_results.md, which covered through Phase 5.1, was deleted per retention policy when it became N-3).
 
 ---
 
