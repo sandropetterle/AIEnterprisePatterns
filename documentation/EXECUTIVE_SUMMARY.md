@@ -232,7 +232,7 @@ Each phase is planned, scoped, and documented before implementation begins. This
 
 **For Security:**
 - [Security Overview](architecture/SECURITY_OVERVIEW.md) — authentication, authorisation, headers, and threat model
-- [Infrastructure Drift Plan](project/PHASE_7_11_INFRASTRUCTURE_DRIFT_PLAN.md) — pending security hardening items
+- [Infrastructure Management](operations/INFRASTRUCTURE_MANAGEMENT.md) — IaC reference, Bicep drift resolution, and security hardening (Phase 7.11)
 
 **For DevOps and SRE:**
 - [Infrastructure Management](operations/INFRASTRUCTURE_MANAGEMENT.md) — IaC reference and deployment procedures

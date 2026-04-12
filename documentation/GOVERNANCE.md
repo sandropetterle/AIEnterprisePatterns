@@ -1,6 +1,6 @@
 # Documentation Governance
 
-**Last Updated:** 2026-03-19
+**Last Updated:** 2026-04-12
 **Audience:** All contributors (developers, architects, infrastructure engineers, product, PM)
 **Purpose:** Define the rules, folder structure, naming conventions, and lifecycle policies for all project documentation.
 
