@@ -67,7 +67,7 @@
   },
   "devDependencies": {
     "@lhci/cli": "^0.15.1",
-    "@playwright/test": "^1.58.2",
+    "@playwright/test": "^1.59.1",
     "@storybook/addon-a11y": "^10.3.0",
     "@storybook/addon-themes": "^10.3.0",
     "@storybook/nextjs": "^10.3.0",
