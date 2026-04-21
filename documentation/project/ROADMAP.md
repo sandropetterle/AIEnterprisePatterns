@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-04-11 (Phase CMS Cold Storage fully complete — all 7 phases + Script Fixes done; Phase 8 next)
+**Last Updated:** 2026-04-21 (Dependabot maintenance sweep complete — Steps 1–3 done, Step 4 CMS local-verify pending)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -31,6 +31,7 @@
 | **Phase 7** | ✅ Complete | 2026-03-19 | Quality & Hardening Evaluation (10-area audit: deps, security, infra, CI/CD, containers, tests, docs, observability) |
 | **Phase 7.11** | ✅ Complete | 2026-03-23 | Infrastructure Drift Resolution & Live Hardening (30 drift items, 6 tracks — Bicep corrections, resource locks, KV diagnostics, MySQL SSL, alert email) |
 | **Phase CMS Cold Storage** | ✅ Complete | 2026-04-09–2026-04-11 | Move Strapi from live Azure to local-only; git-committed backups; compile-time fallback content; Azure MySQL + Container App deleted; ~€14-16/mo saved; all phases 1–7 + Script Fixes done; backup round-trip ✅, fallback generator idempotent ✅, live smoke tests ✅ |
+| **Dependabot Sweep** | 🔄 In Progress | 2026-04-21 | Clear 21 accumulated PRs; lock LTS policy in `dependabot.yml`; patch next CVE (GHSA-q4gf-8mx6-v5v3 → next 16.2.4); merge all Batch B patch/minor PRs — Steps 1–3 ✅, Step 4 (CMS local verify) pending |
 | Phase 8 | 📋 Future | TBD | Community features, exports, performance, advanced content |
 | Phase 9 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
 
@@ -203,6 +204,24 @@ Moved Strapi CMS from live Azure hosting to local-only with git-committed backup
 | Phase 7 | ✅ | Verification — build ✅, 396+114 tests ✅, backup round-trip ✅, fallback generator idempotent ✅, live smoke tests all 200 ✅, cost confirmed ✅ (Cost=None via Azure consumption API, 2026-04-11) |
 
 **Implementation plans:** Deleted per governance (1 phase after completion). Decisions preserved in [TECHNICAL_DECISIONS_LOG.md](../decisions/TECHNICAL_DECISIONS_LOG.md) and [CMS_ARCHITECTURE.md](../architecture/CMS_ARCHITECTURE.md).
+
+---
+
+### Dependabot Maintenance Sweep — Security & Dependency Hygiene (2026-04-21) 🔄
+**Priority:** HIGH (security) | **Dependencies:** none | **Status:** Steps 1–3 ✅, Step 4 pending
+
+21 accumulated Dependabot PRs (2026-03-19 to 2026-04-20) cleared; LTS pin policy locked into `dependabot.yml`; HIGH-severity Next.js CVE patched.
+
+**4 steps:**
+
+| Step | Scope | Status |
+|------|-------|--------|
+| Step 1 | Add `dependabot.yml` ignore rules (Node/Docker, .NET, TS, Swashbuckle majors) + next→16.2.4 security fix (CVE GHSA-q4gf-8mx6-v5v3) | ✅ Merged (#28, commits c024363 + 475b120) |
+| Step 2 | Close 7 Batch A PRs (major/non-LTS versions deferred per Decision 35) | ✅ Done |
+| Step 3 | Merge Batch B: all patch/minor Actions, backend (.csproj), frontend (lock file) PRs + additional new-sweep PRs | ✅ Done (28 PRs merged/closed) |
+| Step 4 | Local verify + merge Batch C: #23 esbuild 0.28.0, #24 better-sqlite3 12.9.0 (CMS-only, no CI gate) | 🔄 Pending — both CLEAN/green, need `docker compose --profile cms up` health check |
+
+**Key decisions:** Decision 66 (LTS pin policy), Decision 67 (next.js CVE patch). Detailed execution log: [DEPENDABOT_SWEEP_2026-04-21.md](DEPENDABOT_SWEEP_2026-04-21.md).
 
 ---
 
