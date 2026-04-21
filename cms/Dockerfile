@@ -1,5 +1,5 @@
 # ── Stage 1: Dependencies ────────────────────────────────────────────────────
-FROM node:20-alpine@sha256:b88333c42c23fbd91596ebd7fd10de239cedab9617de04142dde7315e3bc0afa AS deps
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS deps
 
 WORKDIR /app
 
@@ -35,7 +35,7 @@ ENV JWT_SECRET=${JWT_SECRET}
 RUN npm run build
 
 # ── Stage 4: Production ─────────────────────────────────────────────────────
-FROM node:20-alpine@sha256:b88333c42c23fbd91596ebd7fd10de239cedab9617de04142dde7315e3bc0afa AS production
+FROM node:20-alpine@sha256:fb4cd12c85ee03686f6af5362a0b0d56d50c58a04632e6c0fb8363f609372293 AS production
 
 WORKDIR /app
 
