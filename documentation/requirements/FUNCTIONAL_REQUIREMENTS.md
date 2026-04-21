@@ -1,6 +1,6 @@
 # Functional Requirements
 
-**Last Updated:** 2026-02-27
+**Last Updated:** 2026-04-21
 **Audience:** Product/UX Specialists, Solutions Architects, Developers, Project Managers
 **Purpose:** Define what the AI Enterprise Patterns Library must do — feature requirements by page, assumptions, out-of-scope items, and acceptance criteria.
 
