@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-04-10 (CMS Cold Storage Architecture)
+**Last Updated:** 2026-04-21 (Dependabot LTS pin policy)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**65 active decisions | 0 archived**
+**66 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,35 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 66: Dependabot Pinned to LTS / Current-Major Lines
+
+**Date:** 2026-04-21
+**Title:** Pin Dependabot to LTS/current major lines (Node 20, .NET 8, TypeScript 5, Swashbuckle 6)
+**Category:** Infrastructure / Dependency Management
+
+### What Was Decided
+
+Added explicit `ignore` rules to `.github/dependabot.yml` to block major-version bumps that conflict with current LTS commitments or the Phase 8 deferral policy (Decision 35):
+
+- **Node Docker images** (root + cms): ignore major bumps beyond Node 20 — Node 25 is odd-numbered STS (non-LTS); Node 22 LTS is the planned next target
+- **.NET Docker images** (backend): ignore major bumps beyond .NET 8 — .NET 8 LTS runs until Nov 2026; .NET 10 migration is its own project
+- **TypeScript** (root npm + cms npm): ignore major bumps beyond TS 5 — TS 6 deferred to Phase 8 per Decision 35
+- **Swashbuckle.AspNetCore** (nuget): ignore major bumps beyond 6.x — explicitly deferred in Decision 35
+
+21 accumulated Dependabot PRs (2026-03-19 to 2026-04-20) triggered this sweep. 7 PRs were Batch A (closed — major/non-LTS), 12 were Batch B (merged — patch/minor), 2 were Batch C (CMS-local, local verification required).
+
+### Why
+
+Without explicit ignore rules, Dependabot re-raises the same deferred-major PRs every weekly schedule run. The ignore rules make the deferral policy durable in the repo rather than relying on humans to re-close PRs manually each month.
+
+### Alternatives Evaluated
+
+- **`open-pull-requests-limit: 0`**: Would suppress all updates including valuable patch coverage — rejected
+- **Auto-merge action**: Low PR volume makes manual review preferable; CI gates already catch regressions — rejected
+- **`@dependabot ignore` comments**: Creates hidden state outside the repo; explicit `dependabot.yml` rules are the authoritative source of truth — rejected
 
 ---
 

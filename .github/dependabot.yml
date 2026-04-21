@@ -35,6 +35,9 @@ updates:
       # next-auth v5 is intentionally on beta — don't auto-bump to v4 stable
       - dependency-name: "next-auth"
         update-types: ["version-update:semver-major"]
+      # TypeScript 6 is a major — defer to Phase 8 per Decision 35
+      - dependency-name: "typescript"
+        update-types: ["version-update:semver-major"]
 
   # CMS npm (cms/)
   - package-ecosystem: "npm"
@@ -55,6 +58,9 @@ updates:
         update-types: ["version-update:semver-major"]
       # Strapi controls react-router-dom — don't auto-bump
       - dependency-name: "react-router-dom"
+        update-types: ["version-update:semver-major"]
+      # TypeScript 6 is a major — defer to Phase 8 per Decision 35
+      - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
 
   # .NET NuGet (backend/)
@@ -82,6 +88,9 @@ updates:
         update-types: ["version-update:semver-major"]
       - dependency-name: "coverlet.*"
         update-types: ["version-update:semver-major"]
+      # Swashbuckle v10 is a major — defer per Decision 35
+      - dependency-name: "Swashbuckle.AspNetCore"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: "github-actions"
@@ -95,15 +104,29 @@ updates:
     directory: "/"
     schedule:
       interval: "monthly"
+    ignore:
+      # Node 25 is odd-numbered STS (non-LTS); target is Node 22 LTS when ready
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   # Docker — backend
   - package-ecosystem: "docker"
     directory: "/backend"
     schedule:
       interval: "monthly"
+    ignore:
+      # .NET 8 LTS runs until Nov 2026; .NET 10 migration is its own project
+      - dependency-name: "mcr.microsoft.com/dotnet/sdk"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "mcr.microsoft.com/dotnet/aspnet"
+        update-types: ["version-update:semver-major"]
 
   # Docker — CMS
   - package-ecosystem: "docker"
     directory: "/cms"
     schedule:
       interval: "monthly"
+    ignore:
+      # Node 25 is odd-numbered STS (non-LTS); target is Node 22 LTS when ready
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
