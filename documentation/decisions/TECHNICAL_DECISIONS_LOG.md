@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-04-21 (Dependabot LTS pin policy)
+**Last Updated:** 2026-04-21 (Next.js CVE GHSA-q4gf-8mx6-v5v3 fix)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**66 active decisions | 0 archived**
+**67 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,28 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 67: Next.js Bumped to 16.2.4 (CVE GHSA-q4gf-8mx6-v5v3)
+
+**Date:** 2026-04-21
+**Title:** Emergency patch — Next.js 16.2.4 to fix HIGH-severity Denial of Service via Server Components
+**Category:** Security / Dependency Management
+
+### What Was Decided
+
+Bumped `next` from `^16.2.0` to `^16.2.4` and `eslint-config-next` to `^16.2.4` in `package.json`, with `package-lock.json` resolved to `16.2.4`. Dependabot PRs #16 and #17 (both targeting `16.2.1`, which is still within the vulnerable range) were closed rather than merged.
+
+### Why
+
+CVE GHSA-q4gf-8mx6-v5v3 ("Next.js has a Denial of Service with Server Components") affects all `next` versions `16.0.0-beta.0 – 16.2.2` with **HIGH** severity. The `npm audit --omit=dev --audit-level=high` gate in `test.yml` exits non-zero for HIGH+ vulnerabilities, which caused CI to fail on all branches (blocking the Dependabot sweep). Merging the existing Dependabot PRs would have downgraded security — `16.2.1` is still vulnerable. `16.2.3` is the first patched release; `16.2.4` (latest at the time) was chosen.
+
+### Alternatives Evaluated
+
+- **Merge Dependabot PR #17 (16.2.1)**: Still within the vulnerable range — would reintroduce the CVE. Rejected.
+- **Suppress the audit check (`--audit-level=critical`)**: Lowers the security bar permanently. Rejected.
+- **Pin to `16.2.3`**: Also patched, but `16.2.4` is the latest patch and includes all fixes from `.3`. No reason to not take `.4`.
 
 ---
 
