@@ -14,7 +14,7 @@
     "@strapi/plugin-cloud": "^5.40.0",
     "@strapi/plugin-users-permissions": "^5.40.0",
     "@strapi/strapi": "^5.40.0",
-    "better-sqlite3": "^11.0.0",
+    "better-sqlite3": "^12.10.0",
     "strapi-provider-upload-azure-storage-v5": "^1.1.0",
     "esbuild": "^0.28.0",
     "mysql2": "^3.20.0",
