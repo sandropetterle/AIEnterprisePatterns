@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-04-21 (Next.js CVE GHSA-q4gf-8mx6-v5v3 fix)
+**Last Updated:** 2026-05-19 (Next.js 16.2.6 — second CVE wave)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**67 active decisions | 0 archived**
+**68 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,28 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 68: Next.js Bumped to 16.2.6 (second CVE wave)
+
+**Date:** 2026-05-19
+**Title:** Patch — Next.js 16.2.6 to clear 13 high-severity advisories published 2026-04-21 → 2026-05-18
+**Category:** Security / Dependency Management
+
+### What Was Decided
+
+Bumped `next` from `^16.2.4` to `^16.2.6` in `package.json`, re-resolving `package-lock.json`. No code changes required. After the bump, `npm audit --omit=dev --audit-level=high` exits 0 (only 2 moderate transitive postcss issues remain, below the gate).
+
+### Why
+
+Between 2026-04-21 (Decision 67) and 2026-05-18, **13 additional high-severity Next.js advisories** were published — cache poisoning via Server Component responses, middleware/proxy bypasses (multiple variants — App Router segment-prefetch, Pages Router i18n, dynamic route param injection), XSS in beforeInteractive scripts and CSP-nonce App Router, SSRF via WebSocket upgrades, DoS in Cache Components and Image Optimization API, and others. The `npm audit --omit=dev --audit-level=high` gate in [.github/workflows/test.yml:88](../../.github/workflows/test.yml#L88) exits 1 on HIGH+, which blocked all four 2026-05-18 Dependabot PRs (#44 better-sqlite3, #45 dotnet-servicing, #46 ef-core, #47 test-infrastructure) — none of which touch frontend code. The audit failure was a CI-level blocker for the entire queue.
+
+### Alternatives Evaluated
+
+- **Wait for Dependabot to propose the bump**: Dependabot hadn't raised a Next.js PR — the existing PRs were on other dependencies. Manual bump was faster than waiting for the next scheduled run.
+- **Lower the audit gate to `--audit-level=critical`**: Permanently weakens supply-chain posture for a one-shot CI blocker. Rejected.
+- **Override the `next` version via `overrides:`**: Adds indirection where a straight bump suffices.
 
 ---
 
