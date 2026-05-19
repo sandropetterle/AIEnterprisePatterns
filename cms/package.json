@@ -16,7 +16,7 @@
     "@strapi/strapi": "^5.40.0",
     "better-sqlite3": "^11.0.0",
     "strapi-provider-upload-azure-storage-v5": "^1.1.0",
-    "esbuild": "^0.24.0",
+    "esbuild": "^0.28.0",
     "mysql2": "^3.20.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
