@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-05-19 (Next.js 16.2.6 — second CVE wave)
+**Last Updated:** 2026-05-19 (lucide-react v1 deferred — brand icons removed)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**68 active decisions | 0 archived**
+**69 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,36 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 69: Defer lucide-react v1 — brand icons removed
+
+**Date:** 2026-05-19
+**Title:** Pin lucide-react to 0.x; ignore semver-major bumps in Dependabot
+**Category:** Frontend / Dependency Management
+
+### What Was Decided
+
+Closed Dependabot PR #42 (lucide-react 0.577.0 → 1.16.0). Added a `version-update:semver-major` ignore rule for `lucide-react` in [.github/dependabot.yml](../../.github/dependabot.yml) so Dependabot stops re-raising v1 PRs. lucide-react stays on the 0.x line.
+
+### Why
+
+lucide-react 1.0 removed all **brand icons** (Github, LinkedIn, Twitter/X, YouTube, TikTok, Facebook, etc.). Bumping the package broke the build immediately on `import { Github } from 'lucide-react'`, which we use in 3 component files ([components/layout/Footer.tsx](../../components/layout/Footer.tsx), [components/home/CTASection.tsx](../../components/home/CTASection.tsx), [app/about/page.tsx](../../app/about/page.tsx)) — and which the CMS seed/fallbacks reference as a string. Brand icons are a deliberate v1 removal in lucide upstream, not a rename — they will not return.
+
+### Alternatives Evaluated
+
+- **Inline-SVG replacement of `Github`**: Workable but adds a one-off component. If lucide adds more brand removals in 1.x, we'd grow more inline SVGs. Rejected as the wrong direction.
+- **Substitute with a non-brand icon** (`Code2`, `ExternalLink`): Loses visual identity of the GitHub link affordance. Rejected.
+- **Bring in a brand-icon library** (`react-icons`, `simple-icons`): Adds a second icon dependency for one logo. Rejected as overkill.
+- **Take v1 today, defer the brand-icon fix**: Build would not pass. Rejected.
+
+### Trade-offs
+
+- (+) Build stays green; no code changes needed
+- (+) Keeps the recognizable GitHub brand mark across the UI
+- (−) lucide-react 0.x is on minor/patch releases only; we miss future icon additions until we re-evaluate
+- (−) Adds another deferred-major entry to the dependency policy
 
 ---
 
