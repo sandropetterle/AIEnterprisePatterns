@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-04-21 (Dependabot maintenance sweep complete — Steps 1–3 done, Step 4 CMS local-verify pending)
+**Last Updated:** 2026-05-19 (Dependabot maintenance sweep — second wave: 13 Next.js CVEs cleared, react-pair, 12 PRs resolved)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -31,7 +31,8 @@
 | **Phase 7** | ✅ Complete | 2026-03-19 | Quality & Hardening Evaluation (10-area audit: deps, security, infra, CI/CD, containers, tests, docs, observability) |
 | **Phase 7.11** | ✅ Complete | 2026-03-23 | Infrastructure Drift Resolution & Live Hardening (30 drift items, 6 tracks — Bicep corrections, resource locks, KV diagnostics, MySQL SSL, alert email) |
 | **Phase CMS Cold Storage** | ✅ Complete | 2026-04-09–2026-04-11 | Move Strapi from live Azure to local-only; git-committed backups; compile-time fallback content; Azure MySQL + Container App deleted; ~€14-16/mo saved; all phases 1–7 + Script Fixes done; backup round-trip ✅, fallback generator idempotent ✅, live smoke tests ✅ |
-| **Dependabot Sweep** | 🔄 In Progress | 2026-04-21 | Clear 21 accumulated PRs; lock LTS policy in `dependabot.yml`; patch next CVE (GHSA-q4gf-8mx6-v5v3 → next 16.2.4); merge all Batch B patch/minor PRs — Steps 1–3 ✅, Step 4 (CMS local verify) pending |
+| **Dependabot Sweep** | ✅ Complete | 2026-04-21 | Clear 21 accumulated PRs; lock LTS policy in `dependabot.yml`; patch next CVE (GHSA-q4gf-8mx6-v5v3 → next 16.2.4); merge all Batch B patch/minor PRs; CMS-local Batch C absorbed into 2026-05-19 sweep |
+| **Dependabot Sweep (2026-05-19)** | ✅ Complete | 2026-05-19 | Clear 12 accumulated PRs; patch second Next.js CVE wave (13 high-severity advisories → next 16.2.6); pair-merge react/react-dom 19.2.5; defer lucide-react v1 (brand icons dropped); merge May-18 backend batch — Decisions 68 & 69 logged |
 | Phase 8 | 📋 Future | TBD | Community features, exports, performance, advanced content |
 | Phase 9 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
 
@@ -207,21 +208,26 @@ Moved Strapi CMS from live Azure hosting to local-only with git-committed backup
 
 ---
 
-### Dependabot Maintenance Sweep — Security & Dependency Hygiene (2026-04-21) 🔄
-**Priority:** HIGH (security) | **Dependencies:** none | **Status:** Steps 1–3 ✅, Step 4 pending
+### Dependabot Maintenance Sweep — Security & Dependency Hygiene (2026-04-21) ✅
+**Priority:** HIGH (security) | **Dependencies:** none | **Status:** Complete (Step 4 absorbed into 2026-05-19 sweep)
 
 21 accumulated Dependabot PRs (2026-03-19 to 2026-04-20) cleared; LTS pin policy locked into `dependabot.yml`; HIGH-severity Next.js CVE patched.
 
-**4 steps:**
-
-| Step | Scope | Status |
-|------|-------|--------|
-| Step 1 | Add `dependabot.yml` ignore rules (Node/Docker, .NET, TS, Swashbuckle majors) + next→16.2.4 security fix (CVE GHSA-q4gf-8mx6-v5v3) | ✅ Merged (#28, commits c024363 + 475b120) |
-| Step 2 | Close 7 Batch A PRs (major/non-LTS versions deferred per Decision 35) | ✅ Done |
-| Step 3 | Merge Batch B: all patch/minor Actions, backend (.csproj), frontend (lock file) PRs + additional new-sweep PRs | ✅ Done (28 PRs merged/closed) |
-| Step 4 | Local verify + merge Batch C: #23 esbuild 0.28.0, #24 better-sqlite3 12.9.0 (CMS-only, no CI gate) | 🔄 Pending — both CLEAN/green, need `docker compose --profile cms up` health check |
-
 **Key decisions:** Decision 66 (LTS pin policy), Decision 67 (next.js CVE patch). Detailed execution log: [DEPENDABOT_SWEEP_2026-04-21.md](DEPENDABOT_SWEEP_2026-04-21.md).
+
+---
+
+### Dependabot Maintenance Sweep — Second Wave (2026-05-19) ✅
+**Priority:** HIGH (security) | **Dependencies:** none | **Status:** Complete
+
+12 accumulated Dependabot PRs cleared. The visible symptom was misleading — multiple PRs reported `Frontend Tests ❌` even though they only touched backend or CMS code. Diagnosis: the production `npm audit --omit=dev --audit-level=high` gate in `test.yml` was failing on **13 new high-severity Next.js advisories** published since the previous sweep. Fixed by bumping `next` to 16.2.6, then merging the rest of the queue.
+
+Notable handling:
+- `react` and `react-dom` bumped together as a pair (Dependabot raised them as two separate PRs which jest can't satisfy independently)
+- lucide-react v1 deferred — upstream removed all brand icons (Github, LinkedIn, etc.); added a `semver-major` ignore rule
+- ef-core PR auto-closed by Dependabot once the dotnet-servicing group's `Microsoft.*` pattern shipped the same package versions
+
+**Key decisions:** Decision 68 (Next.js 16.2.6 CVE patch — second wave), Decision 69 (lucide-react v1 deferral). Detailed execution log: [DEPENDABOT_SWEEP_2026-05-19.md](DEPENDABOT_SWEEP_2026-05-19.md).
 
 ---
 
