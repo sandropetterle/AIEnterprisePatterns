@@ -38,6 +38,9 @@ updates:
       # TypeScript 6 is a major — defer to Phase 8 per Decision 35
       - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
+      # lucide-react v1 dropped all brand icons (Github, LinkedIn, etc.) — see Decision 69
+      - dependency-name: "lucide-react"
+        update-types: ["version-update:semver-major"]
 
   # CMS npm (cms/)
   - package-ecosystem: "npm"
