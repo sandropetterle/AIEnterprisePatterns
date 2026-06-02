@@ -7,6 +7,12 @@ updates:
       interval: "weekly"
       day: "monday"
     groups:
+      # Keep react and react-dom in lockstep — they must always share the
+      # exact same version, so bump them together in a single PR.
+      react:
+        patterns:
+          - "react"
+          - "react-dom"
       storybook:
         patterns:
           - "storybook"
