@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-02 (react + react-dom grouped in Dependabot)
+**Last Updated:** 2026-06-02 (fixed backend Alpine globalization-invariant SQL failure — Decision 71)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**70 active decisions | 0 archived**
+**71 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,76 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 71: Install ICU on the Alpine backend image (fix Azure SQL globalization-invariant failure)
+
+**Date:** 2026-06-02
+**Title:** Backend Alpine runtime must ship ICU and disable globalization-invariant mode for Microsoft.Data.SqlClient
+**Category:** Infrastructure
+**Status:** Active
+
+### Context / Problem
+
+The **Backend API – Build and Deploy (Container Apps)** workflow failed its post-deploy health check on **every run from 2026-03-19 onward**; the last green deploy was 2026-03-17 (commit `9b425e5`). Build, push, and deploy all succeeded, but `/health` returned `503 Unhealthy`, so the workflow auto-rolled-back to the previous `:latest` image. **Net effect: production served stale 2026-03-17 backend code** — none of the backend changes since were live.
+
+The only registered health check is `AddDbContextCheck<ApplicationDbContext>`, so the 503 meant new revisions could not reach the database — while the rolled-back (old) revision connected fine. Because the deploy step only runs `az containerapp update --image …` (never touching env/secrets), the connection string, firewall, and serverless DB were proven identical and working by the healthy old revision; the regression had to be in the new **image**.
+
+Container console logs (Log Analytics `ContainerAppConsoleLogs_CL`) showed the real exception, swallowed by the health check as `message '(null)'` but surfaced on API requests:
+
+```
+System.Globalization.CultureNotFoundException: Only the invariant culture is supported in
+globalization-invariant mode. … 'en-us' is an invalid culture identifier.
+   at System.Globalization.CultureInfo.GetCultureInfo(String name)
+   at Microsoft.Data.SqlClient.SqlConnection.TryOpen(…)
+```
+
+Root cause: Phase 7.7 (commit `215232a`) switched the runtime base image from Debian `aspnet:8.0` to **`aspnet:8.0-alpine`**. The Alpine .NET images run in **globalization-invariant mode** (`DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true`, ICU absent — verified directly against the pinned digest). `Microsoft.Data.SqlClient` calls `CultureInfo.GetCultureInfo("en-us")` inside `SqlConnection.Open()`, which throws in invariant mode — so **every** Azure SQL connection failed instantly (the ~1 ms health-check failures), independent of network/TLS/config. The Debian image bundled ICU and never hit this. `Microsoft.Data.SqlClient` does not support invariant globalization mode.
+
+### Decision
+
+In the Dockerfile runtime stage, install ICU and disable invariant mode:
+
+```dockerfile
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+```
+
+This restores the globalization behaviour of the previous Debian image while keeping the Alpine base (small image, no `curl`/`apt-get` layer). `icu-libs` alone resolves `en-US` (LCID 1033) — `icu-data-full` is not required.
+
+Verified locally before deploy (no prod churn):
+- A minimal probe calling `CultureInfo.GetCultureInfo("en-us")` in the pinned Alpine image reproduced the exact `CultureNotFoundException`; with `icu-libs` + `INVARIANT=false` it returned `'en-US' (LCID 1033)`.
+- The rebuilt backend image, run against an unreachable SQL endpoint, no longer throws `CultureNotFoundException` — it now fails with an ordinary `SqlException` (TCP Provider, error 35), i.e. the connection code path proceeds to real network I/O. Against the reachable production Azure SQL it connects → `Healthy`.
+
+PR #66 (health-check retry loop, 12 × 15 s) was **kept**: it never fixed this bug (a 1 ms culture failure never recovers), but it is a sound safety net for the serverless Azure SQL auto-pause (15 min) resume window and Container App cold-start on healthy deploys.
+
+### Rationale
+
+Adding ICU is the minimal, targeted fix that preserves the deliberate Alpine migration (Decision/Phase 7.7) and its supply-chain/size benefits, versus reverting the whole base image to Debian. It matches Microsoft's documented guidance for running `Microsoft.Data.SqlClient` on Alpine.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Revert runtime to Debian `aspnet:8.0` | Throws away the intentional Alpine migration (smaller image, no curl/apt layer, SHA-pinned supply chain). Larger change than necessary. |
+| Set `InvariantGlobalization=false` in csproj only | The base image still lacks ICU; without `icu-libs` the runtime cannot load any culture and still fails. |
+| Add `icu-libs` + `icu-data-full` | `icu-data-full` (~30 MB) is unnecessary — `icu-libs` alone resolves `en-US`, proven by the probe. Keeps the image smaller. |
+
+### Consequences
+
+- Runtime image grows by ~25–30 MB (ICU libraries/data). Still far smaller than the Debian image; acceptable.
+- Globalization is now culture-aware (not invariant). Behaviour matches the pre-Alpine Debian image, so no string-comparison/formatting regressions are expected.
+- First deploy after this fix re-tags `:latest` to the new SHA (via the `tag-latest` job), so future rollbacks restore the fixed image, not the 2026-03-17 one.
+
+### Files Changed
+
+- `backend/Dockerfile` — runtime stage: `RUN apk add --no-cache icu-libs` and `ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false`, with an explanatory comment.
+
+### Tests Added
+
+- No unit tests (Docker/runtime-only change; backend unit tests use SQLite/InMemory and do not exercise the Alpine SqlClient path).
+- Verification was via container-level reproduction: a globalization probe and the rebuilt backend image (see Decision body). The authoritative regression gate is the deploy's own Health Check job going green without rollback.
 
 ---
 

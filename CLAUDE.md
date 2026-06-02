@@ -217,4 +217,4 @@ This is not optional — it preserves architectural knowledge across sessions.
 - **Vote endpoint** uses atomic `ExecuteUpdateAsync` for relational providers (SQLite/SQL Server), with InMemory fallback for tests
 - **Container security:** Non-root user in Docker requires port 8080 (ports <1024 need root)
 - **Docker base images:** All 3 Dockerfiles use SHA-pinned `FROM` lines (`@sha256:<digest>`) for supply chain security; Dependabot Docker ecosystem keeps pins current
-- **Backend runtime:** `aspnet:8.0-alpine` (not Debian) — ~90 MB image, no `curl`/`apt-get` layer; healthcheck uses BusyBox `wget -qO-`
+- **Backend runtime:** `aspnet:8.0-alpine` (not Debian) — no `curl`/`apt-get` layer; healthcheck uses BusyBox `wget -qO-`. Installs `icu-libs` + sets `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` — **required**: Microsoft.Data.SqlClient calls `CultureInfo.GetCultureInfo()` during `SqlConnection.Open()` and throws `CultureNotFoundException` in Alpine's default invariant mode, breaking all Azure SQL connections (see TDL #71)
