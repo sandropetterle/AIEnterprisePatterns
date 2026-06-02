@@ -81,7 +81,7 @@
     "@types/react": "^19.2.14",
     "@types/react-dom": "^19.2.3",
     "autoprefixer": "^10.4.27",
-    "chromatic": "^16.10.1",
+    "chromatic": "^17.2.0",
     "eslint": "^9.39.4",
     "eslint-config-next": "^16.2.6",
     "eslint-plugin-security": "^4.0.0",
