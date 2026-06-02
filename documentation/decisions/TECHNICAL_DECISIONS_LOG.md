@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-05-19 (lucide-react v1 deferred — brand icons removed)
+**Last Updated:** 2026-06-02 (react + react-dom grouped in Dependabot)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**69 active decisions | 0 archived**
+**70 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,39 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 70: Group react and react-dom in Dependabot
+
+**Date:** 2026-06-02
+**Title:** Bump react and react-dom together to prevent version-mismatch CI failures
+**Category:** Frontend / Dependency Management
+
+### What Was Decided
+
+Added a `react` group to the npm (root) config in [.github/dependabot.yml](../../.github/dependabot.yml) that bundles `react` and `react-dom` into a single PR:
+
+```yaml
+react:
+  patterns:
+    - "react"
+    - "react-dom"
+```
+
+### Why
+
+React requires `react` and `react-dom` to be on the **exact same version**. Dependabot PR #56 bumped `react` 19.2.5 → 19.2.6 but left `react-dom` at 19.2.5; `react-dom`'s client entry throws `Incompatible React versions` at import time, so **all 41 Jest suites failed to run** before a single assertion executed — the whole Frontend Tests job went red, not individual tests. The fix on #56 was to bump `react-dom` to match (both resolved to 19.2.7). Grouping the two ensures the split cannot recur: Dependabot always raises the pair in one PR with a consistent lockfile.
+
+### Alternatives Evaluated
+
+- **Leave ungrouped, patch manually each time**: The mismatch passes Dependabot's own checks and only fails in our Jest run; relying on a human to notice and fix every react bump is error-prone. Rejected.
+- **Pin both to exact versions (drop the caret)**: Stops `npm install` from floating to a newer patch, but does not stop Dependabot raising the two as separate PRs — the mismatch window still exists between the two merges. Rejected.
+- **Fold `react-dom` into the existing `types` group**: `@types/*` packages version independently of the react runtime; mixing them produces noisy, unrelated grouped PRs. Kept the group tight to the two runtime packages. Rejected.
+
+### Trade-offs
+
+Grouped PRs bump both packages at once, so a regression in either lands together — acceptable, since they must move in lockstep regardless. Patch/minor react releases are low-risk and remain gated by the full Jest + cross-browser E2E suite.
 
 ---
 
