@@ -92,9 +92,9 @@ A rejection usually means the **oracle** is wrong, not just the finding — so e
 
 ## 7. Target environment & auth
 
-- **Frontend** on **port 4000** (`npm run dev -- -p 4000`) — the operator's deliberate choice. The committed `playwright.config.ts` webServer default is `3000` and is CI-coupled, so it is left unchanged; the e2e baseline is pointed at 4000 via `PLAYWRIGHT_BASE_URL=http://localhost:4000`.
+- **Frontend** on **port 3000** (`npm run dev`) — matching the committed `playwright.config.ts` webServer default and CI, so the e2e baseline reuses the running dev server (`reuseExistingServer: true`) with no `PLAYWRIGHT_BASE_URL` override.
 - **Backend** on **port 5255** (`dotnet run --project backend/src/AIEnterprisePatterns.Api`) with its seeded SQLite (6 patterns / 18 tags) — data-dependent flows (listing, detail, vote) need it.
-- **Auth.** Set `AUTH_SECRET` before starting the frontend so `e2e/global.setup.ts` writes the synthetic session (`e2e/.auth/admin.json`, **Admin** role — which satisfies the `RequireEditor` gate). The live MCP context is **unauthenticated** (the Auth.js cookie is `httpOnly`, not injectable from page JS), so it verifies the **unauth→redirect** invariant directly; the **authenticated render** of protected surfaces is covered by the e2e baseline (`e2e/authenticated-flows.spec.ts`, which loads the storage state via `test.use`). This split avoids the false "blank page" finding on a correctly-gated route.
+- **Auth.** Set `AUTH_SECRET` in `.env.local`; `playwright.config.ts` loads it (via `@next/env`) so `e2e/global.setup.ts` mints the synthetic session (`e2e/.auth/admin.json`, **Admin** role — which satisfies the `RequireEditor` gate). The live MCP context is **unauthenticated** (the Auth.js cookie is `httpOnly`, not injectable from page JS), so it verifies the **unauth→redirect** invariant directly; the **authenticated render** of protected surfaces is covered by the e2e baseline (`e2e/authenticated-flows.spec.ts`, which loads the storage state via `test.use`). This split avoids the false "blank page" finding on a correctly-gated route.
 
 ---
 
