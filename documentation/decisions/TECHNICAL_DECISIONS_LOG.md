@@ -1,6 +1,6 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-03 (added on-demand browser bug-sweep tooling — Decision 72)
+**Last Updated:** 2026-06-03 (added on-demand browser bug-sweep tooling — Decision 72; revised its frontend port 4000→3000 to align with `playwright.config.ts`/CI)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
@@ -36,7 +36,7 @@ Add a `/bug-sweep` skill + a `bug-sweep-auditor` subagent + a living ledger, ada
 - **Evidence bar + reward-zero.** A finding requires a concrete `observed ≠ expected` delta **and** an oracle cite, or it is dropped as a hunch. Zero findings on a clean run is an explicit success; the 10-finding budget is a ceiling, never a quota. FP-rate (rejected-as-false-positive ÷ reported) is the convergence metric.
 - **Living ledger + triage.** A single `BUG_SWEEP_FINDINGS.md` holds `Run log` + `Open`/`Fixed`/`Rejected`; the `Rejected` section is the suppression memory the auditor loads each run. A `triage` mode accepts/rejects candidates. Only the skill writes the ledger; rows trace 1:1 to returned auditor findings (no speculative rows).
 - **Auth scope.** Public + protected surfaces. The live MCP context is unauthenticated (the Auth.js cookie is `httpOnly`), so it verifies the unauth→`/login` redirect invariant directly; the authenticated render is covered by the e2e baseline (`authenticated-flows.spec.ts` loads `e2e/.auth/admin.json`).
-- **Port.** Frontend on **4000** per operator preference; the CI-coupled `playwright.config.ts` webServer default (3000) is left unchanged, and the e2e baseline is pointed at 4000 via `PLAYWRIGHT_BASE_URL`. Backend on 5255.
+- **Port.** Frontend on **3000** — matching the CI-coupled `playwright.config.ts` webServer default, so the e2e baseline reuses the running dev server (`reuseExistingServer: true`) with no `PLAYWRIGHT_BASE_URL` override. Backend on 5255. *(Revised 2026-06-03: originally 4000 per operator preference; the first run showed the 4000/3000 split made Playwright's `reuseExistingServer` probe the wrong port and collide with the running dev server, so the port was aligned to 3000.)*
 
 ### Rationale
 
@@ -54,10 +54,10 @@ The two halves cover complementary defect classes: the e2e baseline is reproduci
 ### Consequences
 
 - On-demand only (not wired into CI) — a deliberate non-goal this iteration.
-- Requires the local stack up (frontend 4000 + backend 5255) and `AUTH_SECRET` set for protected-surface coverage; a Step-2 preflight halts otherwise.
+- Requires the local stack up (frontend 3000 + backend 5255) and `AUTH_SECRET` set for protected-surface coverage; a Step-2 preflight halts otherwise.
 - Accessibility and brand/visual oracle layers are staged, not built — a future opt-in.
 - A found-and-fixed bug becomes a permanent regression guard only when someone encodes it as a new e2e spec (the "harden" follow-up).
-- The `playwright.config.ts` webServer default (3000) differs from the operator's dev port (4000); the baseline overrides via `PLAYWRIGHT_BASE_URL`. If Playwright spawns a redundant 3000 dev server it is harmless (tests target 4000).
+- The frontend dev port (3000) matches the `playwright.config.ts` webServer default, so the e2e baseline reuses the running dev server (`reuseExistingServer: true`) — no redundant server, no `PLAYWRIGHT_BASE_URL` override.
 
 ### Files Changed
 
@@ -69,7 +69,7 @@ The two halves cover complementary defect classes: the e2e baseline is reproduci
 
 ### Tests Added
 
-- None (tooling/documentation change). Verification is the skill's own discipline: skill discovery resolves `/bug-sweep`; the preflight halts with servers down; a smoke run produces schema-valid auditor JSON and a ledger row; reward-zero holds on a clean surface; the triage round-trip moves a finding to `Rejected` + suppresses it on the next run. Live-stack verification steps require the operator to bring up the frontend (4000) + backend (5255) with `AUTH_SECRET` set.
+- None (tooling/documentation change). Verification is the skill's own discipline: skill discovery resolves `/bug-sweep`; the preflight halts with servers down; a smoke run produces schema-valid auditor JSON and a ledger row; reward-zero holds on a clean surface; the triage round-trip moves a finding to `Rejected` + suppresses it on the next run. Live-stack verification steps require the operator to bring up the frontend (3000) + backend (5255) with `AUTH_SECRET` set.
 
 ---
 

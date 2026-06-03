@@ -68,18 +68,18 @@ Each surface is `{route, auth, oracle_refs[], checks[]}`. `auth: none` drives un
 `Read` `BUG_SWEEP_FINDINGS.md`. Build `suppressions[]` as `{surface, signature}` from every row in the `Rejected` section.
 
 ### 2. Stack preflight — HARD gate
-Check the frontend (port **4000**) and backend are reachable (PowerShell):
+Check the frontend (port **3000**) and backend are reachable (PowerShell):
 ```powershell
-try { $null = Invoke-WebRequest http://localhost:4000 -UseBasicParsing -TimeoutSec 5; $null = Invoke-WebRequest http://localhost:5255/health -UseBasicParsing -TimeoutSec 5; "preflight-ok" } catch { "preflight-fail: $($_.Exception.Message)" }
+try { $null = Invoke-WebRequest http://localhost:3000 -UseBasicParsing -TimeoutSec 5; $null = Invoke-WebRequest http://localhost:5255/health -UseBasicParsing -TimeoutSec 5; "preflight-ok" } catch { "preflight-fail: $($_.Exception.Message)" }
 ```
 If the result is not `preflight-ok`, **halt** and print verbatim:
 
-> Bug-sweep needs the local stack up. In one shell (repo root): `npm run dev -- -p 4000`. In another: `dotnet run --project backend/src/AIEnterprisePatterns.Api`. Set `AUTH_SECRET` (`openssl rand -base64 32`) before starting the frontend so `e2e/global.setup.ts` writes the synthetic session used for protected surfaces. Data-dependent flows (patterns list, detail, vote) need the backend's seeded SQLite (6 patterns / 18 tags). Then re-run `/bug-sweep`.
+> Bug-sweep needs the local stack up. In one shell (repo root): `npm run dev`. In another: `dotnet run --project backend/src/AIEnterprisePatterns.Api`. Ensure `AUTH_SECRET` is set in `.env.local` (`openssl rand -base64 32`) — `playwright.config.ts` loads it so `e2e/global.setup.ts` mints the synthetic session used for protected surfaces. Data-dependent flows (patterns list, detail, vote) need the backend's seeded SQLite (6 patterns / 18 tags). Then re-run `/bug-sweep`.
 
-Do not proceed past a failed preflight. The frontend port is **4000** by deliberate operator choice; the committed `playwright.config.ts` webServer default is `3000` (CI-coupled — left unchanged), so the e2e baseline is pointed at 4000 via `PLAYWRIGHT_BASE_URL` (Step 3).
+Do not proceed past a failed preflight. The frontend runs on **3000** — matching the committed `playwright.config.ts` webServer default and CI — so the e2e baseline reuses the running dev server (`reuseExistingServer: true`) with no `PLAYWRIGHT_BASE_URL` override needed.
 
 ### 3. Dispatch the auditor
-`findings_budget = 10`. Dispatch `bug-sweep-auditor` via the `Agent` tool over the surface inventory in batches of **≤6 surfaces**. Pass each batch `{surfaces[], suppressions[], findings_budget, base_url: "http://localhost:4000", auth_storage_state: "e2e/.auth/admin.json", e2e_baseline}`. Set `e2e_baseline: true` **only on the first batch** (the suite runs once, via `PLAYWRIGHT_BASE_URL=http://localhost:4000 npm run test:e2e -- --project=chromium`); `false` on every later batch.
+`findings_budget = 10`. Dispatch `bug-sweep-auditor` via the `Agent` tool over the surface inventory in batches of **≤6 surfaces**. Pass each batch `{surfaces[], suppressions[], findings_budget, base_url: "http://localhost:3000", auth_storage_state: "e2e/.auth/admin.json", e2e_baseline}`. Set `e2e_baseline: true` **only on the first batch** (the suite runs once, via `npm run test:e2e -- --project=chromium` — `playwright.config.ts` already defaults to port 3000 and reuses the running dev server); `false` on every later batch.
 
 **Dispatch SEQUENTIALLY — one batch, read its return, then decide the next.** After each batch returns, subtract its `findings.length` from `findings_budget`. Stop dispatching when `findings_budget` reaches 0 OR the queue is exhausted. On a subagent `result: halt`, surface it verbatim and stop. Do **not** fire all batches in one parallel block — the budget drawdown and the stop-on-halt rule are between-batch control flow that only work with each result in hand before the next dispatch. Do **not** write any `BSW-NNNN` row until Step 4, and only from a *returned* `findings[]` entry.
 
@@ -117,5 +117,5 @@ Fill the most-recent open `Run log` row's `Accepted`, `Rejected (FP)` (= count r
 - **Never `git commit` / `git add`.** Report what changed; let the operator commit.
 - **The auditor is the only browser-driver.** This skill never drives Playwright itself.
 - **Reward-zero.** Few or zero findings is success. Never instruct the auditor to "find more"; never lower the evidence bar to fill the queue.
-- **Stack-gated.** Run mode does nothing useful without the local stack up on port 4000 + 5255; the Step-2 preflight halt is load-bearing, not advisory.
+- **Stack-gated.** Run mode does nothing useful without the local stack up on port 3000 + 5255; the Step-2 preflight halt is load-bearing, not advisory.
 - **No speculative rows.** Every ledger row traces to a returned auditor finding.

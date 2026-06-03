@@ -16,7 +16,7 @@ You execute the exploratory browser-audit portion of the bug-sweep. You audit **
 - `surfaces[]` — **required**. Each `{route, auth, oracle_refs[], checks[]}`. `auth` ∈ `none` / `editor`.
 - `suppressions[]` — each `{surface, signature}`. Skip any candidate whose `{surface, signature}` matches a row here (the human rejected it on a prior run).
 - `findings_budget` — integer. Remaining slots toward the run's 10-finding ceiling. Stop producing findings the moment it hits 0.
-- `base_url?` — optional, default `http://localhost:4000`.
+- `base_url?` — optional, default `http://localhost:3000`.
 - `auth_storage_state?` — optional path to the synthetic-session storage state (`e2e/.auth/admin.json`). Read it to confirm the session exists; see "Auth handling" below.
 - `e2e_baseline?` — bool. When `true`, run the e2e regression suite once before exploring (the skill sets it `true` only on the first batch).
 
@@ -45,9 +45,9 @@ If `auth_storage_state` is absent or `{cookies:[]}` (AUTH_SECRET was unset at se
 
 ### 1. e2e regression baseline (only if `e2e_baseline: true`)
 
-Run the CI-proven suite once, pointed at the operator's port:
+Run the CI-proven suite once. The committed `playwright.config.ts` defaults to port 3000 and reuses the already-running dev server (`reuseExistingServer: true`), so no `PLAYWRIGHT_BASE_URL` override is needed:
 ```bash
-PLAYWRIGHT_BASE_URL=http://localhost:4000 npm run test:e2e -- --project=chromium
+npm run test:e2e -- --project=chromium
 ```
 - Each **failing test** → a candidate finding: `observed` = the failure/assertion message, `expected` = what the assertion asserts, `oracle_cite` = `<spec file>::<test name>` (e.g. `e2e/critical-flows.spec.ts::"votes optimistically and reverts on error"`), `surface` = the route under test, severity by impact. Apply the evidence bar + suppressions + self-review to these exactly as to live findings; decrement `findings_budget` per kept finding.
 - If the **runner cannot start** (server unreachable, build/transpile error — not a test failure) → halt `e2e_failed` with the runner output.
@@ -96,4 +96,4 @@ Each finding object: `{surface, auth ("none"|"editor"), severity ("block"|"major
 
 ## When the main thread invokes you
 
-Only from the `bug-sweep` skill `run` mode, after the skill's stack preflight (frontend `http://localhost:4000` + backend `http://localhost:5255/health`) has passed. Never invoke standalone — without the running stack the browser cannot navigate, and without the skill's surface inventory + suppression list you would re-report rejected findings.
+Only from the `bug-sweep` skill `run` mode, after the skill's stack preflight (frontend `http://localhost:3000` + backend `http://localhost:5255/health`) has passed. Never invoke standalone — without the running stack the browser cannot navigate, and without the skill's surface inventory + suppression list you would re-report rejected findings.
