@@ -116,7 +116,11 @@
       "Read(//c/Users/Users/sandr/Documents/Projects/AIEnterprisePatterns/**)",
       "Bash(az keyvault:*)",
       "Bash(az mysql:*)",
-      "Bash(az containerapp:*)"
+      "Bash(az containerapp:*)",
+      "Bash(npm view *)",
+      "Bash(git stash *)",
+      "Bash(npm run test:e2e:*)",
+      "Bash(PLAYWRIGHT_BASE_URL=http://localhost:4000 npm run test:e2e:*)"
     ],
     "additionalDirectories": [
       "C:\\Users\\sandr\\Documents\\Projects\\AIEnterprisePatterns\\cms\\src\\components\\shared",

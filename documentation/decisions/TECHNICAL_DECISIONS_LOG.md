@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-02 (fixed backend Alpine globalization-invariant SQL failure — Decision 71)
+**Last Updated:** 2026-06-03 (added on-demand browser bug-sweep tooling — Decision 72)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**71 active decisions | 0 archived**
+**72 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,63 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 72: On-demand browser bug-sweep (hybrid e2e + Playwright-MCP, Opus auditor, living ledger + triage)
+
+**Date:** 2026-06-03
+**Title:** Adopt an on-demand, convergent browser bug-sweep that pairs the CI-proven e2e suite with live Playwright-MCP exploration, driven by a read-only Opus auditor, with a living findings ledger and a human triage loop
+**Category:** Testing
+**Status:** Active
+
+### Context / Problem
+
+The project's automated tests (Jest, xUnit, the Playwright e2e suite) are all **assertion-bound** — they only fail on behavior someone already encoded. Nothing in the toolchain *exercises the whole platform in a browser to surface the unexpected* — regressions and defects in flows that have no dedicated assertion. We wanted an on-demand way to "sweep the whole app for bugs" before a release, without standing up roadmap/session machinery the project doesn't have. A capable version existed in a sibling project (Allegrow) but was heavily coupled to that project's roadmap, session-discipline files, per-surface git-SHA prioritization, and a custom browser tool — none of which applies here.
+
+### Decision
+
+Add a `/bug-sweep` skill + a `bug-sweep-auditor` subagent + a living ledger, adapting only the valuable, project-agnostic core:
+
+- **Hybrid browser driver.** Run `npm run test:e2e` (Chromium) once per run as a deterministic regression baseline, then explore beyond it **live via Playwright MCP** (model-in-the-loop, adaptive). The baseline catches encoded regressions; live exploration finds the unencoded.
+- **Read-only Opus auditor as the only browser-driver.** The auditor (`model: opus`, tools `Read/Bash/Grep/Glob` + `mcp__playwright__browser_*`, **no** `Edit`/`Write`) drives the browser and returns schema-valid candidate findings. Opus because the delegation risk is *judgment* — not padding the budget, and not mistaking a correct redirect for a defect.
+- **Evidence bar + reward-zero.** A finding requires a concrete `observed ≠ expected` delta **and** an oracle cite, or it is dropped as a hunch. Zero findings on a clean run is an explicit success; the 10-finding budget is a ceiling, never a quota. FP-rate (rejected-as-false-positive ÷ reported) is the convergence metric.
+- **Living ledger + triage.** A single `BUG_SWEEP_FINDINGS.md` holds `Run log` + `Open`/`Fixed`/`Rejected`; the `Rejected` section is the suppression memory the auditor loads each run. A `triage` mode accepts/rejects candidates. Only the skill writes the ledger; rows trace 1:1 to returned auditor findings (no speculative rows).
+- **Auth scope.** Public + protected surfaces. The live MCP context is unauthenticated (the Auth.js cookie is `httpOnly`), so it verifies the unauth→`/login` redirect invariant directly; the authenticated render is covered by the e2e baseline (`authenticated-flows.spec.ts` loads `e2e/.auth/admin.json`).
+- **Port.** Frontend on **4000** per operator preference; the CI-coupled `playwright.config.ts` webServer default (3000) is left unchanged, and the e2e baseline is pointed at 4000 via `PLAYWRIGHT_BASE_URL`. Backend on 5255.
+
+### Rationale
+
+The two halves cover complementary defect classes: the e2e baseline is reproducible and CI-proven but can only fail on existing assertions; MCP adds adaptive, model-in-the-loop discovery of the unexpected. Making the auditor read-only and the skill the sole writer makes speculative findings structurally impossible. The evidence bar + reward-zero keep the false-positive rate — the load-bearing health metric — low.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Full port of the Allegrow bug-sweep | Coupled to that project's roadmap/session machinery (parallelism-map cross-checks, per-surface `Last SHA`, `next_prompts.md` fix-prompt authoring, custom `observe.ts`) — none applies here. |
+| e2e-runner only (no MCP) | Assertion-bound: can only fail on behavior already encoded; loses the exploratory discovery that is the whole point. |
+| Playwright-MCP only (no e2e baseline) | Loses the CI-proven, deterministic regression baseline; exploration alone has no reproducible floor. |
+| CLI + model-authored throwaway probe scripts | Recovers some observation richness but loses the live adaptive loop and adds plumbing/latency for less than MCP gives. |
+
+### Consequences
+
+- On-demand only (not wired into CI) — a deliberate non-goal this iteration.
+- Requires the local stack up (frontend 4000 + backend 5255) and `AUTH_SECRET` set for protected-surface coverage; a Step-2 preflight halts otherwise.
+- Accessibility and brand/visual oracle layers are staged, not built — a future opt-in.
+- A found-and-fixed bug becomes a permanent regression guard only when someone encodes it as a new e2e spec (the "harden" follow-up).
+- The `playwright.config.ts` webServer default (3000) differs from the operator's dev port (4000); the baseline overrides via `PLAYWRIGHT_BASE_URL`. If Playwright spawns a redundant 3000 dev server it is harmless (tests target 4000).
+
+### Files Changed
+
+- `.claude/skills/bug-sweep/SKILL.md` — new orchestrator skill (run / triage modes, canonical surface inventory, preflight gate, ledger writes).
+- `.claude/agents/bug-sweep-auditor.md` — new read-only Opus auditor subagent (e2e baseline + live MCP exploration, output contract).
+- `documentation/testing/BUG_SWEEP_FINDINGS.md` — new living ledger (Run log + Open/Fixed/Rejected + suppression memory).
+- `documentation/testing/BUG_SWEEP_DESIGN.md` — new methodology + rationale + scope boundary.
+- `.claude/settings.json` — allow the e2e baseline + preflight commands so a run doesn't prompt mid-flight.
+
+### Tests Added
+
+- None (tooling/documentation change). Verification is the skill's own discipline: skill discovery resolves `/bug-sweep`; the preflight halts with servers down; a smoke run produces schema-valid auditor JSON and a ledger row; reward-zero holds on a clean surface; the triage round-trip moves a finding to `Rejected` + suppresses it on the next run. Live-stack verification steps require the operator to bring up the frontend (4000) + backend (5255) with `AUTH_SECRET` set.
 
 ---
 
