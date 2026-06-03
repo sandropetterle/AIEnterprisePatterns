@@ -14,7 +14,7 @@ Each `/bug-sweep` run appends one row. `Accepted` / `Rejected (FP)` / `FP-rate` 
 
 | Run | Date | Surfaces audited | Reported | Accepted | Rejected (FP) | FP-rate |
 |-----|------|------------------|----------|----------|---------------|---------|
-| _(none yet)_ | | | | | | |
+| RUN-20260603 | 2026-06-03 | 9 (`/`, `/patterns`, `/patterns/[slug]`, `/about`, `/docs`, `/login`, 404 bad-slug, `/patterns/new`, `/patterns/[slug]/edit`) | 1 (1 minor) | | | |
 
 ---
 
@@ -24,7 +24,7 @@ Candidates awaiting triage, plus accepted-but-not-yet-fixed (with a remediation 
 
 | ID | Run | Surface | Auth | Severity | Status | Observed → Expected | Oracle cite | Signature |
 |----|-----|---------|------|----------|--------|---------------------|-------------|-----------|
-| _(none yet)_ | | | | | | | | |
+| BSW-0001 | RUN-20260603 | `/about` (systemic: also `/docs`, `/patterns/new`, `/patterns/[slug]`) | none | minor | candidate | Document `<title>` doubled — e.g. `About \| AI Enterprise Patterns \| AI Enterprise Patterns` (same on `/docs`, `/patterns/new`, `/patterns/[slug]`) → expected single suffix `About \| AI Enterprise Patterns`. Root layout `title.template '%s \| AI Enterprise Patterns'` (`app/layout.tsx:17`) appends the suffix once; affected pages hardcode `\| AI Enterprise Patterns` into their own `title` (`app/about/page.tsx:10`, `app/docs/page.tsx:23`, `app/patterns/new/page.tsx:10`, `app/patterns/[slug]/page.tsx:55`), so it doubles. e2e title tests miss it (assert via `toContain`). | FUNCTIONAL_REQUIREMENTS.md §1 (Basic SEO) + `app/layout.tsx` `title.template` convention | page-title-suffix-doubled |
 
 ---
 
