@@ -168,6 +168,14 @@ describe('CMS Query Functions', () => {
       expect(result.header?.title).toBe('AI Enterprise Patterns Library')
       expect(result.content).toHaveLength(4)
     })
+
+    it('fallback seo.title is bare (layout template appends the site suffix)', async () => {
+      // BSW-0001: a hardcoded "| AI Enterprise Patterns" here doubles in the
+      // rendered <title> because app/layout.tsx title.template appends it again.
+      mockStrapiNetworkError()
+      const result = await getAboutPage()
+      expect(result.seo?.title).toBe('About')
+    })
   })
 
   // ─── getDocsPage ──────────────────────────────────────────────────────────

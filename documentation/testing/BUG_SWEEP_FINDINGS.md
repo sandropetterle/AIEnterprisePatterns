@@ -1,6 +1,6 @@
 # Bug-Sweep Findings Ledger
 
-**Last Updated:** 2026-06-03
+**Last Updated:** 2026-06-04
 **Audience:** Sandro; anyone running `/bug-sweep`
 **Purpose:** Living ledger for the on-demand browser bug-sweep. Records every run, the open candidates awaiting triage, accepted-and-fixed findings, and the rejected findings that form the suppression memory. Methodology: [BUG_SWEEP_DESIGN.md](./BUG_SWEEP_DESIGN.md).
 
@@ -25,7 +25,6 @@ Candidates awaiting triage, plus accepted-but-not-yet-fixed (with a remediation 
 
 | ID | Run | Surface | Auth | Severity | Status | Observed → Expected | Oracle cite | Signature |
 |----|-----|---------|------|----------|--------|---------------------|-------------|-----------|
-| BSW-0001 | RUN-20260603 | `/about` (systemic: also `/docs`, `/patterns/new`, `/patterns/[slug]`) | none | minor | accepted — drop the hardcoded `\| AI Enterprise Patterns` suffix from each page's own `title`; let `app/layout.tsx` `title.template` append it once; owner: frontend | Document `<title>` doubled — e.g. `About \| AI Enterprise Patterns \| AI Enterprise Patterns` (same on `/docs`, `/patterns/new`, `/patterns/[slug]`) → expected single suffix `About \| AI Enterprise Patterns`. Root layout `title.template '%s \| AI Enterprise Patterns'` (`app/layout.tsx:17`) appends the suffix once; affected pages hardcode `\| AI Enterprise Patterns` into their own `title` (`app/about/page.tsx:10`, `app/docs/page.tsx:23`, `app/patterns/new/page.tsx:10`, `app/patterns/[slug]/page.tsx:55`), so it doubles. e2e title tests miss it (assert via `toContain`). | FUNCTIONAL_REQUIREMENTS.md §1 (Basic SEO) + `app/layout.tsx` `title.template` convention | page-title-suffix-doubled |
 | BSW-0002 | RUN-20260603b | `/patterns/[slug]` (repro: `/patterns/clean-architecture-ai-refactoring`) | none | major | accepted — add the local API origin (`http://localhost:5255`, derived from `NEXT_PUBLIC_API_BASE_URL` in non-prod) to `connect-src` in `next.config.mjs:41`; owner: frontend | Clicking the vote button fires `POST http://localhost:5255/api/patterns/{id}/vote`, blocked by the CSP `connect-src` directive (`next.config.mjs:41` allow-lists `*.azurecontainerapps.io`/`*.azurewebsites.net`/`*.ciamlogin.com` but not the configured local API origin); 2 `console.error` "Refused to connect … violates Content Security Policy" emitted, vote count stays 42 — no optimistic update, no revert toast → expected the vote POST reaches the API and the count updates optimistically with revert-on-error, with no console.error and no CSP-blocked request. | FUNCTIONAL_REQUIREMENTS.md §3 (Voting: optimistic UI + revert-on-error) + CLAUDE.md (VotingButton optimistic UI) + cross-cutting invariants 1 (no console.error) & 2 (no blocked request); `next.config.mjs:41` | vote-csp-connect-src-blocked |
 | BSW-0003 | RUN-20260603b | `/patterns` | none | minor | accepted — clamp an out-of-range `page` to the last valid page (or show a per-page "no results" state, not the empty-corpus message); owner: frontend | `/patterns?page=50` (or `?page=999`) renders the status live region "6 patterns found" while the body simultaneously shows "No patterns available — There are no patterns yet. Check back later."; the out-of-range page is not clamped and the empty-corpus message is factually false (6 patterns exist) → expected an out-of-range page clamps to a valid page (showing results), or at minimum does not announce "6 patterns found" alongside a false "no patterns yet" empty state. | FUNCTIONAL_REQUIREMENTS.md §2 (Pagination) + cross-cutting invariant 5 (empty/loading states resolve sensibly, not contradictory) | patterns-out-of-range-page-contradicts-count |
 
@@ -37,7 +36,7 @@ Accepted findings whose fix has landed.
 
 | ID | Surface | Severity | Finding | Fixed on |
 |----|---------|----------|---------|----------|
-| _(none yet)_ | | | | |
+| BSW-0001 | `/about` (systemic: also `/docs`, `/patterns/new`, `/patterns/[slug]`, `/patterns/[slug]/edit`) | minor | Document `<title>` doubled the site suffix (`About \| AI Enterprise Patterns \| AI Enterprise Patterns`) — pages hardcoded `\| AI Enterprise Patterns` into their own `title` while `app/layout.tsx` `title.template` appends it again. Fix: dropped the suffix from the five page titles + the about-page CMS fallback `seo.title` (`lib/cms/queries.ts`). Hardened: `__tests__/seo/page-titles.test.ts` (per-page bare-title assertions), `lib/cms/__tests__/queries.test.ts` (fallback `seo.title` bare — also gates the `cms-sync-fallbacks` workflow's verify step, blocking a regressing sync PR), and per-route suffix-count e2e tests in `e2e/critical-flows.spec.ts`. Residual: the Strapi backup content (`backups/cms/2026-04-11`) still carries the suffixed title — correct it in Strapi at the next CMS session and re-backup, else a future fallback sync PR will fail its test gate. | 2026-06-04 |
 
 ---
 

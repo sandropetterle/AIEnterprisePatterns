@@ -285,7 +285,7 @@ export async function getAboutPage(): Promise<CmsAboutPage> {
         "subtitle": "A centralized repository of AI-driven recipes, prompts, and blueprints for enterprise software architecture patterns. Curated by developers, for developers."
       },
       "seo": {
-        "title": "About | AI Enterprise Patterns",
+        "title": "About",
         "description": "Learn about AI Enterprise Patterns Library - a curated collection of AI-driven implementation patterns, prompts, and architectural blueprints for modern software development.",
         "keywords": "about, AI patterns, enterprise architecture, software patterns, AI-assisted development, pattern library",
         "ogTitle": "About | AI Enterprise Patterns",
