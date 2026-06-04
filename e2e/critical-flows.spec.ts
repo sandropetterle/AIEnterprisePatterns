@@ -20,16 +20,66 @@ import { test, expect, type Page, type Locator } from '@playwright/test'
  * the synthetic change event from firing. Using the native HTMLInputElement
  * value setter + manual event dispatch bypasses that and correctly signals
  * React that the controlled value changed.
- *
- * Accepts a Page or a scoped Locator (e.g. desktop-panel container) to avoid
- * strict-mode violations when the same id appears in multiple DOM subtrees.
  */
-async function fillDateInput(root: Page | Locator, selector: string, value: string) {
-  await root.locator(selector).evaluate((el, val: string) => {
+async function fillDateInput(input: Locator, value: string) {
+  await input.evaluate((el, val: string) => {
     Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value')!.set!.call(el, val)
     el.dispatchEvent(new Event('input', { bubbles: true }))
     el.dispatchEvent(new Event('change', { bubbles: true }))
   }, value)
+}
+
+/**
+ * The desktop FilterPanel wrapper, filtered to the visible instance.
+ *
+ * During Next.js soft navigations the outgoing and incoming page subtrees can
+ * briefly coexist in the DOM (the old one hidden), so an unfiltered locator
+ * may resolve to two elements and trip Playwright's strict mode — observed in
+ * CI webkit as "#date-to resolved to 2 elements" (issue #68).
+ */
+function desktopFilterPanel(page: Page): Locator {
+  return page
+    .locator('[data-testid="desktop-filter-panel"]')
+    .filter({ visible: true })
+}
+
+/**
+ * Wait until the desktop FilterPanel is hydrated and interactive.
+ *
+ * Server-rendered HTML is visible before React attaches event handlers, so
+ * interactions fired on a merely *visible* panel are silently lost — the root
+ * cause of the deterministic local failures in issue #68. FilterPanel sets
+ * data-hydrated="true" in an effect, which only runs after hydration, making
+ * it a reliable readiness signal. Call this after every goto() before
+ * interacting with the panel.
+ */
+async function waitForFilterPanelHydrated(page: Page): Promise<Locator> {
+  const panel = desktopFilterPanel(page)
+  await expect(panel.locator('[data-hydrated="true"]')).toBeVisible({
+    timeout: 15_000,
+  })
+  return panel
+}
+
+/**
+ * Click a FilterPanel tag checkbox until the selection sticks.
+ *
+ * Next.js streams the RSC payload of the previous filter navigation after the
+ * URL has already updated; a click that lands while that payload is still
+ * committing can hit a subtree that is about to be swapped and be silently
+ * dropped (issue #68). Retry until the checkbox reflects the selection — the
+ * isChecked() guard prevents a retry from toggling the tag back off.
+ */
+async function selectTag(checkbox: Locator) {
+  // Inner timeout must exceed the worst-case navigation commit (~8s under
+  // parallel-worker load) — a faster retry re-pushes the same navigation and
+  // restarts it, starving the commit indefinitely.
+  await expect(async () => {
+    if (!(await checkbox.isChecked())) {
+      await checkbox.click()
+    }
+    await expect(checkbox).toBeChecked({ timeout: 8_000 })
+  }).toPass({ timeout: 32_000 })
 }
 
 // ---------------------------------------------------------------------------
@@ -331,25 +381,35 @@ test.describe('Advanced Search — Date Range Filter', () => {
   // DateRangeFilter lives inside FilterPanel which is desktop-only (lg:block).
   // Desktop Chrome viewport (1280×720) satisfies the lg breakpoint.
   //
-  // SSR renders both the desktop FilterPanel and the Sheet's FilterPanel into the
-  // HTML, producing two #date-from / #date-to inputs in the DOM. We scope all
-  // locators to data-testid="desktop-filter-panel" to avoid strict-mode violations.
+  // Date input ids are useId()-generated since issue #68, so lookups go through
+  // the accessible label, scoped to the visible desktop panel.
+  //
+  // Interactions retry until their effect is observable (see selectTag docs for
+  // the swallowed-interaction mechanism), so allow extra headroom on top of the
+  // default 30s when the machine is under parallel-worker load.
+  test.describe.configure({ timeout: 60_000 })
 
   test.beforeEach(async ({ page }) => {
     await page.goto('/patterns')
-    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
-    // Wait for #date-from to be visible — stronger signal than the heading alone.
-    // The heading appears in server-rendered HTML before React hydrates, but
-    // #date-from visible confirms FilterPanel is mounted with event handlers
-    // attached. This prevents a race where page.fill() runs before onChange is wired.
-    await expect(desktopPanel.locator('#date-from')).toBeVisible({ timeout: 10_000 })
+    // Wait for hydration, not just visibility — interactions fired before React
+    // attaches handlers are silently lost (issue #68).
+    await waitForFilterPanelHydrated(page)
   })
 
   test('setting a From date updates the URL with dateFrom parameter', async ({ page }) => {
-    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
-    await fillDateInput(desktopPanel, '#date-from', '2024-01-01')
-    await page.waitForURL(/dateFrom=2024-01-01/, { timeout: 10_000 })
-    expect(page.url()).toContain('dateFrom=2024-01-01')
+    const desktopPanel = desktopFilterPanel(page)
+    const fromInput = desktopPanel.getByLabel('From', { exact: true })
+
+    // Retry the fill until the URL reflects it — the synthetic change event can
+    // be swallowed by an in-flight RSC commit (issue #68); re-filling the same
+    // value is idempotent. toHaveURL (assertion-based polling) — waitForURL can
+    // miss Next.js pushState soft navigations. The inner timeout must exceed
+    // the worst-case navigation commit (~8s under parallel-worker load); a
+    // faster retry re-pushes and restarts the navigation, starving the commit.
+    await expect(async () => {
+      await fillDateInput(fromInput, '2024-01-01')
+      await expect(page).toHaveURL(/dateFrom=2024-01-01/, { timeout: 8_000 })
+    }).toPass({ timeout: 32_000 })
   })
 
   test('setting a To date updates the URL with dateTo parameter', async ({ page }) => {
@@ -357,29 +417,34 @@ test.describe('Advanced Search — Date Range Filter', () => {
     // Without a valid min, Chromium silently rejects fill() on type="date" inputs
     // and the React onChange never fires.
     await page.goto('/patterns?dateFrom=2024-01-01')
-    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
-    await expect(desktopPanel.locator('#date-to')).toBeVisible({ timeout: 10_000 })
+    const desktopPanel = await waitForFilterPanelHydrated(page)
+    const toInput = desktopPanel.getByLabel('To', { exact: true })
 
-    await fillDateInput(desktopPanel, '#date-to', '2024-12-31')
-    await page.waitForURL(/dateTo=2024-12-31/, { timeout: 10_000 })
-    expect(page.url()).toContain('dateTo=2024-12-31')
+    await expect(async () => {
+      await fillDateInput(toInput, '2024-12-31')
+      await expect(page).toHaveURL(/dateTo=2024-12-31/, { timeout: 8_000 })
+    }).toPass({ timeout: 32_000 })
   })
 
   test('Clear dates button removes date parameters from URL', async ({ page }) => {
     // Navigate directly with both params pre-set — avoids relying on fill()
     // to set up state; only tests the Clear button interaction itself.
     await page.goto('/patterns?dateFrom=2024-01-01&dateTo=2024-12-31')
-    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
-    await expect(
-      desktopPanel.getByRole('heading', { name: 'Filters' })
-    ).toBeVisible({ timeout: 10_000 })
+    const desktopPanel = await waitForFilterPanelHydrated(page)
 
     const clearDatesBtn = desktopPanel.getByRole('button', { name: /Clear dates/i })
     await expect(clearDatesBtn).toBeVisible({ timeout: 5_000 })
-    await clearDatesBtn.click()
 
-    await page.waitForURL((url) => !url.href.includes('dateFrom='), { timeout: 20_000 })
-    expect(page.url()).not.toContain('dateFrom=')
+    // Retry until the URL is clean — the visibility guard prevents re-clicking
+    // once the first click registered (the button unmounts with the params).
+    // Inner timeout must exceed the worst-case navigation commit (~8s under
+    // parallel-worker load) so retries don't restart the navigation.
+    await expect(async () => {
+      if (await clearDatesBtn.isVisible()) {
+        await clearDatesBtn.click()
+      }
+      await expect(page).not.toHaveURL(/dateFrom=/, { timeout: 8_000 })
+    }).toPass({ timeout: 32_000 })
     expect(page.url()).not.toContain('dateTo=')
   })
 })
@@ -389,35 +454,28 @@ test.describe('Advanced Search — Date Range Filter', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Advanced Search — Tag Mode Toggle', () => {
-  // SSR renders both desktop FilterPanel and the Sheet's FilterPanel, producing
-  // duplicate checkbox ids/roles in the DOM. Scope all interactions to the desktop
-  // panel via data-testid="desktop-filter-panel" to avoid strict-mode violations
-  // and ensure clicks land on the visible, interactive instance.
+  // Scope all interactions to the visible desktop panel, wait for hydration
+  // before clicking, and retry interactions until their effect is observable —
+  // see selectTag docs for the swallowed-interaction mechanism (issue #68).
+  test.describe.configure({ timeout: 60_000 })
 
   test('selecting two tags reveals the Any / All toggle', async ({ page }) => {
     await page.goto('/patterns')
-    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
-    await expect(
-      desktopPanel.getByRole('heading', { name: 'Filters' })
-    ).toBeVisible({ timeout: 10_000 })
+    const desktopPanel = await waitForFilterPanelHydrated(page)
 
-    // Select first tag (Clean Architecture)
+    // Select first tag (Clean Architecture); selectTag waits for the checked
+    // state, which confirms FilterPanel re-rendered with the new URL's
+    // selectedTags before we click the second tag. Without that, the second
+    // click would fire while selectedTags is still [], setting tags=CQRS only.
     const firstTag = desktopPanel.getByRole('checkbox', { name: 'Clean Architecture' })
     await expect(firstTag).toBeVisible({ timeout: 5_000 })
-    await firstTag.click()
-    // Use toHaveURL (assertion-based polling) instead of waitForURL (navigation event)
-    // — more reliable with Next.js pushState soft-navigation across all browsers
+    await selectTag(firstTag)
     await expect(page).toHaveURL(/tags=/, { timeout: 10_000 })
-    // Wait for the checkbox to reflect checked state — confirms FilterPanel has
-    // re-rendered with the new URL's selectedTags before we click the second tag.
-    // Without this, the second click fires while selectedTags is still [], causing
-    // the handler to set tags=CQRS only instead of tags=Clean+Architecture,CQRS.
-    await expect(firstTag).toBeChecked({ timeout: 5_000 })
 
     // Select a second tag (CQRS) — toggles comma-separated tags list
     const secondTag = desktopPanel.getByRole('checkbox', { name: 'CQRS' })
     await expect(secondTag).toBeVisible({ timeout: 5_000 })
-    await secondTag.click()
+    await selectTag(secondTag)
     // Wait for URL to reflect both tags before checking toggle
     // — comma may be URL-encoded as %2C (WebKit encodes it; Chromium uses literal comma)
     // — FilterPanel only renders the Any/All toggle when selectedTags.length >= 2
@@ -434,30 +492,30 @@ test.describe('Advanced Search — Tag Mode Toggle', () => {
 
   test('clicking "All" sets tagMode=all in the URL', async ({ page }) => {
     await page.goto('/patterns')
-    const desktopPanel = page.locator('[data-testid="desktop-filter-panel"]')
-    await expect(
-      desktopPanel.getByRole('heading', { name: 'Filters' })
-    ).toBeVisible({ timeout: 10_000 })
+    const desktopPanel = await waitForFilterPanelHydrated(page)
 
     // Pre-select two tags then switch to All mode
     const firstTag = desktopPanel.getByRole('checkbox', { name: 'Clean Architecture' })
     await expect(firstTag).toBeVisible({ timeout: 5_000 })
-    await firstTag.click()
+    await selectTag(firstTag)
     await expect(page).toHaveURL(/tags=/, { timeout: 10_000 })
-    // Wait for checkbox checked state before clicking second tag (see flakiness note above)
-    await expect(firstTag).toBeChecked({ timeout: 5_000 })
 
     const secondTag = desktopPanel.getByRole('checkbox', { name: 'CQRS' })
     await expect(secondTag).toBeVisible({ timeout: 5_000 })
-    await secondTag.click()
+    await selectTag(secondTag)
     await expect(page).toHaveURL(/tags=[^&]*(%2C|,)/i, { timeout: 10_000 })
 
     const allBtn = desktopPanel.getByRole('button', { name: 'All', exact: true })
     await expect(allBtn).toBeVisible({ timeout: 5_000 })
-    await allBtn.click()
-
-    await page.waitForURL(/tagMode=all/, { timeout: 10_000 })
-    expect(page.url()).toContain('tagMode=all')
+    // Retry until the URL reflects the mode — the aria-pressed guard prevents a
+    // retry from re-pushing after the first click registered. Inner timeout
+    // must exceed the worst-case navigation commit (~8s under load).
+    await expect(async () => {
+      if ((await allBtn.getAttribute('aria-pressed')) !== 'true') {
+        await allBtn.click()
+      }
+      await expect(page).toHaveURL(/tagMode=all/, { timeout: 8_000 })
+    }).toPass({ timeout: 32_000 })
   })
 })
 
@@ -512,80 +570,99 @@ test.describe('Recently Viewed Patterns', () => {
 // ---------------------------------------------------------------------------
 
 test.describe('Saved Searches', () => {
+  // SavedSearches lives inside FilterPanel — wait for hydration before
+  // interacting and retry interactions until their effect is observable (see
+  // selectTag docs for the swallowed-interaction mechanism, issue #68). The
+  // save dialog renders in a portal outside the panel, so dialog locators stay
+  // page-scoped.
+  test.describe.configure({ timeout: 60_000 })
+
+  /** Open the save dialog and save the current search under `name`. */
+  async function saveCurrentSearch(page: Page, desktopPanel: Locator, name: string) {
+    const nameInput = page.locator('#search-name')
+
+    // Open the save dialog — guard prevents re-clicking once it is open.
+    await expect(async () => {
+      if (!(await nameInput.isVisible())) {
+        await desktopPanel.getByRole('button', { name: 'Save current' }).click()
+      }
+      await expect(nameInput).toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 20_000 })
+
+    // Fill in the name and confirm — retried as a unit; once the save lands
+    // the dialog closes (guard) and the entry appears in the saved list.
+    const savedList = desktopPanel.getByRole('list', { name: 'Saved searches' })
+    await expect(async () => {
+      if (await nameInput.isVisible()) {
+        await nameInput.fill(name)
+        await page.getByRole('button', { name: 'Save', exact: true }).click()
+      }
+      await expect(savedList.getByText(name)).toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 20_000 })
+  }
+
   test('active filters reveal the "Save current" button', async ({ page }) => {
     // Navigate with a pre-applied category filter.
     await page.goto('/patterns?category=Architecture')
-    await expect(
-      page.getByRole('heading', { name: 'Filters' })
-    ).toBeVisible({ timeout: 10_000 })
+    const desktopPanel = await waitForFilterPanelHydrated(page)
 
     await expect(
-      page.getByRole('button', { name: 'Save current' })
+      desktopPanel.getByRole('button', { name: 'Save current' })
     ).toBeVisible({ timeout: 5_000 })
   })
 
   test('saving a named search persists it in the saved list', async ({ page }) => {
     await page.goto('/patterns?category=Architecture')
-    await expect(
-      page.getByRole('heading', { name: 'Filters' })
-    ).toBeVisible({ timeout: 10_000 })
+    const desktopPanel = await waitForFilterPanelHydrated(page)
 
-    // Open the save dialog.
-    await page.getByRole('button', { name: 'Save current' }).click()
-
-    // Fill in the search name and confirm.
-    await page.fill('#search-name', 'Architecture searches')
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
-
-    // The saved search should now appear in the list.
-    const savedList = page.getByRole('list', { name: 'Saved searches' })
-    await expect(savedList).toBeVisible({ timeout: 5_000 })
-    await expect(savedList.getByText('Architecture searches')).toBeVisible()
+    await saveCurrentSearch(page, desktopPanel, 'Architecture searches')
   })
 
   test('applying a saved search updates the URL with the saved filters', async ({ page }) => {
     // Step 1: save a search while filters are active.
     await page.goto('/patterns?category=Architecture')
-    await expect(
-      page.getByRole('heading', { name: 'Filters' })
-    ).toBeVisible({ timeout: 10_000 })
+    let desktopPanel = await waitForFilterPanelHydrated(page)
 
-    await page.getByRole('button', { name: 'Save current' }).click()
-    await page.fill('#search-name', 'My Architecture')
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await saveCurrentSearch(page, desktopPanel, 'My Architecture')
 
     // Step 2: navigate away to clear all URL params.
     await page.goto('/patterns')
+    desktopPanel = await waitForFilterPanelHydrated(page)
 
     // Step 3: apply the saved search from the sidebar.
-    const savedList = page.getByRole('list', { name: 'Saved searches' })
+    const savedList = desktopPanel.getByRole('list', { name: 'Saved searches' })
     await expect(savedList).toBeVisible({ timeout: 5_000 })
     // exact: true prevents matching the delete button whose aria-label is
     // "Delete saved search: My Architecture" (contains the name as substring).
-    await savedList.getByRole('button', { name: 'My Architecture', exact: true }).click()
-
-    await page.waitForURL(/category=Architecture/, { timeout: 10_000 })
-    expect(page.url()).toContain('category=Architecture')
+    // Applying is idempotent, so the retry needs no guard. Inner timeout must
+    // exceed the worst-case navigation commit (~8s under load).
+    await expect(async () => {
+      await savedList
+        .getByRole('button', { name: 'My Architecture', exact: true })
+        .click()
+      await expect(page).toHaveURL(/category=Architecture/, { timeout: 8_000 })
+    }).toPass({ timeout: 32_000 })
   })
 
   test('deleting a saved search removes it from the list', async ({ page }) => {
     // Save a search first.
     await page.goto('/patterns?category=Architecture')
-    await expect(
-      page.getByRole('heading', { name: 'Filters' })
-    ).toBeVisible({ timeout: 10_000 })
+    const desktopPanel = await waitForFilterPanelHydrated(page)
 
-    await page.getByRole('button', { name: 'Save current' }).click()
-    await page.fill('#search-name', 'Delete Me')
-    await page.getByRole('button', { name: 'Save', exact: true }).click()
+    await saveCurrentSearch(page, desktopPanel, 'Delete Me')
 
-    const savedList = page.getByRole('list', { name: 'Saved searches' })
-    await expect(savedList.getByText('Delete Me')).toBeVisible({ timeout: 5_000 })
-
-    // Delete it.
-    await page.getByRole('button', { name: 'Delete saved search: Delete Me' }).click()
-
-    await expect(savedList.getByText('Delete Me')).not.toBeVisible({ timeout: 5_000 })
+    // Delete it — guard prevents re-clicking once the entry is gone (the list
+    // itself unmounts when the last saved search is removed).
+    const savedList = desktopPanel.getByRole('list', { name: 'Saved searches' })
+    const deleteBtn = desktopPanel.getByRole('button', {
+      name: 'Delete saved search: Delete Me',
+    })
+    await expect(async () => {
+      if (await deleteBtn.isVisible()) {
+        await deleteBtn.click()
+      }
+      await expect(savedList.getByText('Delete Me')).not.toBeVisible({ timeout: 2_000 })
+    }).toPass({ timeout: 20_000 })
   })
 })
 

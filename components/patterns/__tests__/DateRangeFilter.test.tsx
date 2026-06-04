@@ -86,4 +86,30 @@ describe('DateRangeFilter', () => {
     const url = mockPush.mock.calls[0][0] as string
     expect(url).not.toContain('page=')
   })
+
+  // Issue #68: hardcoded id="date-from"/"date-to" produced duplicate ids when
+  // FilterPanel is mounted twice (desktop panel + mobile FilterSheet) — invalid
+  // HTML and ambiguous <label htmlFor> association.
+  it('generates unique input ids across multiple instances', () => {
+    const { container } = render(
+      <>
+        <DateRangeFilter />
+        <DateRangeFilter />
+      </>
+    )
+    const ids = Array.from(
+      container.querySelectorAll('input[type="date"]')
+    ).map((el) => el.id)
+
+    expect(ids).toHaveLength(4)
+    ids.forEach((id) => expect(id).not.toBe(''))
+    expect(new Set(ids).size).toBe(4)
+  })
+
+  it('associates labels with inputs via matching htmlFor/id', () => {
+    render(<DateRangeFilter />)
+    // getByLabelText only resolves when htmlFor matches the input id
+    expect(screen.getByLabelText('From')).toHaveAttribute('type', 'date')
+    expect(screen.getByLabelText('To')).toHaveAttribute('type', 'date')
+  })
 })

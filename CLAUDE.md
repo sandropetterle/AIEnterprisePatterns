@@ -56,7 +56,7 @@ Api/ (Controllers, DTOs, Middleware, Validators)
   ↓ Data/ (Repositories, DbContext, Migrations)
 ```
 - **UnitOfWork**: Registered but unused; PatternService calls `repository.SaveAsync()` directly
-- **Rate Limiting**: `fixed` (100/min), `api` (50/min), `vote` (10/min per IP) — registered via `AddInfrastructure()`
+- **Rate Limiting**: partitioned per client IP — `fixed` (100/min), `api` (300/min), `vote` (10/min); `QueueLimit 0` (fail-fast 429, never queue — a queued request silently stalled SSR renders for up to ~55s, see Decision 75 / issue #68) — registered via `AddInfrastructure()`
 - **PatternMapper**: Dedicated mapper class for DTO transformations
 - **Memory Caching**: IMemoryCache for featured/trending patterns — registered via `AddInfrastructure()`
 - **TimeProvider**: TimeProvider.System injected for testable time — registered via `AddInfrastructure()`
@@ -121,7 +121,7 @@ STRAPI_API_TOKEN=<read-only-api-token> # local dev only; not needed in productio
 
 Base: `http://localhost:5255/api` | Full reference: `documentation/api/`
 
-All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (50/min), vote limit (10/min). POST/PUT patterns → RequireEditor; DELETE → RequireAdmin. `/auth/me` → Authorize. `/health`, `/health/ready` → public.
+All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (300/min per IP), vote limit (10/min per IP). POST/PUT patterns → RequireEditor; DELETE → RequireAdmin. `/auth/me` → Authorize. `/health`, `/health/ready` → public.
 
 ## Frontend Coding Standards
 
@@ -186,7 +186,10 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 - **E2E CI**: build needs `NEXT_PUBLIC_API_BASE_URL` baked in; explicit `npm run start &` + health-poll before e2e
 - Avoid `waitForLoadState('networkidle')` for filtered/search URLs — use element-based waiting instead
 - **webkit date inputs**: `page.fill()` on `type="date"` can be intercepted by webkit's native picker; use `fillDateInput()` helper in `e2e/critical-flows.spec.ts`
-- **Hydration race**: don't use heading visibility as sole wait signal — wait for the specific input element
+- **Hydration race**: visibility of server-rendered HTML is NOT a readiness signal — interactions fired before React attaches handlers are silently lost. FilterPanel sets `data-hydrated="true"` in a mount effect; use `waitForFilterPanelHydrated()` (critical-flows.spec.ts) after every `goto` before interacting with the panel
+- **Filter-panel interactions**: retry until the observable effect appears (`expect(async () => {...}).toPass()`) with idempotency guards (`isChecked()`, visibility, `aria-pressed`) so retries never double-toggle; the inner effect timeout must exceed the worst-case navigation commit (~8s under parallel-worker load) or each retry re-pushes and restarts the navigation
+- **Transient duplicate page subtree**: during Next.js soft navigations old+new page content can briefly coexist (strict-mode "resolved to 2 elements") — filter wrapper locators with `.filter({ visible: true })`
+- **Local workers capped at 2**: the Next dev server wedges under 4+ concurrent browsers (RSC requests hang indefinitely — issue #68); only override with `--workers` against a prod build
 - **`toHaveURL` vs `waitForURL`**: use `expect(page).toHaveURL()` for Next.js App Router pushState navigation — `waitForURL` never fires for `history.pushState`
 - **WebKit URL-encodes commas**: WebKit encodes `,` as `%2C`; regex must handle both: `/param=[^&]*(%2C|,)/i`
 - **Lighthouse CI cold-start**: `warmupRuns: 1` eliminates the first-run ~40% latency outlier

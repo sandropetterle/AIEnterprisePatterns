@@ -30,8 +30,12 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Opt out of parallel tests on CI. Locally, cap at 2 workers: the Next.js
+   * dev server wedges under 4+ concurrent browsers (RSC/page requests hang for
+   * tens of seconds — issue #68), which made the Advanced Search test family
+   * fail deterministically. 2 workers is reliable against both dev and prod
+   * servers; override with --workers for runs against a production build. */
+  workers: process.env.CI ? 1 : 2,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI ? [['html'], ['github']] : 'html',

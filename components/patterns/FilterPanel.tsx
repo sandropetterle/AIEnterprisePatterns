@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback } from 'react'
+import { useCallback, useEffect, useId, useRef } from 'react'
 import { Label } from '@/components/ui/label'
 import { Checkbox } from '@/components/ui/checkbox'
 import { Button } from '@/components/ui/button'
@@ -21,6 +21,21 @@ type FilterPanelProps = {
 export function FilterPanel({ categories, tags, labels }: FilterPanelProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // Unique per instance — this panel is mounted twice on /patterns (desktop
+  // sidebar + mobile FilterSheet), so hardcoded checkbox ids produced duplicate
+  // ids in the DOM and ambiguous <label htmlFor> association (issue #68).
+  const tagIdPrefix = useId()
+
+  // Hydration marker for e2e tests: server-rendered HTML is visible before
+  // React attaches event handlers, so interactions fired too early are silently
+  // lost. The effect only runs after hydration, making data-hydrated="true" a
+  // reliable "panel is interactive" signal (issue #68). Set imperatively via
+  // ref — no state, so no extra post-hydration render.
+  const asideRef = useRef<HTMLElement>(null)
+  useEffect(() => {
+    asideRef.current?.setAttribute('data-hydrated', 'true')
+  }, [])
 
   const selectedCategory = searchParams.get('category') || 'all'
   const selectedTags =
@@ -95,7 +110,7 @@ export function FilterPanel({ categories, tags, labels }: FilterPanelProps) {
   }
 
   return (
-    <aside className="w-64 space-y-6">
+    <aside ref={asideRef} className="w-64 space-y-6">
       {/* SR live region for filter changes */}
       <div
         role="status"
@@ -200,12 +215,12 @@ export function FilterPanel({ categories, tags, labels }: FilterPanelProps) {
           {tags.map((tag) => (
             <div key={tag} className="flex items-center space-x-2">
               <Checkbox
-                id={`tag-${tag}`}
+                id={`${tagIdPrefix}-tag-${tag}`}
                 checked={selectedTags.includes(tag)}
                 onCheckedChange={() => handleTagToggle(tag)}
               />
               <label
-                htmlFor={`tag-${tag}`}
+                htmlFor={`${tagIdPrefix}-tag-${tag}`}
                 className="text-sm cursor-pointer flex-1"
               >
                 {tag}
