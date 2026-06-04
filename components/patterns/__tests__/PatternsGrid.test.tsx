@@ -3,9 +3,9 @@ import { PatternsGrid } from '../PatternsGrid'
 import type { Pattern } from '@/lib/types/pattern'
 
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  )
+  return function MockLink({ children, href }: { children: React.ReactNode; href: string }) {
+    return <a href={href}>{children}</a>
+  }
 })
 
 const makePattern = (id: string, title: string): Pattern => ({

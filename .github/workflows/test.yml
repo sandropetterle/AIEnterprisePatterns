@@ -93,6 +93,11 @@ jobs:
       - name: Type check
         run: npx tsc --noEmit
 
+      # Lint gate — keeps the flat-config ESLint setup from silently rotting
+      # again now that Next 16 removed `next lint` (see issue #69)
+      - name: Lint
+        run: npm run lint
+
       - name: Run tests with coverage
         run: npm run test:ci
         env:

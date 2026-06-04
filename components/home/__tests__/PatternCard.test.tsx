@@ -9,7 +9,7 @@ import type { Pattern } from '@/lib/types/pattern'
 
 // Mock Next.js Link
 jest.mock('next/link', () => {
-  return ({ children, href }: { children: React.ReactNode; href: string }) => {
+  return function MockLink({ children, href }: { children: React.ReactNode; href: string }) {
     return <a href={href}>{children}</a>
   }
 })

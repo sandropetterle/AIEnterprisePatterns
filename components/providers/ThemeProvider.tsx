@@ -28,6 +28,10 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const stored = localStorage.getItem('theme') as Theme | null
     if (stored === 'light' || stored === 'dark') {
+      // localStorage is unavailable during SSR, so the stored theme can only
+      // be applied in a post-hydration effect (initialising state from it
+      // directly would cause a server/client hydration mismatch).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setThemeState(stored)
     }
   }, [])
@@ -39,6 +43,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
     const isDark = theme === 'dark' || (theme === 'system' && prefersDark)
 
     root.classList.toggle('dark', isDark)
+    // resolvedTheme depends on window.matchMedia, which is client-only, so it
+    // must be derived in an effect rather than during (server) render.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setResolvedTheme(isDark ? 'dark' : 'light')
 
     if (theme === 'system') {
