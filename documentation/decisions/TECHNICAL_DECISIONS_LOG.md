@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-04 (CSP `connect-src` derives the API origin from `NEXT_PUBLIC_API_BASE_URL` — Decision 73, fixes BSW-0002)
+**Last Updated:** 2026-06-04 (ESLint flat config migration + scoped ajv overrides — Decision 74, fixes issue #69)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**73 active decisions | 0 archived**
+**74 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,48 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 74: ESLint flat config (FlatCompat-free) + scoped ajv overrides for the eslint subtree
+
+**Date:** 2026-06-04
+**Title:** Migrate lint to ESLint flat config using eslint-config-next's native flat presets, run `eslint` directly, and scope the repo-wide ajv@8 override so eslint/@eslint/eslintrc keep ajv@6
+**Category:** Tooling
+**Status:** Active
+
+### Context / Problem
+
+Issue #69: both lint entry points were broken on `main`. Next.js 16 removed the `next lint` command, so `npm run lint` failed parsing `lint` as a project directory. And `npx eslint` crashed before linting anything: the repo-wide `overrides: { "ajv": "^8.8.2" }` (added for Storybook's ajv-keywords@5 peer requirement, commit 993e4d2) forces ajv@8 into `eslint` and `@eslint/eslintrc`, both of which require ajv@6 APIs (`missingRefs` option, `ajv/lib/refs/json-schema-draft-04.json`) — `eslint/lib/linter/linter.js` requires `@eslint/eslintrc/universal` unconditionally even in flat-config mode, so ESLint could not even start. Lint regressions landed silently (the Test Suite workflow ran no lint), and `cms-sync-fallbacks.yml`'s `npm run lint` verify step was a time bomb.
+
+### Decision
+
+1. **`eslint.config.mjs` (flat config)** composing `eslint-config-next/core-web-vitals` + `eslint-config-next/typescript` (both flat-native in v16) + the existing `eslint-plugin-security` rule set carried over from `.eslintrc.json` (deleted). The config is deliberately **FlatCompat-free** — `FlatCompat` lives in `@eslint/eslintrc`, which is broken by the ajv override.
+2. **`lint` script → `eslint app components lib`** — the same surface `next lint` covered by default (`pages`/`src` don't exist here).
+3. **Scoped npm overrides**: keep the blanket `ajv@^8.8.2` (Storybook still needs it) but add nested exceptions `"eslint": { "ajv": "^6.12.6" }` and `"@eslint/eslintrc": { "ajv": "^6.12.6" }` so the eslint subtree resolves a patched ajv@6 (≥6.12.3, prototype-pollution-safe).
+4. **Lint step added to the Test Suite workflow** (frontend-tests job) so the toolchain can't silently rot again.
+5. Fixed the 15 lint errors that accumulated while lint was broken (unescaped entities, anonymous `next/link` mocks missing display names, a `require()` import → `jest.requireActual`, an `<a>`→`<Link>` in a story). The two `react-hooks/set-state-in-effect` hits in `ThemeProvider` are targeted disables with justification — setState there is the standard SSR-safe hydration pattern (localStorage/matchMedia are client-only; initialising state from them would cause hydration mismatches).
+
+### Rationale
+
+- eslint-config-next@16 ships flat-config arrays natively; composing them directly avoids the broken eslintrc bridge entirely instead of working around it.
+- Scoping the ajv exception to the eslint subtree preserves the original security intent of the blanket override (everything else stays on ajv@8) while restoring the ajv@6 that eslint's own dependency tree declares.
+- Matching the old `next lint` directory surface keeps the migration behavior-preserving; widening lint coverage (e2e/, scripts/, hooks/) can be a deliberate follow-up.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| `FlatCompat` bridge (the Next 15-era migration path) | Crashes at load — `@eslint/eslintrc` is ajv@6-only and the repo forces ajv@8; also keeps a legacy layer Next 16 no longer needs. |
+| Drop the blanket ajv@8 override entirely | It was added for Storybook's ajv-keywords@5 peer requirement; removing it re-opens that install conflict. Scoped exceptions are strictly narrower. |
+| Refactor `ThemeProvider` to satisfy `react-hooks/set-state-in-effect` | Reading localStorage/matchMedia in initializers breaks SSR hydration; a `useSyncExternalStore` rewrite is out of scope for a lint-tooling fix and risks behavior changes in theming. |
+| `eslint .` with a long ignore list | Would newly lint e2e/, scripts/, cms/, backups/ etc. — large new error surface unrelated to restoring the broken tooling. |
+
+### Consequences
+
+- `npm run lint` works again (0 errors, 8 pre-existing warnings) and gates both `cms-sync-fallbacks.yml` and the Test Suite workflow.
+- `npm ls ajv` now shows ajv@6 under `eslint`/`@eslint/eslintrc` and ajv@8 everywhere else; `npm audit --omit=dev --audit-level=high` unaffected (eslint is dev-only, and ajv ≥6.12.3 is patched).
+- react-hooks v7 rules (via eslint-config-next 16) are now enforced — stricter than the pre-breakage config.
 
 ---
 

@@ -9,6 +9,7 @@ import {
 } from './sheet'
 import { Button } from './button'
 import { SlidersHorizontal } from 'lucide-react'
+import Link from 'next/link'
 
 const meta: Meta = {
   title: 'UI/Sheet',
@@ -51,9 +52,9 @@ export const MobileNav: Story = {
           <SheetTitle>Navigation</SheetTitle>
         </SheetHeader>
         <nav className="mt-6 flex flex-col gap-3">
-          <a href="/patterns" className="text-sm font-medium hover:text-primary">Patterns</a>
-          <a href="/about" className="text-sm font-medium hover:text-primary">About</a>
-          <a href="/docs" className="text-sm font-medium hover:text-primary">Docs</a>
+          <Link href="/patterns" className="text-sm font-medium hover:text-primary">Patterns</Link>
+          <Link href="/about" className="text-sm font-medium hover:text-primary">About</Link>
+          <Link href="/docs" className="text-sm font-medium hover:text-primary">Docs</Link>
         </nav>
       </SheetContent>
     </Sheet>

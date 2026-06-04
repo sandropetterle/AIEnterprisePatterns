@@ -22,7 +22,7 @@ jest.mock('@/lib/api/patterns', () => ({
 // Mock Radix UI Select — use a context-based approach so SelectTrigger
 // can render a native <select> with id + value bound to the parent Select.
 jest.mock('@/components/ui/select', () => {
-  const React = require('react')
+  const React = jest.requireActual<typeof import('react')>('react')
   const Ctx = React.createContext({ value: '' as string, onValueChange: (() => {}) as (v: string) => void })
 
   return {
