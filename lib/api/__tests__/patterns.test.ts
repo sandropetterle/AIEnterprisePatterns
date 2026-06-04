@@ -47,7 +47,8 @@ const makePaginatedResponse = (dtos: PatternListDto[]): PaginatedResponse<Patter
   totalCount: dtos.length,
   currentPage: 1,
   pageSize: 9,
-  totalPages: 1,
+  // Mirror the backend: totalPages = ceil(totalCount / pageSize), so 0 when empty
+  totalPages: dtos.length > 0 ? 1 : 0,
 })
 
 describe('Async Pattern API Functions', () => {
@@ -130,6 +131,98 @@ describe('Async Pattern API Functions', () => {
 
       const url = getSpy.mock.calls[0][0] as string
       expect(url).not.toContain('search=')
+    })
+
+    describe('out-of-range page clamping (BSW-0003)', () => {
+      const makePageResponse = (
+        dtos: PatternListDto[],
+        overrides: Partial<PaginatedResponse<PatternListDto>> = {}
+      ): PaginatedResponse<PatternListDto> => ({
+        patterns: dtos,
+        totalCount: dtos.length,
+        currentPage: 1,
+        pageSize: 9,
+        totalPages: 1,
+        ...overrides,
+      })
+
+      it('re-fetches the last valid page when the requested page is beyond totalPages', async () => {
+        const dto = makeDetailDto() as unknown as PatternListDto
+        getSpy
+          .mockResolvedValueOnce(
+            makePageResponse([], { totalCount: 6, currentPage: 50, totalPages: 1 })
+          )
+          .mockResolvedValueOnce(
+            makePageResponse([dto], { totalCount: 6, currentPage: 1, totalPages: 1 })
+          )
+
+        const result = await getPatterns({ page: 50 })
+
+        expect(getSpy).toHaveBeenCalledTimes(2)
+        expect(getSpy.mock.calls[0][0] as string).toContain('page=50')
+        expect(getSpy.mock.calls[1][0] as string).toContain('page=1&')
+        expect(result.patterns).toHaveLength(1)
+        expect(result.currentPage).toBe(1)
+        expect(result.totalCount).toBe(6)
+      })
+
+      it('preserves filters and sort in the clamped re-fetch', async () => {
+        const dto = makeDetailDto() as unknown as PatternListDto
+        getSpy
+          .mockResolvedValueOnce(
+            makePageResponse([], { totalCount: 12, currentPage: 9, totalPages: 2 })
+          )
+          .mockResolvedValueOnce(
+            makePageResponse([dto], { totalCount: 12, currentPage: 2, totalPages: 2 })
+          )
+
+        await getPatterns({
+          page: 9,
+          category: 'Design Patterns',
+          search: 'cqrs',
+          sortBy: 'votes',
+        })
+
+        const secondUrl = getSpy.mock.calls[1][0] as string
+        expect(secondUrl).toContain('page=2')
+        expect(secondUrl).toContain('category=DesignPatterns')
+        expect(secondUrl).toContain('search=cqrs')
+        expect(secondUrl).toContain('sortBy=votes')
+      })
+
+      it('does not re-fetch when the corpus is genuinely empty', async () => {
+        getSpy.mockResolvedValueOnce(
+          makePageResponse([], { totalCount: 0, currentPage: 50, totalPages: 0 })
+        )
+
+        const result = await getPatterns({ page: 50 })
+
+        expect(getSpy).toHaveBeenCalledTimes(1)
+        expect(result.patterns).toHaveLength(0)
+        expect(result.totalCount).toBe(0)
+      })
+
+      it('does not re-fetch for a valid in-range page', async () => {
+        const dto = makeDetailDto() as unknown as PatternListDto
+        getSpy.mockResolvedValueOnce(
+          makePageResponse([dto], { totalCount: 6, currentPage: 1, totalPages: 1 })
+        )
+
+        await getPatterns({ page: 1 })
+
+        expect(getSpy).toHaveBeenCalledTimes(1)
+      })
+
+      it('normalizes a below-range or non-numeric page to 1', async () => {
+        const dto = makeDetailDto() as unknown as PatternListDto
+        getSpy.mockResolvedValue(makePageResponse([dto], { totalCount: 6 }))
+
+        await getPatterns({ page: 0 })
+        expect(getSpy.mock.calls[0][0] as string).toContain('page=1&')
+
+        await getPatterns({ page: Number.NaN })
+        expect(getSpy.mock.calls[1][0] as string).toContain('page=1&')
+      })
     })
   })
 
