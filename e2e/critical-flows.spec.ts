@@ -156,6 +156,17 @@ test.describe('Browse Patterns Page', () => {
     await page.waitForURL(/\/patterns\?.*tags=/)
     expect(page.url()).toContain('tags=')
   })
+
+  test('out-of-range page is clamped to a valid page, not a false empty state (BSW-0003)', async ({ page }) => {
+    await page.goto('/patterns?page=999')
+
+    // Clamped to the last valid page: pattern cards render instead of the
+    // contradictory "6 patterns found" + empty-corpus message.
+    await expect(page.locator('a[href^="/patterns/"]').first()).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(page.getByText('No patterns available')).toHaveCount(0)
+  })
 })
 
 // ---------------------------------------------------------------------------

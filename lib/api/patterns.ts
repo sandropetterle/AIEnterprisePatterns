@@ -47,7 +47,7 @@ export async function getPatterns(
   params: GetPatternsParams = {}
 ): Promise<PaginatedResult> {
   const {
-    page = 1,
+    page: requestedPage = 1,
     pageSize = 9,
     sortBy = 'recent',
     category,
@@ -57,6 +57,10 @@ export async function getPatterns(
     dateTo,
     tagMode,
   } = params
+
+  // Normalize a NaN / below-range page (e.g. ?page=abc, ?page=0) to 1
+  const page =
+    Number.isFinite(requestedPage) && requestedPage >= 1 ? requestedPage : 1
 
   // Build query string
   const queryParams = new URLSearchParams({
@@ -93,7 +97,17 @@ export async function getPatterns(
     `/patterns?${queryParams.toString()}`
   )
 
-  return mapPaginatedResponse(response)
+  const result = mapPaginatedResponse(response)
+
+  // BSW-0003: an over-the-end page (e.g. ?page=50) returns an empty page alongside
+  // a non-zero totalCount, which the listing renders as a contradictory "no patterns
+  // yet" empty state. Clamp by re-fetching the last valid page, preserving all other
+  // filters. Page strictly decreases on each re-fetch, so this terminates.
+  if (result.patterns.length === 0 && result.totalPages >= 1 && page > result.totalPages) {
+    return getPatterns({ ...params, page: result.totalPages })
+  }
+
+  return result
 }
 
 /**
