@@ -52,7 +52,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   }
 
   return {
-    title: `${pattern.title} | AI Enterprise Patterns`,
+    // Bare title — app/layout.tsx title.template appends "| AI Enterprise Patterns"
+    title: pattern.title,
     description: pattern.shortDescription,
     keywords: [pattern.category, ...pattern.tags],
     openGraph: {

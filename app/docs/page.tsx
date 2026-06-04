@@ -20,7 +20,8 @@ import { getDocsPage } from '@/lib/cms/queries'
 import { DynamicZone } from '@/lib/cms/components'
 
 const DEFAULT_METADATA: Metadata = {
-  title: 'Documentation | AI Enterprise Patterns',
+  // Bare title — app/layout.tsx title.template appends "| AI Enterprise Patterns"
+  title: 'Documentation',
   description:
     'Complete documentation for the AI Enterprise Patterns Library. Learn how to use the platform, search patterns, integrate the API, and contribute to the community.',
   keywords: [

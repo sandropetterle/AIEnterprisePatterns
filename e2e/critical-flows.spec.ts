@@ -600,4 +600,22 @@ test.describe('Page Titles', () => {
     await page.waitForLoadState('networkidle')
     await expect(page).toHaveTitle(/Clean Architecture/i)
   })
+
+  // BSW-0001 regression guard: pages must not hardcode the site suffix into
+  // their own metadata title — the root layout's title.template appends it,
+  // which doubled it (e.g. "About | AI Enterprise Patterns | AI Enterprise Patterns").
+  for (const route of [
+    '/',
+    '/patterns',
+    '/about',
+    '/docs',
+    '/patterns/clean-architecture-ai-refactoring',
+  ]) {
+    test(`document title applies the site suffix at most once: ${route}`, async ({ page }) => {
+      await page.goto(route)
+      const title = await page.title()
+      const suffixCount = (title.match(/\| AI Enterprise Patterns/g) ?? []).length
+      expect(suffixCount, `${route} rendered <title>: "${title}"`).toBeLessThanOrEqual(1)
+    })
+  }
 })

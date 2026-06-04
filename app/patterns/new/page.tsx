@@ -7,7 +7,8 @@ import { Breadcrumb } from '@/components/patterns/details/Breadcrumb'
 import { getPatternFormLabels } from '@/lib/cms/queries'
 
 export const metadata: Metadata = {
-  title: 'New Pattern | AI Enterprise Patterns',
+  // Bare title — app/layout.tsx title.template appends "| AI Enterprise Patterns"
+  title: 'New Pattern',
   description: 'Create a new AI enterprise pattern.',
 }
 

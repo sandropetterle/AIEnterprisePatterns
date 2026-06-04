@@ -14,7 +14,8 @@ type PageProps = {
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params
   return {
-    title: `Edit Pattern | AI Enterprise Patterns`,
+    // Bare title — app/layout.tsx title.template appends "| AI Enterprise Patterns"
+    title: 'Edit Pattern',
     description: `Edit the pattern: ${slug}`,
   }
 }
