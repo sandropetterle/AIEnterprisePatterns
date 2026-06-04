@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-03 (added on-demand browser bug-sweep tooling — Decision 72; revised its frontend port 4000→3000 to align with `playwright.config.ts`/CI)
+**Last Updated:** 2026-06-04 (CSP `connect-src` derives the API origin from `NEXT_PUBLIC_API_BASE_URL` — Decision 73, fixes BSW-0002)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**72 active decisions | 0 archived**
+**73 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,43 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 73: CSP `connect-src` derives the API origin from `NEXT_PUBLIC_API_BASE_URL`
+
+**Date:** 2026-06-04
+**Title:** Derive the API origin into the CSP `connect-src` allow-list from `NEXT_PUBLIC_API_BASE_URL` — unconditionally, not NODE_ENV-gated
+**Category:** Security
+**Status:** Active
+
+### Context / Problem
+
+Bug-sweep finding **BSW-0002** (major): the CSP in `next.config.mjs` allow-listed only the production API origins (`*.azurecontainerapps.io`, `*.azurewebsites.net`) plus the Entra endpoints in `connect-src`. But client components call whatever `NEXT_PUBLIC_API_BASE_URL` points at — `http://localhost:5255/api` in local dev, prod-build E2E, and Lighthouse CI. The vote button's `POST /api/patterns/{id}/vote` was blocked by the browser with `console.error` CSP violations; the count never updated and no revert toast fired (the request never left the page). The ledger's accepted remediation said "add the local API origin to `connect-src` in non-prod".
+
+### Decision
+
+`headers()` in `next.config.mjs` now builds `connect-src` from the static prod allow-list **plus** `new URL(process.env.NEXT_PUBLIC_API_BASE_URL).origin` whenever the variable is set — deduped, with unparseable values ignored (try/catch falls back to the static list). The derivation is **unconditional**, not gated on `NODE_ENV !== 'production'`.
+
+### Rationale
+
+- **NODE_ENV cannot express "non-prod" here:** `next build` always forces `NODE_ENV=production`, so a NODE_ENV gate would have left prod-build local runs, the CI E2E job (`npm run build` + `npm run start` against `http://localhost:5255/api`), and Lighthouse CI still CSP-blocked — only `next dev` would have been fixed.
+- **Unconditional derivation does not loosen prod CSP:** in production the derived origin is the Azure API host, already covered by the `*.azurecontainerapps.io` wildcard; the only origin ever added is the one the app is configured to call.
+- Hardened by `__tests__/config/csp.test.ts` (derived origin present with path stripped, static allow-list intact, dedup, unset/unparseable fallback).
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Hardcode `http://localhost:5255` into `connect-src` | Drifts if the local API port/origin changes; ships a localhost origin in the prod header for no reason. |
+| Gate the derivation on `NODE_ENV !== 'production'` | `next build` forces `NODE_ENV=production`, so prod-build E2E/LHCI runs against a local backend would remain broken — the exact class of run that caught nothing here. |
+| Skip adding when a wildcard already covers the origin | Requires CSP wildcard-matching logic for zero practical benefit; exact-string dedup is sufficient. |
+
+### Consequences
+
+- The prod CSP header now also names the API origin explicitly (harmless — within the existing wildcard).
+- A misconfigured `NEXT_PUBLIC_API_BASE_URL` surfaces as a CSP block again by design — the header only ever allows the *configured* origin.
+- Verified live: vote POST → 200 OK, optimistic count update 42→43, zero console errors.
 
 ---
 
