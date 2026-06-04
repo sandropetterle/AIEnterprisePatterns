@@ -243,4 +243,38 @@ describe('FilterPanel', () => {
     const tag1Checkbox = screen.getByLabelText('Tag1')
     expect(tag1Checkbox).toBeChecked()
   })
+
+  // Issue #68: hardcoded id="tag-{tag}" produced duplicate ids when FilterPanel
+  // is mounted twice (desktop panel + mobile FilterSheet) — invalid HTML and
+  // ambiguous <label htmlFor> association.
+  it('should generate unique tag checkbox ids across multiple instances', () => {
+    const { container } = render(
+      <>
+        <FilterPanel categories={mockCategories} tags={mockTags} />
+        <FilterPanel categories={mockCategories} tags={mockTags} />
+      </>
+    )
+    const ids = Array.from(
+      container.querySelectorAll('[role="checkbox"]')
+    ).map((el) => el.id)
+
+    expect(ids).toHaveLength(mockTags.length * 2)
+    ids.forEach((id) => expect(id).not.toBe(''))
+    expect(new Set(ids).size).toBe(mockTags.length * 2)
+  })
+
+  // Issue #68: e2e tests need a deterministic hydration signal — visibility of
+  // server-rendered HTML fires before React attaches event handlers, so clicks
+  // were silently lost. The marker is set in an effect, which only runs once
+  // the component is mounted and interactive.
+  it('should mark the panel as hydrated after mount', () => {
+    const { container } = render(
+      <FilterPanel categories={mockCategories} tags={mockTags} />
+    )
+
+    expect(container.querySelector('aside')).toHaveAttribute(
+      'data-hydrated',
+      'true'
+    )
+  })
 })

@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-04 (ESLint flat config migration + scoped ajv overrides — Decision 74, fixes issue #69)
+**Last Updated:** 2026-06-04 (Per-IP partitioned rate limiting, no request queueing — Decision 75, fixes issue #68)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**74 active decisions | 0 archived**
+**75 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,51 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 75: Per-IP partitioned rate limiting with no request queueing
+
+**Date:** 2026-06-04
+**Title:** Partition all API rate limit policies per client IP, raise the `api` budget to 300/min, and reject (429) instead of queueing
+**Category:** Infrastructure / Performance
+**Status:** Active
+
+### Context / Problem
+
+Issue #68: the Advanced Search e2e family (date-range, tag-mode, saved-search) failed deterministically in parallel local runs and was chronically flaky in CI. Root-cause tracing (Playwright traces) showed RSC navigation requests to the Next server that **never completed** — the SSR render behind them was stuck waiting on the backend API. The `"api"` limiter (`AddSlidingWindowLimiter`) was a **single global bucket** — 50 permits/min shared by *every* client, despite code comments claiming "per IP" — with `QueueLimit = 5, OldestFirst`. Measured behavior: requests 1–50 in a minute returned in ~4ms; request 51 **silently sat in the limiter queue for 55.3s** before returning 200. Every `/patterns` listing render issues 2 API calls, so one parallel e2e run — or roughly **3 concurrent production users** — exhausted the budget, after which every SSR render hung for up to a minute. The `"fixed"` and `"vote"` limiters had the same global-bucket defect.
+
+### Decision
+
+In `AddInfrastructure()` (`InfrastructureServiceCollectionExtensions.cs`):
+
+1. **Partition per client IP** — all three policies now use `options.AddPolicy(name, partitioner)` with `RateLimitPartition.Get*WindowLimiter(ClientKey(ctx), ...)` keyed on `Connection.RemoteIpAddress` (fallback `"unknown"` for in-memory TestServer). Policy names are unchanged, so `RequireRateLimiting("api")` / `[EnableRateLimiting("vote")]` call sites are untouched.
+2. **`api`: 50 → 300 permits/min per IP** (sliding window, 4 segments) — ~5 rps sustained per client covers SSR-driven browsing (2 calls per listing render) and e2e runs while remaining a meaningful abuse ceiling.
+3. **`QueueLimit = 0` everywhere** — over-budget requests now fail fast with 429 instead of silently stalling the caller for up to a window roll. `fixed` stays 100/min per IP; `vote` stays 10/min per IP (now actually per IP, as always documented).
+
+Regression guard: `RateLimitingTests.GetPatterns_BurstAboveOldGlobalBudget_IsNeitherQueuedNorRejected` — 60 rapid GETs must all be 200 in <10s (red on the old config at 1m 0.4s; green at ~3s).
+
+### Rationale
+
+- The intent was always per-client limiting (comments and CLAUDE.md said "per IP"); `AddFixedWindowLimiter`/`AddSlidingWindowLimiter` simply don't partition — that requires `AddPolicy` + `RateLimitPartition`.
+- Queueing GETs for tens of seconds is strictly worse than rejecting: the caller (Next SSR `fetch`) has no timeout and wedges the whole page render, which surfaced as "URL never updates / `goto` hangs / browser context won't close" in Playwright — maximally misleading symptoms. A prompt 429 is visible, diagnosable, and the frontend already falls back gracefully.
+- 429s remain observable in App Insights; the `RejectionStatusCode` wiring is unchanged.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Keep global buckets, raise limits | Still couples unrelated clients; any one noisy client starves everyone. The "per IP" intent stays unimplemented. |
+| Keep queueing (small queue) with per-IP partitions | Queued requests still stall SSR renders for up to a window segment (15–60s) with zero signal; fail-fast 429 is debuggable. |
+| Config-driven limits (appsettings per environment) | Solves the e2e symptom but ships the global-bucket production bug; per-IP partitioning fixes both with the same effort. |
+| Disable rate limiting in dev/test | Hides the production defect (~3 concurrent users exhaust 50/min global) and lets CI diverge from prod behavior. |
+
+### Consequences
+
+- e2e: the issue #68 family passes 4-way parallel against both dev and prod builds; CI's chronic per-browser flake annotations in this family should disappear.
+- Production: concurrent users no longer share one 50/min budget; a single abusive IP is still capped (300/min api, 100/min fixed, 10/min vote).
+- Behavior change: bursts above per-IP budget now receive 429 immediately (previously: hidden queueing, then 429). Clients relying on the silent queue (none known) would see faster failures.
+- CLAUDE.md rate-limit numbers updated to match.
 
 ---
 
