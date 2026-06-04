@@ -334,10 +334,10 @@ describe('API Client', () => {
         mockResponse
       )
 
-      const error = await apiClient.get('/test').catch((e) => e)
+      const error: unknown = await apiClient.get('/test').catch((e) => e)
       expect(error).toBeInstanceOf(ApiError)
-      expect(error.statusCode).toBe(429)
-      expect(error.message).toMatch(/too many requests/i)
+      expect((error as ApiError).statusCode).toBe(429)
+      expect((error as ApiError).message).toMatch(/too many requests/i)
     })
 
     it('should handle network errors', async () => {
