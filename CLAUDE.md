@@ -142,7 +142,7 @@ All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (30
 
 ## Testing
 
-- **Frontend:** `npm test` (Jest + React Testing Library); 396/396 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
+- **Frontend:** `npm test` (Jest + React Testing Library); 420/420 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
 - **Backend:** `dotnet test` (xUnit + Moq); 114/114 tests passing (~85% testable coverage)
 - **E2E:** Playwright cross-browser matrix — Chromium, Firefox, WebKit (CI runs all three in parallel via `strategy.matrix`)
 - **Performance:** Lighthouse CI (`@lhci/cli`) — LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80 — gates deploy in `frontend-container-deploy.yml`
@@ -183,6 +183,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 **E2E / Playwright:**
 - **Vote mocking**: use `page.addInitScript` (not `page.route`) to intercept client-side fetch
+- **Sonner toasts**: `<Toaster>` is idle-mounted via `LazyToaster` (Decision 78) — wait for `section[aria-label*="Notifications"]` to exist before triggering toasts (it doubles as a hydration-complete signal); toasts auto-dismiss in ~4s, so assert via an in-page observer or a tight `expect().toPass()` poll, never after multi-second tool/setup gaps
 - **E2E CI**: build needs `NEXT_PUBLIC_API_BASE_URL` baked in; explicit `npm run start &` + health-poll before e2e
 - Avoid `waitForLoadState('networkidle')` for filtered/search URLs — use element-based waiting instead
 - **webkit date inputs**: `page.fill()` on `type="date"` can be intercepted by webkit's native picker; use `fillDateInput()` helper in `e2e/critical-flows.spec.ts`

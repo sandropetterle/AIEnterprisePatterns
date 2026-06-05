@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-05 (No secrets on GitHub: secret-scanning PreToolUse hook gates all gh writes — Decision 77)
+**Last Updated:** 2026-06-05 (Home-page startup cost: idle-mounted Toaster + transform-only hero animation — Decision 78)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**77 active decisions | 0 archived**
+**78 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,52 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 78: Home-page startup cost — idle-mounted Toaster + transform-only hero animation
+
+**Date:** 2026-06-05
+**Title:** Defer sonner to browser idle via `LazyToaster` and make the hero `slide-up` animation transform-only so the hero is LCP-eligible
+**Category:** Performance / Frontend
+**Status:** Active
+
+### Context / Problem
+
+Issue #71 (Lighthouse LCP gate) prompted a trace-level investigation of the home page on constrained CPUs (real 4× CDP throttle + Lantern simulation, `lighthouse --throttling-method=devtools --save-assets`):
+
+- The LCP element was the **header logo span** (168×56px), not the hero. The hero's `animate-slide-up` keyframes animated `opacity: 0→1`, and Chrome excludes elements animated in from opacity 0 from LCP candidacy entirely. The header span also re-emitted LCP candidates during hydration (3.0s/3.9s/5.5s/10.3s in trace) — a plausible source of the CI gate's 2924-vs-4433ms run-to-run spread.
+- Under Lantern (CI's method), the observed unthrottled LCP timestamp (1528ms) sat behind ~1.3s of startup script evaluation, so Lantern folded that CPU into its LCP estimate (FCP 962ms passed / LCP 4026ms failed — exactly the CI signature). Sonner (~50KB raw) loaded eagerly via the root layout's `<Toaster>` despite only being needed after user interaction.
+- Exonerated by the trace: TTFB (58ms), font loading (next/font preload, done at 109ms), HTML parse (44ms), legacy JS (13.7KB). A single 683ms throttled layout pass (98 objects) remains unexplained — A/B bisection (system font, no animations, no smooth-scroll, blocked webfont) showed no single CSS culprit; parked.
+
+### Decision
+
+1. **`components/providers/LazyToaster.tsx`** — idle-mounted (`requestIdleCallback`, `setTimeout` fallback for Safari) dynamic `import('sonner')`; replaces the static `<Toaster>` in the root layout. Sonner moves to a lazy chunk loaded after idle (~3s on a throttled run, measured).
+2. **`tailwind.config.ts`** — `slide-up` keyframes are transform-only (`translateY(20px)→0`, no opacity), so the hero paints at first paint and is a valid, stable LCP candidate. `fade-in` (FeaturedPatterns/StatsSection) untouched — below the fold, and the eligible hero dominates LCP on all form factors.
+
+### Measured results (dev machine, medians of 3; CI runners are slower in absolute terms)
+
+| Metric | Before | After |
+|---|---|---|
+| TBT (devtools 4×) | 2799ms | ~1038ms |
+| TBT (Lantern) | 644ms | ~319ms |
+| LCP (Lantern) | 4026ms | ~3519ms |
+| Perf score (Lantern) | 0.71 | ~0.83 |
+| LCP element | header logo span | hero paragraph |
+| LCP (devtools 4×) | 2483ms | ~2735ms (unchanged within noise — floored by CSS fetch + layout, not JS) |
+
+The CI LCP gate calibration (issue #71, `aggregationMethod: median` + realistic budget) remains a separate, still-open fix; this change attacks the page cost itself.
+
+### Verification notes (important for future toast work)
+
+A mid-implementation scare suggested toasts were broken by chunk-splitting (three sonner copies in chunks). Module-ID inspection proved Turbopack registers all copies under **one module ID** (single runtime instance), and a live end-to-end check (fetch override → failing vote → `MutationObserver` on the Notifications region) rendered the error toast correctly. The earlier "missing toast" observations were instrumentation errors: clicks lost to pre-hydration timing, and observation latency exceeding sonner's ~4s auto-dismiss. See the CLAUDE.md e2e gotcha added with this change.
+
+### Alternatives Evaluated
+
+- **Defer `SessionProvider` / next-auth** — rejected: `useSession` is statically imported by Header components (UserMenu, NewPatternButton), so next-auth stays in the startup graph regardless of provider mount timing; the session fetch is async I/O, not main-thread cost. A custom session-context shim would remove next-auth/react from the bundle but touches 4 components + global test mocks for ~10KB gz — poor risk/benefit.
+- **`ToasterClient` static-import indirection** (briefly implemented) — reverted: justified only by a module-duplication theory that module-ID inspection disproved.
+- **browserslist modern targets (legacy JS)** — rejected: 13.7KB potential savings, noise.
+- **Layout-cost micro-optimization** — parked: 683ms throttled initial layout has no attributable single cause (font/animations/smooth-scroll all exonerated by bisection).
 
 ---
 
