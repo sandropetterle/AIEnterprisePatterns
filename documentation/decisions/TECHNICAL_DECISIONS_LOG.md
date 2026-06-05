@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-05 (Lighthouse LCP gate: median aggregation with 3500ms budget — Decision 79)
+**Last Updated:** 2026-06-05 (/patterns mobile TBT: native sort select + matchMedia-gated desktop filter rail — Decision 80)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**79 active decisions | 0 archived**
+**80 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,68 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 80: /patterns mobile TBT — native sort select + matchMedia-gated desktop filter rail
+
+**Date:** 2026-06-05
+**Title:** Replace the Radix Select sort dropdown with a styled native `<select>` and gate the desktop FilterPanel mount on `matchMedia` so mobile never hydrates it
+**Category:** Performance / Frontend
+**Status:** Active — closes issue #72
+
+### Context / Problem
+
+Mobile Lighthouse flagged `/patterns` Total Blocking Time yellow (~430ms cold start, degrading to red under host load — issue #72). The report blamed a single 1.05s-evaluation chunk; bundle inspection showed that chunk is the **framework chunk** (react-dom + Next runtime), which Lighthouse credits with all hydration work executed inside it. A/B bisection against a production build (same session, back-to-back runs) attributed the page's TBT excess over the home-page baseline (~410ms total) to:
+
+| Contributor | TBT cost (measured by removal) |
+|---|---|
+| `SortSelector` — Radix Select for a 3-option dropdown | **~260ms** (670→410) |
+| Desktop `FilterPanel` — CSS-hidden on mobile (`hidden lg:block`) but still fully hydrated: 18 Radix checkboxes, SavedSearches dialog, DateRangeFilter, RecentlyViewedSidebar | **~120ms** (670→550) |
+| SearchBar + FilterSheet trigger + Pagination + NewPatternButton | ~30ms combined |
+
+Radix Select hydrates popper/focus-scope/dismissable-layer/portal machinery; a CSS-hidden client component hydrates exactly like a visible one.
+
+### Decision
+
+1. **`SortSelector` uses a native `<select>`** styled to match the shadcn trigger (`appearance-none` + absolute ChevronDown). No hydration-heavy primitives; platform picker on mobile; keyboard/SR accessible by default. Radix Select (`components/ui/select.tsx`) remains in use where it earns its cost (PatternForm on `/patterns/new` + edit), and drops out of the `/patterns` route graph entirely.
+2. **New `DesktopFilterPanel` wrapper** mounts `FilterPanel` via `useSyncExternalStore` subscribed to `matchMedia('(min-width: 1024px)')` (`getServerSnapshot` → `'unknown'` renders the layout-stable `w-64` placeholder). Mobile renders `null` — zero hydration for the invisible rail; desktop mounts the panel in the render immediately after hydration (the same moment it previously became interactive, so the `data-hydrated` e2e contract is unchanged). The mobile FilterSheet path is untouched — Radix `SheetContent` already defers mounting its inner FilterPanel until the sheet opens.
+
+### Measured results (dev machine, prod build, Lighthouse 12.6.1 mobile simulate; same-session A/B)
+
+| Config | TBT | Framework-chunk work | Script eval | Route JS |
+|---|---|---|---|---|
+| Before | 670ms | 1,417ms | 1,729ms | 811 KiB |
+| **After** | **340ms** | **595ms** | **876ms** | **788 KiB** |
+| Home page (same session, control) | 310ms | 735ms | 989ms | 757 KiB |
+
+`/patterns` now costs less than the home page on identical conditions; the remaining TBT is the app-wide hydration baseline (root layout: Header/UserMenu/providers), not this route. Absolute numbers vary heavily with host load (the issue documents 430→1,380ms drift) — the controlled relative delta (−49%) is the meaningful figure.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Keep Radix Select, defer its hydration (ssr:false + lookalike fallback) | Fallback duplication for zero UX gain; native select is *better* UX on mobile and removes the cost instead of moving it |
+| `next/dynamic` ssr:false code-splitting of FilterPanel/FilterSheet content | Measured remaining contributors ~30ms; jest/next-dynamic test friction not warranted — revisit only if the route grows |
+| Lazy-hydration island library (react-lazy-hydration etc.) | New dependency; hacky in App Router; matchMedia gate is 30 lines |
+| Render the desktop rail only via CSS (status quo) | CSS hiding does not prevent hydration — that *is* the bug |
+
+### Consequences
+
+- Desktop briefly shows the animate-pulse rail placeholder between first paint and hydration (previously the server-rendered panel was visible-but-inert during that window). No layout shift (placeholder reserves `w-64`).
+- The sort dropdown's open state is now the platform's native picker, not the shadcn-styled list.
+- Discovered in passing: the CMS-fallback `sortOptions` values (`newest`/`popular`/`title`) don't match the API's `SortOption` (`recent`/`votes`/`alphabetical`), so CMS-labelled sorts silently fall back to default ordering — pre-existing, tracked as a separate issue.
+
+### Files Changed
+
+- `components/patterns/SortSelector.tsx` — Radix Select → styled native select
+- `components/patterns/DesktopFilterPanel.tsx` — new matchMedia-gated mount wrapper
+- `app/patterns/page.tsx` — desktop rail renders `DesktopFilterPanel`
+
+### Tests Added
+
+- 6 tests `DesktopFilterPanel.test.tsx` (mounts on lg match, renders nothing otherwise, prop passthrough, responds to breakpoint changes both directions, listener cleanup)
+- 5 tests added to `SortSelector.test.tsx` (option rendering, URL push on change, page-param reset, URL→value reflection, CMS label options); existing 4 pass unchanged against the native element
 
 ---
 

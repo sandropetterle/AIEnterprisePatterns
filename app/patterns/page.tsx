@@ -10,7 +10,7 @@ import { JsonLd } from '@/components/shared/JsonLd'
 import type { PatternCategory } from '@/lib/types/pattern'
 import { SearchBar } from '@/components/patterns/SearchBar'
 import { SortSelector } from '@/components/patterns/SortSelector'
-import { FilterPanel } from '@/components/patterns/FilterPanel'
+import { DesktopFilterPanel } from '@/components/patterns/DesktopFilterPanel'
 import { FilterSheet } from '@/components/patterns/FilterSheet'
 import { PatternsGrid } from '@/components/patterns/PatternsGrid'
 import { EmptyState } from '@/components/patterns/EmptyState'
@@ -180,14 +180,14 @@ export default async function PatternsPage(props: {
 
         {/* Main Content Grid */}
         <div className="flex gap-8">
-          {/* Desktop Filter Panel */}
+          {/* Desktop Filter Panel — matchMedia-gated so mobile never hydrates it (issue #72) */}
           <div className="hidden lg:block" data-testid="desktop-filter-panel">
             <Suspense
               fallback={
                 <div className="w-64 h-96 bg-muted animate-pulse rounded" />
               }
             >
-              <FilterPanel categories={allCategories} tags={allTags} labels={labels} />
+              <DesktopFilterPanel categories={allCategories} tags={allTags} labels={labels} />
             </Suspense>
           </div>
 
