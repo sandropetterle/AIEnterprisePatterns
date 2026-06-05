@@ -6,7 +6,7 @@ import { Footer } from '@/components/layout/Footer'
 import { SessionProvider } from '@/components/providers/SessionProvider'
 import { ThemeProvider } from '@/components/providers/ThemeProvider'
 import { CmsErrorPageProvider } from '@/components/providers/CmsErrorPageProvider'
-import { Toaster } from 'sonner'
+import { LazyToaster } from '@/components/providers/LazyToaster'
 import { getGlobal, getErrorPage } from '@/lib/cms/queries'
 
 const inter = Inter({ subsets: ['latin'] })
@@ -89,7 +89,7 @@ export default async function RootLayout({
                 />
                 <main id="main-content" className="flex-1">{children}</main>
                 <Footer footerConfig={global.footer} />
-                <Toaster position="bottom-right" />
+                <LazyToaster />
               </div>
             </CmsErrorPageProvider>
           </SessionProvider>

@@ -71,9 +71,13 @@ const config: Config = {
           from: { opacity: "0" },
           to: { opacity: "1" },
         },
+        // Transform-only on purpose: animating opacity from 0 makes Chrome
+        // exclude the element from LCP candidacy entirely, which silently
+        // shifted the home-page LCP onto the header logo span (see TDL entry
+        // on home-page LCP under constrained CPUs / issue #71 investigation).
         "slide-up": {
-          from: { opacity: "0", transform: "translateY(20px)" },
-          to: { opacity: "1", transform: "translateY(0)" },
+          from: { transform: "translateY(20px)" },
+          to: { transform: "translateY(0)" },
         },
       },
       animation: {
