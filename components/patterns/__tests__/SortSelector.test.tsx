@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { SortSelector } from '../SortSelector'
 
 const mockPush = jest.fn()
@@ -36,5 +36,55 @@ describe('SortSelector', () => {
     render(<SortSelector />)
     const trigger = screen.getByRole('combobox')
     expect(trigger).toHaveAttribute('id', 'sort-select')
+  })
+
+  it('renders all three sort options', () => {
+    render(<SortSelector />)
+    const options = screen.getAllByRole('option')
+    expect(options.map((o) => o.textContent)).toEqual([
+      'Most Recent',
+      'Most Voted',
+      'Alphabetical',
+    ])
+  })
+
+  it('pushes the selected sort to the URL on change', () => {
+    render(<SortSelector />)
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'votes' } })
+
+    expect(mockPush).toHaveBeenCalledWith('/patterns?sort=votes')
+  })
+
+  it('resets the page param when the sort changes', () => {
+    mockSearchParams.set('page', '3')
+    render(<SortSelector />)
+
+    fireEvent.change(screen.getByRole('combobox'), { target: { value: 'alphabetical' } })
+
+    expect(mockPush).toHaveBeenCalledWith('/patterns?sort=alphabetical')
+  })
+
+  it('reflects the sort param from the URL as the selected value', () => {
+    mockSearchParams.set('sort', 'votes')
+    render(<SortSelector />)
+
+    expect(screen.getByRole('combobox')).toHaveValue('votes')
+  })
+
+  it('renders custom sort options from CMS labels', () => {
+    render(
+      <SortSelector
+        sortByLabel="Order by:"
+        sortOptions={[
+          { value: 'recent', label: 'Newest' },
+          { value: 'votes', label: 'Top Voted' },
+        ]}
+      />
+    )
+
+    expect(screen.getByText('Order by:')).toBeInTheDocument()
+    const options = screen.getAllByRole('option')
+    expect(options.map((o) => o.textContent)).toEqual(['Newest', 'Top Voted'])
   })
 })
