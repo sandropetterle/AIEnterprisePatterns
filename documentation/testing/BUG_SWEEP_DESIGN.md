@@ -1,6 +1,6 @@
 # Design — On-demand Browser Bug-Sweep (hybrid, convergent)
 
-**Last Updated:** 2026-06-03
+**Last Updated:** 2026-06-05
 **Audience:** Sandro; developers running or extending `/bug-sweep`
 **Purpose:** Methodology, rationale, and scope boundary for the on-demand browser bug-sweep — what the auditor checks, the evidence bar that keeps it honest, the reward-zero principle, and how findings converge to zero across runs. Operational script: [`.claude/skills/bug-sweep/SKILL.md`](../../.claude/skills/bug-sweep/SKILL.md). Decision: TECHNICAL_DECISIONS_LOG.md #72.
 
@@ -10,7 +10,7 @@
 
 ### 1.1 Purpose
 
-An on-demand, locally-run agent that drives the AI Enterprise Patterns platform in a real browser, finds **genuine** defects against the project's documented behavior, and writes confirmed candidates to [`BUG_SWEEP_FINDINGS.md`](./BUG_SWEEP_FINDINGS.md) for human triage. The objective is **convergence toward 0 open bugs** over repeated runs — not a one-off audit.
+An on-demand, locally-run agent that drives the AI Enterprise Patterns platform in a real browser, finds **genuine** defects against the project's documented behavior, and files confirmed candidates as **GitHub Issues** (label `bug-sweep`) for human triage — alongside the repo's other bugs, in one place. The objective is **convergence toward 0 open bugs** over repeated runs — not a one-off audit.
 
 It is **hybrid** by design: it runs the CI-proven Playwright e2e suite (`npm run test:e2e`) as a deterministic **regression baseline**, then **explores beyond it** live via Playwright MCP — model-in-the-loop, adapting to what each surface actually shows. The baseline catches encoded regressions; the live exploration finds the *unencoded* (the defect class that assertion-bound testing structurally cannot surface).
 
@@ -44,7 +44,7 @@ The starting set is the two layers with **already-written-down** oracles — whi
 
 The one failure mode that kills this is an LLM padding weak findings to look productive. The contract:
 
-- **Evidence bar, enforced.** Every finding carries `{surface, auth, severity, repro[], observed (concrete), expected (concrete), oracle_cite, signature}`. A candidate missing `oracle_cite`, or lacking a concrete `observed ≠ expected` delta, is a **hunch** — dropped before it reaches the ledger.
+- **Evidence bar, enforced.** Every finding carries `{surface, auth, severity, repro[], observed (concrete), expected (concrete), oracle_cite, signature}`. A candidate missing `oracle_cite`, or lacking a concrete `observed ≠ expected` delta, is a **hunch** — dropped before it is ever filed as an issue.
 - **Reward-zero.** Returning 0 findings on a clean surface is the **goal**, not a failure. The 10-finding budget is a **ceiling, never a quota.** Padding toward it is a contract violation.
 - **Self-review pass.** After collecting candidates, the auditor re-screens each ("would a maintainer reject this as speculative?") and drops the weak ones before reporting.
 - **False-positive rate is the health metric.** `rejected-as-false-positive ÷ reported`, recorded per run in the `Run log`. **Convergence *is* that number trending to ~0.** If it doesn't trend down, the evidence bar or an oracle is wrong — not the codebase.
@@ -68,25 +68,27 @@ Applied to every surface; each maps to an oracle the auditor cites:
 
 ## 5. State model
 
-One persistent ledger — [`BUG_SWEEP_FINDINGS.md`](./BUG_SWEEP_FINDINGS.md):
+Findings are **GitHub Issues** (label `bug-sweep`); the issue lifecycle *is* the triage state machine:
 
-- **Run log** — one row per run; reported + (at triage) accepted / rejected-FP / FP-rate.
-- **Open** — candidates awaiting triage, plus accepted-but-not-yet-fixed.
-- **Fixed** — accepted findings whose fix landed.
-- **Rejected** — reason-tagged; **this section *is* the suppression memory** the auditor loads each run. A `{surface, signature}` here is never re-reported.
+- **Candidate** — open, labels `bug` + `bug-sweep` + `severity:<block|major|minor>` + `triage:candidate`. Filed by the skill from a returned auditor finding; the body carries a `<!-- bug-sweep:meta -->` block with `{surface, signature, run}` (the cross-run identity key — never stripped).
+- **Accepted** — `triage:candidate` swapped for `triage:accepted` + a remediation-note comment; stays open until the fix PR closes it as *completed* (`Fixes #NN`).
+- **Fixed** — closed as *completed*. Not suppressed: a recurrence of the same `{surface, signature}` is re-filed, flagged "possible regression of #NN".
+- **Rejected** — closed as *not planned*, with a comment recording the reason + durable action. **The closed-as-not-planned set *is* the suppression memory** the skill loads each run. A `{surface, signature}` there is never re-reported.
 
-A rejection usually means the **oracle** is wrong, not just the finding — so each reject reason routes to a durable action (correct the cited doc for `by-design`; tighten the evidence bar for `false-positive`), not just a blocklist entry. Reasons: `by-design` / `false-positive` / `wont-fix` / `duplicate` / `deferred`.
+A rejection usually means the **oracle** is wrong, not just the finding — so each reject reason routes to a durable action (correct the cited doc for `by-design`; tighten the evidence bar for `false-positive`), not just a blocklist entry. Reasons: `by-design` / `false-positive` / `wont-fix` / `duplicate` / `deferred` — recorded in the closing comment.
+
+One MD file remains for run context — [`BUG_SWEEP_FINDINGS.md`](./BUG_SWEEP_FINDINGS.md): the **Run log** (one row per run; reported + issue refs + at triage accepted / rejected-FP / FP-rate). Findings never live there.
 
 ---
 
 ## 6. Architecture — two pieces, one browser-driver
 
-- **`bug-sweep` skill** (orchestrator): resolves scope from the canonical surface inventory, runs the stack preflight (HARD gate), dispatches the auditor in sequential batches honouring the 10-finding ceiling + suppression memory, and writes the ledger. **It never drives the browser itself.**
-- **`bug-sweep-auditor` subagent** (the only browser-driver): runs the e2e baseline + drives Playwright MCP, returns schema-valid candidate findings. **Read-only re findings** — no `Edit`/`Write`, so it cannot touch the ledger or the codebase.
+- **`bug-sweep` skill** (orchestrator): resolves scope from the canonical surface inventory, runs the stack + `gh` preflight (HARD gate), dispatches the auditor in sequential batches honouring the 10-finding ceiling + suppression memory, files the issues, and writes the run log. **It never drives the browser itself.**
+- **`bug-sweep-auditor` subagent** (the only browser-driver): runs the e2e baseline + drives Playwright MCP, returns schema-valid candidate findings. **Read-only re findings** — no `Edit`/`Write`/`gh`, so it cannot file issues or touch the codebase.
 
 **Why Opus for the auditor.** The primary delegation risk is *judgment* — not inventing bugs to fill the budget, and correctly distinguishing a real defect from a clean redirect. That is exactly the kind of work where model quality matters most, so the auditor runs on Opus.
 
-**Why the skill is the only writer.** Separating "drive + judge" (auditor, read-only) from "record" (skill) makes speculative findings structurally impossible: a row can only exist if the auditor *returned* it.
+**Why the skill is the only writer.** Separating "drive + judge" (auditor, read-only) from "record" (skill) makes speculative findings structurally impossible: an issue can only exist if the auditor *returned* it.
 
 ---
 
@@ -115,7 +117,8 @@ Real bugs get fixed (removed from the surface); rejected noise gets suppressed o
 
 - `.claude/skills/bug-sweep/SKILL.md` — the operational script (run / triage modes, surface inventory).
 - `.claude/agents/bug-sweep-auditor.md` — the read-only auditor contract.
-- `documentation/testing/BUG_SWEEP_FINDINGS.md` — the living ledger.
+- GitHub Issues, label `bug-sweep` — the findings system of record (Decision #76).
+- `documentation/testing/BUG_SWEEP_FINDINGS.md` — the run log (run context only).
 - `documentation/requirements/FUNCTIONAL_REQUIREMENTS.md` — the functional oracle.
 - `documentation/testing/TESTING_STRATEGY.md` — the broader test approach this complements.
 - `e2e/critical-flows.spec.ts`, `e2e/authenticated-flows.spec.ts` — the regression baseline.

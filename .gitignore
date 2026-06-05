@@ -72,3 +72,6 @@ storybook-static/
 scripts/cms/.env.local-token
 
 # CMS temporary backup bundles: *-roundtrip/ and *-verify/ patterns are in backups/cms/.gitignore
+
+# Claude Code personal overrides (may accumulate one-off commands containing credentials - never commit)
+.claude/settings.local.json
