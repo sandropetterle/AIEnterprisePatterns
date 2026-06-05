@@ -8,14 +8,15 @@ description: Use when you want to exercise the entire AI Enterprise Patterns pla
 You are executing the `bug-sweep` skill — the on-demand browser bug-finder for the AI Enterprise Patterns platform. Goal: converge toward **0 open bugs** over repeated runs. The sweep is **hybrid** — it runs the CI-proven Playwright e2e suite as a regression baseline, then explores beyond it live via Playwright MCP. Full methodology + rationale: [`documentation/testing/BUG_SWEEP_DESIGN.md`](../../../documentation/testing/BUG_SWEEP_DESIGN.md). Follow this script precisely.
 
 **Core principles (load-bearing — do not soften):**
-- **The auditor is the only browser-driver.** This skill resolves scope, dispatches the `bug-sweep-auditor`, and edits the ledger. It never drives Playwright itself.
-- **Evidence bar.** A finding requires a concrete `observed ≠ expected` delta **and** an oracle cite. Anything else is a hunch — it never reaches the ledger.
+- **The auditor is the only browser-driver.** This skill resolves scope, dispatches the `bug-sweep-auditor`, files the GitHub issues, and writes the run log. It never drives Playwright itself.
+- **Evidence bar.** A finding requires a concrete `observed ≠ expected` delta **and** an oracle cite. Anything else is a hunch — it never becomes an issue.
 - **Reward-zero.** A run reporting few or zero findings is a **success** — it is the convergence target, not a failure. Never tell the auditor to "find more"; never lower the bar to fill the budget.
-- **Never write a finding the auditor did not return.** Every `BSW-NNNN` row comes from a returned `findings[]` entry — never from your own anticipation of what an auditor will probably find.
-- **Never `git add` / `git commit`.** Leave staging to the operator.
+- **Never file a finding the auditor did not return.** Every `bug-sweep` issue comes from a returned `findings[]` entry — never from your own anticipation of what an auditor will probably find.
+- **Never `git add` / `git commit`.** Leave staging to the operator. (Filing/triaging issues via `gh` is in contract; git writes are not.)
 
-**Canonical state file** (rooted at the repo root, `C:\Projects\AIEnterprisePatterns`):
-- `documentation/testing/BUG_SWEEP_FINDINGS.md` — the living ledger (`Run log` + `Open` / `Fixed` / `Rejected` + suppression memory).
+**Canonical state** (repo root `C:\Projects\AIEnterprisePatterns`; GitHub repo `sandropetterle/AIEnterprisePatterns`):
+- **GitHub Issues, label `bug-sweep`** — the findings system of record. Open + `triage:candidate` = awaiting triage; open + `triage:accepted` = accepted, fix pending; closed as *completed* = fixed; closed as *not planned* = rejected — **and that closed-as-not-planned set is the suppression memory**.
+- `documentation/testing/BUG_SWEEP_FINDINGS.md` — run context only (the `Run log` convergence table). Findings never live here.
 
 ---
 
@@ -64,15 +65,18 @@ Each surface is `{route, auth, oracle_refs[], checks[]}`. `auth: none` drives un
 
 ## Run mode
 
-### 1. Load state + suppression memory
-`Read` `BUG_SWEEP_FINDINGS.md`. Build `suppressions[]` as `{surface, signature}` from every row in the `Rejected` section.
-
-### 2. Stack preflight — HARD gate
-Check the frontend (port **3000**) and backend are reachable (PowerShell):
-```powershell
-try { $null = Invoke-WebRequest http://localhost:3000 -UseBasicParsing -TimeoutSec 5; $null = Invoke-WebRequest http://localhost:5255/health -UseBasicParsing -TimeoutSec 5; "preflight-ok" } catch { "preflight-fail: $($_.Exception.Message)" }
+### 1. Load suppression memory (from GitHub)
+```bash
+gh issue list --label bug-sweep --state closed --json number,body,stateReason --limit 200
 ```
-If the result is not `preflight-ok`, **halt** and print verbatim:
+Build `suppressions[]` as `{surface, signature}` from every issue whose `stateReason` is `NOT_PLANNED`, parsing both fields from the `<!-- bug-sweep:meta ... -->` block in its body. Separately keep `fixed_signatures[]` as `{number, surface, signature}` from issues closed as `COMPLETED` — those are **not** suppressed; they feed the regression cross-check in Step 4.
+
+### 2. Stack + gh preflight — HARD gate
+Check the frontend (port **3000**), the backend, and an authenticated `gh` (PowerShell):
+```powershell
+try { $null = Invoke-WebRequest http://localhost:3000 -UseBasicParsing -TimeoutSec 5; $null = Invoke-WebRequest http://localhost:5255/health -UseBasicParsing -TimeoutSec 5; gh auth status *> $null; if ($LASTEXITCODE -ne 0) { throw "gh CLI not authenticated (gh auth login)" }; "preflight-ok" } catch { "preflight-fail: $($_.Exception.Message)" }
+```
+If the result is not `preflight-ok`, **halt** and print verbatim (append the gh hint only if that is what failed: *"Findings are filed as GitHub issues — run `gh auth login` first."*):
 
 > Bug-sweep needs the local stack up. In one shell (repo root): `npm run dev`. In another: `dotnet run --project backend/src/AIEnterprisePatterns.Api`. Ensure `AUTH_SECRET` is set in `.env.local` (`openssl rand -base64 32`) — `playwright.config.ts` loads it so `e2e/global.setup.ts` mints the synthetic session used for protected surfaces. Data-dependent flows (patterns list, detail, vote) need the backend's seeded SQLite (6 patterns / 18 tags). Then re-run `/bug-sweep`.
 
@@ -81,41 +85,72 @@ Do not proceed past a failed preflight. The frontend runs on **3000** — matchi
 ### 3. Dispatch the auditor
 `findings_budget = 10`. Dispatch `bug-sweep-auditor` via the `Agent` tool over the surface inventory in batches of **≤6 surfaces**. Pass each batch `{surfaces[], suppressions[], findings_budget, base_url: "http://localhost:3000", auth_storage_state: "e2e/.auth/admin.json", e2e_baseline}`. Set `e2e_baseline: true` **only on the first batch** (the suite runs once, via `npm run test:e2e -- --project=chromium` — `playwright.config.ts` already defaults to port 3000 and reuses the running dev server); `false` on every later batch.
 
-**Dispatch SEQUENTIALLY — one batch, read its return, then decide the next.** After each batch returns, subtract its `findings.length` from `findings_budget`. Stop dispatching when `findings_budget` reaches 0 OR the queue is exhausted. On a subagent `result: halt`, surface it verbatim and stop. Do **not** fire all batches in one parallel block — the budget drawdown and the stop-on-halt rule are between-batch control flow that only work with each result in hand before the next dispatch. Do **not** write any `BSW-NNNN` row until Step 4, and only from a *returned* `findings[]` entry.
+**Dispatch SEQUENTIALLY — one batch, read its return, then decide the next.** After each batch returns, subtract its `findings.length` from `findings_budget`. Stop dispatching when `findings_budget` reaches 0 OR the queue is exhausted. On a subagent `result: halt`, surface it verbatim and stop. Do **not** fire all batches in one parallel block — the budget drawdown and the stop-on-halt rule are between-batch control flow that only work with each result in hand before the next dispatch. Do **not** file any issue until Step 4, and only from a *returned* `findings[]` entry.
 
-### 4. Write the ledger
-- Append each returned finding to the `Open` section as a new `BSW-NNNN` row (status `candidate`), filling `{Run, Surface, Auth, Severity, Observed → Expected, Oracle cite, Signature}`. Keep the auditor's `signature` with the row so triage can write it to `Rejected` on reject.
-- Append a `Run log` row `{Run = RUN-YYYYMMDD, Date, Surfaces audited, Reported = total findings, Accepted/Rejected/FP-rate left blank — filled at triage}`.
+### 4. File the issues + run log
+For each returned finding, create **one GitHub issue** — this is run mode's *only* GitHub write (never edit, close, or comment on issues here):
+- **Title:** `bug-sweep: <surface> — <short summary>`.
+- **Labels:** `bug`, `bug-sweep`, `severity:<severity>`, `triage:candidate`.
+- **Body:** human-readable sections — Surface / Auth / Severity / Run / Repro (numbered steps) / Observed / Expected / Oracle cite — then the machine-readable block (keep the auditor's `signature` **verbatim**; it is the cross-run suppression key):
+  ```
+  <!-- bug-sweep:meta
+  surface: <surface>
+  signature: <signature>
+  run: RUN-YYYYMMDD
+  -->
+  ```
+- **Regression cross-check:** if the finding's `{surface, signature}` matches a `fixed_signatures[]` entry, prepend `**Possible regression of #<number>.**` to the body — and still file it (fixed issues are never suppressed).
+- **Secret scrub (MANDATORY):** before creating the issue, scan title + body for credential material — JWTs, tokens, long hex/base64 blobs, `password=`/`secret=` values, `Bearer`/`Authorization`/`Cookie` header values, connection strings, env-var values (`AUTH_SECRET`, `STRAPI_API_TOKEN`, …). Replace any with `[REDACTED]` and refer to env vars by **name only**. Keys and passwords NEVER go on GitHub. (Enforced as a backstop by the `.claude/hooks/gh-secret-scan.ps1` PreToolUse hook, which blocks the `gh` call — but scrub first, don't rely on the block.) Invoke `gh` directly, never inside a compound command (`cd x && gh …`), or the hook's prefix filter won't see it.
+- Write the body to a temp file and pass it with `--body-file` (PowerShell mangles inline multi-line bodies):
+  ```bash
+  gh issue create --title "bug-sweep: ..." --label bug --label bug-sweep --label "severity:<x>" --label "triage:candidate" --body-file <tmpfile>
+  ```
+
+Then append one `Run log` row to `BUG_SWEEP_FINDINGS.md`: `{Run = RUN-YYYYMMDD, Date, Surfaces audited, Reported = total findings, Issues = the #NN list just filed, Accepted/Rejected/FP-rate left blank — filled at triage}`.
 
 ### 5. Report
-Print: surfaces audited, findings reported (by severity), clean surfaces, budget remaining. End with: *"Run `/bug-sweep triage` to accept/reject."* **If zero findings across all batches, say so plainly — that is the convergence target, not a failure.** Do not stage or commit.
+Print: surfaces audited, findings reported (by severity) with their issue URLs, clean surfaces, budget remaining. End with: *"Run `/bug-sweep triage` to accept/reject."* **If zero findings across all batches, say so plainly — that is the convergence target, not a failure.** Do not stage or commit.
 
 ---
 
 ## Triage mode
 
-### 1. Walk Open candidates
-`Read` the `Open` candidates. For each, present `{surface, severity, observed → expected, oracle_cite, repro}` and ask the human to **accept** or **reject (reason)**. Reason ∈ `by-design` / `false-positive` / `wont-fix` / `duplicate` / `deferred`.
+### 1. Walk open candidates
+```bash
+gh issue list --label bug-sweep --label "triage:candidate" --state open --json number,title,body
+```
+For each, present `{issue #, surface, severity, observed → expected, oracle_cite, repro}` (parsed from the issue body) and ask the human to **accept** or **reject (reason)**. Reason ∈ `by-design` / `false-positive` / `wont-fix` / `duplicate` / `deferred`.
 
 ### 2. Accept
-Set the row `accepted` with a one-line remediation note + owner. It stays in `Open` until the fix lands, then moves to `Fixed` (with date). (No fix-prompt authoring — accepted findings are remediated through the normal dev workflow.)
+```bash
+gh issue edit <NN> --remove-label "triage:candidate" --add-label "triage:accepted"
+gh issue comment <NN> --body-file <tmpfile>   # one-line remediation note + owner
+```
+The issue stays open until the fix lands; the fix PR closes it as *completed* via `Fixes #NN`. (No fix-prompt authoring — accepted findings are remediated through the normal dev workflow.)
 
 ### 3. Reject (reason) → suppression + durable action
-Move the row from `Open` to `Rejected`, recording `{ID, Surface, Signature, Finding (1-line), reject_reason, Rejected on, Durable action}`. The `Rejected` section **is** the suppression memory loaded at Run-mode Step 1. Durable action by reason:
+```bash
+gh issue comment <NN> --body-file <tmpfile>   # "Rejected: <reason>. Durable action: <action>"
+gh issue edit <NN> --remove-label "triage:candidate"
+gh issue close <NN> --reason "not planned"
+```
+The closed-as-*not-planned* set **is** the suppression memory loaded at Run-mode Step 1 — its `{surface, signature}` meta block is never re-reported, so never strip that block from a body. Durable action by reason:
 - `by-design` → note which doc/oracle to amend so the auditor does not re-derive the same "violation" next run.
 - `false-positive` → note the evidence-bar gap (what let it slip through) for the next auditor-contract tune.
-- `wont-fix` / `duplicate` → suppression only (for `duplicate`, link the canonical row).
+- `wont-fix` / `duplicate` → suppression only (for `duplicate`, link the canonical issue).
 - `deferred` → note that the surface/check is out of scope for now.
 
 ### 4. Close the run-log row
-Fill the most-recent open `Run log` row's `Accepted`, `Rejected (FP)` (= count rejected as `false-positive`), and `FP-rate` (= rejected-as-false-positive ÷ reported). FP-rate trending to ~0 across runs **is** convergence; a rising FP-rate means the evidence bar or an oracle is wrong — not the codebase. Do not stage or commit.
+Fill the most-recent open `Run log` row's `Accepted`, `Rejected (FP)` (= count rejected as `false-positive`), and `FP-rate` (= rejected-as-false-positive ÷ reported) in `BUG_SWEEP_FINDINGS.md`. FP-rate trending to ~0 across runs **is** convergence; a rising FP-rate means the evidence bar or an oracle is wrong — not the codebase. Do not stage or commit.
 
 ---
 
 ## Safety rules (always enforced)
 
 - **Never `git commit` / `git add`.** Report what changed; let the operator commit.
+- **No secrets on GitHub — ever.** Every issue title, body, and comment is scrubbed of credential material before posting (see Step 4's secret scrub; same rule applies to triage comments). The `gh-secret-scan.ps1` PreToolUse hook is the enforcement backstop, not the primary control.
+- **Scoped GitHub writes.** Run mode's only GitHub write is `gh issue create`; triage mode edits labels, comments, and closes — **neither mode ever deletes an issue, edits an issue body, or touches issues without the `bug-sweep` label.**
 - **The auditor is the only browser-driver.** This skill never drives Playwright itself.
 - **Reward-zero.** Few or zero findings is success. Never instruct the auditor to "find more"; never lower the evidence bar to fill the queue.
-- **Stack-gated.** Run mode does nothing useful without the local stack up on port 3000 + 5255; the Step-2 preflight halt is load-bearing, not advisory.
-- **No speculative rows.** Every ledger row traces to a returned auditor finding.
+- **Stack-gated.** Run mode does nothing useful without the local stack on ports 3000 + 5255 and an authenticated `gh`; the Step-2 preflight halt is load-bearing, not advisory.
+- **No speculative issues.** Every filed issue traces to a returned auditor finding.

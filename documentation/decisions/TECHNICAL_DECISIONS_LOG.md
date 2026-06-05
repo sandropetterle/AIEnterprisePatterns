@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-04 (Per-IP partitioned rate limiting, no request queueing — Decision 75, fixes issue #68)
+**Last Updated:** 2026-06-05 (No secrets on GitHub: secret-scanning PreToolUse hook gates all gh writes — Decision 77)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**75 active decisions | 0 archived**
+**77 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,124 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 77: No secrets on GitHub — secret-scanning PreToolUse hook gates all gh writes
+
+**Date:** 2026-06-05
+**Title:** Enforce "no keys/passwords/tokens on GitHub issues or PRs" with a blocking secret-scan hook on every GitHub-writing `gh` command, plus instructional scrub rules in the bug-sweep skill and auditor
+**Category:** Security / Tooling
+**Status:** Active
+
+### Context / Problem
+
+With bug-sweep findings now filed as GitHub issues (Decision 76), agent-authored content flows to GitHub routinely. Findings quote network requests, console output, and env-var-driven behavior — exactly the material that can accidentally embed a JWT, an `Authorization` header, or a connection string. The operator's policy: credential material must **never** appear on GitHub. An audit of all existing issues, issue/PR comments, and PR bodies (2026-06-05) found zero leaks; the goal is keeping it that way structurally, not by vigilance. The same audit *did* find live-looking secrets committed in `.claude/settings.json` / `.claude/settings.local.json` permission entries (Strapi API tokens, an expired admin JWT, the deleted Azure MySQL password) — removed in the same change.
+
+### Decision
+
+Three layers, with the hook as the enforcement backstop:
+
+1. **Blocking hook (enforcement).** `.claude/hooks/gh-secret-scan.ps1` + a `PreToolUse` entry in `.claude/settings.json` (matcher `Bash|PowerShell`, `if: Bash(gh *)` / `PowerShell(gh *)`). It gates GitHub-writing `gh` invocations (`issue|pr create/comment/edit/close/...`, `gh api` with POST/PATCH/PUT/fields, `release|gist create`), scanning the command text **and** the contents of any referenced body file (`--body-file`, `--input`, `field=@file`). On a match it exits 2, blocking the call with actionable stderr. Patterns: JWTs, 48+-char hex (commit SHAs at 40 and `sha256:`-prefixed digests are allowed), `Bearer` tokens, GitHub `gh*_` tokens, private-key blocks, Azure `AccountKey=`/SAS `sig=`, credential assignments (`password=…`, `secret=…`, etc. — placeholder values like `<token>`/`$VAR` are allowed), and known env names with values. Fail-open on script error (a broken hook must not wedge every gh call); read-only `gh` commands are untouched.
+2. **Skill rule (primary control).** Bug-sweep Step 4 gains a mandatory pre-post secret scrub (redact to `[REDACTED]`, env vars by name only) and a "No secrets on GitHub — ever" safety rule; `gh` must be invoked directly, never inside compound commands, so the hook's prefix filter always sees it.
+3. **Auditor rule (source control).** Strict rule 8: findings must contain no credential material — auth headers/cookie values stripped when quoting network captures.
+
+Verified: 9 pipe-tests (JWT, password, 62-hex body-file blocked; clean writes, commit SHAs, docker digests, all three real backfilled issue bodies pass) + live end-to-end (fake-JWT comment blocked by the hook; clean comment reached gh).
+
+### Rationale
+
+- Instructions alone are vigilance; the hook is structural — the `gh` call never executes with a secret in it.
+- Scanning at the `gh` boundary (not at finding-time) also covers every future ad-hoc `gh issue/pr` write in any session, not just bug-sweep.
+- `if`-filtered hooks cost nothing on non-`gh` commands (no process spawn).
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Instructional rules only | The failure mode is accidental inclusion; a rule cannot catch what the author didn't notice. |
+| Hook on every Bash call (no `if` filter) | ~hundreds of ms of powershell spawn on every command in every session for no added coverage on the paths that matter. |
+| GitHub push protection / secret scanning | Operates on repo pushes and known provider patterns, not issue/comment bodies via gh CLI; complementary, not sufficient. |
+| Server-side GitHub Action auditing new issues | Detects after the secret is already published (and notified/cached); prevention must be client-side. |
+
+### Consequences
+
+- Compound commands (`cd x && gh …`) bypass the `if` prefix filter — mitigated by the skill rule to invoke `gh` directly; acceptable for an accidental-leak guard.
+- Possible rare false positives (e.g. a bare 64-char hex that is genuinely content) — the block message says how to rephrase; patterns live in one script.
+- Hook config changes load at session start / via `/hooks`; editing the script takes effect immediately.
+- `.claude/settings.local.json` untracked + gitignored (was committed, contained a password). **Residual:** removed secrets remain in git history; the Strapi tokens should be rotated at the next CMS session (Azure MySQL password is moot — server deleted).
+
+### Files Changed
+
+- `.claude/hooks/gh-secret-scan.ps1` — new scanner (PS 5.1).
+- `.claude/settings.json` — `hooks.PreToolUse` entry; removed 12 stale permission entries containing literal secrets.
+- `.claude/settings.local.json` — removed the mysqldump-with-password entry; untracked via `git rm --cached`.
+- `.gitignore` — ignore `.claude/settings.local.json`.
+- `.claude/skills/bug-sweep/SKILL.md` — Step-4 secret scrub + safety rule.
+- `.claude/agents/bug-sweep-auditor.md` — strict rule 8 (no credential material in findings).
+
+### Tests Added
+
+- None automated (hook tooling). Verification: the 9 stdin pipe-tests + the live blocked/clean `gh issue comment` pair described above; re-run the pipe-tests after any pattern change.
+
+---
+
+## Decision 76: Bug-sweep findings tracked as GitHub Issues (MD file reduced to run log)
+
+**Date:** 2026-06-05
+**Title:** Move `/bug-sweep` findings state (candidates, accepted, fixed, rejected/suppression memory) from `BUG_SWEEP_FINDINGS.md` to GitHub Issues; the MD file keeps only the run log
+**Category:** Testing / Tooling
+**Status:** Active (supersedes the "living ledger" portion of Decision 72)
+
+### Context / Problem
+
+Decision 72 put all bug-sweep findings state in a single MD ledger. Meanwhile real bugs in this repo are tracked as GitHub issues (#66–#71), so defects lived in two places with different lifecycles: a ledger row could not be closed by a fix PR, was invisible in the GitHub UI, and duplicated state GitHub already models natively (open/closed, close reasons, labels, comments). The operator wants one place for bugs.
+
+### Decision
+
+GitHub Issues (label `bug-sweep`) become the findings system of record; the issue lifecycle is the triage state machine:
+
+- **Filing (run mode).** Each returned auditor finding → one issue: labels `bug` + `bug-sweep` + `severity:<block|major|minor>` + `triage:candidate`; body carries human-readable sections plus a machine-readable `<!-- bug-sweep:meta -->` block with `{surface, signature, run}` — the cross-run identity key. Bodies pass via `--body-file` (PS 5.1 quoting). Run mode's only GitHub write is `issue create`.
+- **Triage accept** → swap `triage:candidate` for `triage:accepted` + remediation comment; the fix PR closes it as *completed* (`Fixes #NN`).
+- **Triage reject** → closing comment (`Rejected: <reason>. Durable action: ...`; reason ∈ by-design/false-positive/wont-fix/duplicate/deferred) + close as *not planned*. **The closed-as-not-planned set is the suppression memory** the skill loads each run (`gh issue list --label bug-sweep --state closed --json number,body,stateReason`, filter `NOT_PLANNED`, parse the meta block).
+- **Fixed ≠ suppressed.** Issues closed as *completed* are not suppressed; a recurring `{surface, signature}` is re-filed flagged "possible regression of #NN".
+- **Preflight.** `gh auth status` joins the run-mode hard gate (filing needs an authenticated CLI).
+- **MD file.** `BUG_SWEEP_FINDINGS.md` keeps only the `Run log` convergence table (now with an `Issues` column) + canned `gh` queries. Historical findings BSW-0001..0003 backfilled as closed-completed issues #73/#74/#75.
+- Six labels created: `bug-sweep`, `severity:block|major|minor`, `triage:candidate`, `triage:accepted`. Reject reasons live in closing comments, not labels (operator's choice — less label sprawl).
+
+The structural anti-padding guarantee is unchanged: the auditor is read-only (and barred from `gh`); only the skill files issues, and only from returned `findings[]` entries.
+
+### Rationale
+
+- One queryable place for all defects; bug-sweep findings sit beside organically-filed bugs and close automatically via `Fixes #NN`.
+- GitHub natively models the triage lifecycle (labels, close reasons, comments) the MD ledger re-implemented by hand; `stateReason` cleanly separates fixed (completed) from suppressed (not planned).
+- The FP-rate convergence metric is per-run aggregate context, not per-finding state — it stays in the MD run log, which is what MD is still good at.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Keep the MD ledger (status quo) | Two sources of truth for bugs; no PR auto-close; invisible in the GitHub UI. |
+| GitHub Projects board | Adds a board on top of issues without removing the need for issues; gh CLI support for Projects is clunkier; overkill for one repo. |
+| Per-reason reject labels (`bsw:by-design`, …) | 5 extra labels for information a closing comment carries fine; operator chose comment-only. |
+| Run log as a pinned GitHub issue | Append-only comments model a table poorly; the MD table diffs cleanly in git and is already the convergence artifact. |
+
+### Consequences
+
+- Run mode now requires network + authenticated `gh` (preflight-gated); the sweep no longer works fully offline.
+- Suppression matching depends on the `<!-- bug-sweep:meta -->` block surviving in issue bodies — triage never strips it; humans editing issue bodies must leave it intact.
+- The 200-issue `--limit` on the suppression query is a soft ceiling; revisit if rejected findings ever approach it.
+- BSW-NNNN IDs are retired; issue numbers are the canonical finding IDs.
+
+### Files Changed
+
+- `.claude/skills/bug-sweep/SKILL.md` — suppression load from gh, gh preflight, Step 4 files issues, triage via gh, safety rules scoped to GitHub writes.
+- `.claude/agents/bug-sweep-auditor.md` — contract-version note; "ledger" wording → issues; explicit no-`gh` rule. Output contract unchanged.
+- `documentation/testing/BUG_SWEEP_FINDINGS.md` — reduced to run log + queries + backfill mapping.
+- `documentation/testing/BUG_SWEEP_DESIGN.md` — §1.1/§5/§6/§10 reworked to the issue lifecycle.
+
+### Tests Added
+
+- None (tooling/documentation change). Verified: 6 labels exist; issues #73–#75 backfilled closed-completed with meta blocks; the suppression query returns empty without erroring (no not-planned issues yet).
 
 ---
 
@@ -145,7 +263,7 @@ Bug-sweep finding **BSW-0002** (major): the CSP in `next.config.mjs` allow-liste
 **Date:** 2026-06-03
 **Title:** Adopt an on-demand, convergent browser bug-sweep that pairs the CI-proven e2e suite with live Playwright-MCP exploration, driven by a read-only Opus auditor, with a living findings ledger and a human triage loop
 **Category:** Testing
-**Status:** Active
+**Status:** Active (findings-ledger portion superseded by Decision 76)
 
 ### Context / Problem
 
@@ -158,7 +276,7 @@ Add a `/bug-sweep` skill + a `bug-sweep-auditor` subagent + a living ledger, ada
 - **Hybrid browser driver.** Run `npm run test:e2e` (Chromium) once per run as a deterministic regression baseline, then explore beyond it **live via Playwright MCP** (model-in-the-loop, adaptive). The baseline catches encoded regressions; live exploration finds the unencoded.
 - **Read-only Opus auditor as the only browser-driver.** The auditor (`model: opus`, tools `Read/Bash/Grep/Glob` + `mcp__playwright__browser_*`, **no** `Edit`/`Write`) drives the browser and returns schema-valid candidate findings. Opus because the delegation risk is *judgment* — not padding the budget, and not mistaking a correct redirect for a defect.
 - **Evidence bar + reward-zero.** A finding requires a concrete `observed ≠ expected` delta **and** an oracle cite, or it is dropped as a hunch. Zero findings on a clean run is an explicit success; the 10-finding budget is a ceiling, never a quota. FP-rate (rejected-as-false-positive ÷ reported) is the convergence metric.
-- **Living ledger + triage.** A single `BUG_SWEEP_FINDINGS.md` holds `Run log` + `Open`/`Fixed`/`Rejected`; the `Rejected` section is the suppression memory the auditor loads each run. A `triage` mode accepts/rejects candidates. Only the skill writes the ledger; rows trace 1:1 to returned auditor findings (no speculative rows).
+- **Living ledger + triage.** A single `BUG_SWEEP_FINDINGS.md` holds `Run log` + `Open`/`Fixed`/`Rejected`; the `Rejected` section is the suppression memory the auditor loads each run. A `triage` mode accepts/rejects candidates. Only the skill writes the ledger; rows trace 1:1 to returned auditor findings (no speculative rows). *(Superseded in part by Decision 76, 2026-06-05: findings state moved to GitHub Issues; the MD file retains only the run log.)*
 - **Auth scope.** Public + protected surfaces. The live MCP context is unauthenticated (the Auth.js cookie is `httpOnly`), so it verifies the unauth→`/login` redirect invariant directly; the authenticated render is covered by the e2e baseline (`authenticated-flows.spec.ts` loads `e2e/.auth/admin.json`).
 - **Port.** Frontend on **3000** — matching the CI-coupled `playwright.config.ts` webServer default, so the e2e baseline reuses the running dev server (`reuseExistingServer: true`) with no `PLAYWRIGHT_BASE_URL` override. Backend on 5255. *(Revised 2026-06-03: originally 4000 per operator preference; the first run showed the 4000/3000 split made Playwright's `reuseExistingServer` probe the wrong port and collide with the running dev server, so the port was aligned to 3000.)*
 
