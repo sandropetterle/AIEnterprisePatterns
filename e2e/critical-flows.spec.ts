@@ -217,6 +217,18 @@ test.describe('Browse Patterns Page', () => {
     })
     await expect(page.getByText('No patterns available')).toHaveCount(0)
   })
+
+  test('unknown sort param falls back to the default sort, not a false empty state (#77)', async ({ page }) => {
+    await page.goto('/patterns?sort=garbage-invalid-value')
+
+    // Unknown sort values are normalized to the default sort instead of being
+    // forwarded to the backend (which rejects them with 400) — the populated
+    // catalog must render, never the misleading empty-library state.
+    await expect(page.locator('a[href^="/patterns/"]').first()).toBeVisible({
+      timeout: 15_000,
+    })
+    await expect(page.getByText('No patterns available')).toHaveCount(0)
+  })
 })
 
 // ---------------------------------------------------------------------------

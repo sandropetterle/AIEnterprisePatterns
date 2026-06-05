@@ -10,6 +10,7 @@ import {
   mapPatternListDto,
   mapPatternDetailDto,
   mapPaginatedResponse,
+  normalizeSortOption,
 } from '../mappers'
 import type { PatternListDto, PatternDetailDto, PaginatedResponse } from '../types'
 import type { PatternCategory } from '@/lib/types/pattern'
@@ -110,6 +111,35 @@ describe('Category Mapping', () => {
         expect(backToApi).toBe(apiCat)
       })
     })
+  })
+})
+
+describe('normalizeSortOption', () => {
+  it('passes through canonical SortOption values unchanged', () => {
+    expect(normalizeSortOption('recent')).toBe('recent')
+    expect(normalizeSortOption('votes')).toBe('votes')
+    expect(normalizeSortOption('alphabetical')).toBe('alphabetical')
+  })
+
+  it('maps the CMS-fallback alias "newest" to "recent" (issue #76)', () => {
+    expect(normalizeSortOption('newest')).toBe('recent')
+  })
+
+  it('maps the CMS-fallback alias "popular" to "votes" (issue #76)', () => {
+    expect(normalizeSortOption('popular')).toBe('votes')
+  })
+
+  it('maps the CMS-fallback alias "title" to "alphabetical" (issue #76)', () => {
+    expect(normalizeSortOption('title')).toBe('alphabetical')
+  })
+
+  it('falls back to "recent" for unknown values instead of forwarding them (issue #77)', () => {
+    expect(normalizeSortOption('garbage-invalid-value')).toBe('recent')
+  })
+
+  it('falls back to "recent" for undefined and empty string', () => {
+    expect(normalizeSortOption(undefined)).toBe('recent')
+    expect(normalizeSortOption('')).toBe('recent')
   })
 })
 
