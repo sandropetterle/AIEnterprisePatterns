@@ -193,7 +193,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 - **Local workers capped at 2**: the Next dev server wedges under 4+ concurrent browsers (RSC requests hang indefinitely — issue #68); only override with `--workers` against a prod build
 - **`toHaveURL` vs `waitForURL`**: use `expect(page).toHaveURL()` for Next.js App Router pushState navigation — `waitForURL` never fires for `history.pushState`
 - **WebKit URL-encodes commas**: WebKit encodes `,` as `%2C`; regex must handle both: `/param=[^&]*(%2C|,)/i`
-- **Lighthouse CI cold-start**: `warmupRuns: 1` eliminates the first-run ~40% latency outlier
+- **Lighthouse LCP gate**: `aggregationMethod: median` + 3500ms budget (Decision 79) — GitHub runners measure ~2.9–3.0s LCP medians for the home page (network-chain + layout floor that JS work can't lower); the old optimistic best-of-3 vs 2500ms was a runner-speed lottery. `warmupRuns` is NOT a real LHCI option (silently ignored) — don't reintroduce it
 
 ## Documentation Rules
 
