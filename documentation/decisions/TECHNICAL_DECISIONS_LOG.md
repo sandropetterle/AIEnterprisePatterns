@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-05 (/patterns mobile TBT: native sort select + matchMedia-gated desktop filter rail — Decision 80)
+**Last Updated:** 2026-06-05 (listing sort param normalized against the SortOption contract at the frontend boundary — Decision 81)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**80 active decisions | 0 archived**
+**81 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,40 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 81: Normalize listing `sort` values at the frontend boundary (alias map, not CMS edits or backend validation)
+
+**Date:** 2026-06-05
+**Title:** Map untrusted `?sort=` values onto the API `SortOption` contract in `lib/api/mappers.ts` before they reach `getPatterns`
+**Category:** Frontend / API Contract
+**Status:** Active — closes issues #76 and #77
+
+### Context / Problem
+
+`app/patterns/page.tsx` cast `searchParams.sort` straight to `SortOption` and forwarded it to the backend. Two failure modes from the same unvalidated boundary:
+
+- **#77 (major):** values longer than 20 chars (e.g. `?sort=garbage-invalid-value`) trip the backend's `[MaxLength(20)]` on `GetPatternsQuery.SortBy` → HTTP 400 → the page's catch-all swallowed the `ApiError` into the empty-state fallback, rendering a populated 6-pattern library as "No patterns available".
+- **#76:** unknown values ≤ 20 chars get HTTP 200 and the repository's sort `switch` silently falls through to default ordering — exactly what the compiled-in CMS fallback values (`newest`/`popular`/`title`) did, so "Most Popular" and "Title A-Z" in the dropdown were no-ops.
+
+### Decision
+
+Add `normalizeSortOption()` to `lib/api/mappers.ts` (the existing backend↔frontend transformation layer): canonical values (`recent`/`votes`/`alphabetical`) pass through, CMS-fallback aliases map onto them (`newest`→`recent`, `popular`→`votes`, `title`→`alphabetical`), anything else warns and falls back to `recent`. `app/patterns/page.tsx` calls it where the untrusted param enters; `SearchParams.sort` is typed `string` (it was never a trustworthy `SortOption`).
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Fix the CMS fallback values (+ Strapi backup content + test expectations) to canonical | Breaks already-shared/bookmarked `?sort=popular` URLs; touches backed-up CMS content; still leaves the page forwarding arbitrary URL values to the backend (#77 unfixed) |
+| Allowlist-only validation without aliases | Fixes #77 but leaves every CMS-labelled dropdown option silently no-op (#76) |
+| Backend: reject unknown `sortBy` with 400 | Makes the contract violation loud but doesn't stop the frontend misrepresenting a populated library as empty; complementary, not chosen for this fix |
+
+### Tests Added
+
+- `lib/api/__tests__/mappers.test.ts` — `normalizeSortOption` canonical pass-through, alias mapping, garbage/undefined/empty fallback
+- `lib/cms/__tests__/queries.test.ts` — pins every CMS-fallback `sortOptions` value to a **distinct** canonical `SortOption` so the contract cannot drift again
+- `e2e/critical-flows.spec.ts` — `/patterns?sort=garbage-invalid-value` must render the catalog, never the false empty state
 
 ---
 

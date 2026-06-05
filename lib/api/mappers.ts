@@ -3,7 +3,7 @@
  * Bidirectional mapping between backend DTOs and frontend types
  */
 
-import type { Pattern, PatternListItem, PatternCategory } from '@/lib/types/pattern'
+import type { Pattern, PatternListItem, PatternCategory, SortOption } from '@/lib/types/pattern'
 import type { PatternListDto, PatternDetailDto, PaginatedResponse } from './types'
 
 /**
@@ -54,6 +54,36 @@ export function mapCategoryToApi(uiCategory: PatternCategory): string {
   if (!mapped) {
     console.warn(`Unknown UI category: ${uiCategory}, defaulting to Architecture`)
     return 'Architecture'
+  }
+  return mapped
+}
+
+/**
+ * Sort normalization: URL/CMS sort values → API SortOption contract
+ * Canonical values pass through; CMS-fallback labels map to their API
+ * equivalent (issue #76); anything else falls back to the default sort
+ * instead of being forwarded to the backend (issue #77).
+ */
+const SORT_VALUE_TO_API: Record<string, SortOption> = {
+  recent: 'recent',
+  votes: 'votes',
+  alphabetical: 'alphabetical',
+  newest: 'recent',
+  popular: 'votes',
+  title: 'alphabetical',
+}
+
+/**
+ * Normalizes an untrusted sort value (URL param, CMS label) to a valid SortOption
+ */
+export function normalizeSortOption(value: string | undefined): SortOption {
+  if (!value) {
+    return 'recent'
+  }
+  const mapped = SORT_VALUE_TO_API[value]
+  if (!mapped) {
+    console.warn(`Unknown sort option: ${value}, defaulting to recent`)
+    return 'recent'
   }
   return mapped
 }

@@ -5,7 +5,7 @@ import {
   getAllCategories,
   getAllTags,
 } from '@/lib/api/patterns'
-import type { SortOption } from '@/lib/types/pattern'
+import { normalizeSortOption } from '@/lib/api/mappers'
 import { JsonLd } from '@/components/shared/JsonLd'
 import type { PatternCategory } from '@/lib/types/pattern'
 import { SearchBar } from '@/components/patterns/SearchBar'
@@ -22,7 +22,7 @@ type SearchParams = Promise<{
   q?: string
   category?: string
   tags?: string
-  sort?: SortOption
+  sort?: string
   page?: string
   dateFrom?: string
   dateTo?: string
@@ -69,7 +69,10 @@ export default async function PatternsPage(props: {
   const searchQuery = searchParams.q
   const category = searchParams.category
   const tags = searchParams.tags?.split(',').filter(Boolean)
-  const sortBy = (searchParams.sort as SortOption) || 'recent'
+  // Normalize untrusted sort values against the SortOption contract — unknown
+  // values must fall back to the default sort, never reach the backend, and
+  // never collapse a populated catalog into the empty state (issues #76/#77)
+  const sortBy = normalizeSortOption(searchParams.sort)
   const page = parseInt(searchParams.page || '1', 10)
   const dateFrom = searchParams.dateFrom
   const dateTo = searchParams.dateTo
