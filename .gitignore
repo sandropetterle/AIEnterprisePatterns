@@ -75,3 +75,12 @@ scripts/cms/.env.local-token
 
 # Claude Code personal overrides (may accumulate one-off commands containing credentials - never commit)
 .claude/settings.local.json
+
+# Claude Code scheduler lock (transient — regenerated at runtime)
+.claude/scheduled_tasks.lock
+
+# Crash dumps (e.g. bash.exe.stackdump from a shell crash)
+*.stackdump
+
+# Stray screenshots / debug captures in repo root — keep tracked images in public/ or docs/
+/*.png
