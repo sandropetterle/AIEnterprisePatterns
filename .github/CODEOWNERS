@@ -2,27 +2,27 @@
 # See: https://docs.github.com/en/repositories/managing-your-repositorys-settings-and-features/customizing-your-repository/about-code-owners
 
 # Default owner for everything not matched below
-* @sandr
+* @sandropetterle
 
 # Frontend — Next.js app, components, lib
-/app/ @sandr
-/components/ @sandr
-/lib/ @sandr
-/public/ @sandr
-*.tsx @sandr
-*.ts @sandr
+/app/ @sandropetterle
+/components/ @sandropetterle
+/lib/ @sandropetterle
+/public/ @sandropetterle
+*.tsx @sandropetterle
+*.ts @sandropetterle
 
 # Backend — ASP.NET Core API
-/backend/ @sandr
+/backend/ @sandropetterle
 
 # CMS — Strapi 5
-/cms/ @sandr
+/cms/ @sandropetterle
 
 # Infrastructure — Bicep IaC
-/infrastructure/ @sandr
+/infrastructure/ @sandropetterle
 
 # CI/CD workflows
-/.github/workflows/ @sandr
+/.github/workflows/ @sandropetterle
 
 # Documentation
-/documentation/ @sandr
+/documentation/ @sandropetterle
