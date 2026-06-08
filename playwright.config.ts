@@ -1,4 +1,14 @@
 import { defineConfig, devices } from '@playwright/test';
+import { loadEnvConfig } from '@next/env';
+
+// The Playwright runner is a separate Node process from the Next.js dev server, so
+// it does NOT auto-load .env.local. e2e/global.setup.ts reads AUTH_SECRET there to
+// mint the synthetic Auth.js session for authenticated tests; without it the setup
+// writes an empty session ({cookies:[]}) and ALL authenticated coverage silently
+// skips. Load Next's env files the same way Next does. @next/env does not override
+// variables already present in process.env, so CI (which injects AUTH_SECRET as a
+// step env var) is unaffected.
+loadEnvConfig(process.cwd(), true);
 
 /**
  * See https://playwright.dev/docs/test-configuration.
@@ -20,8 +30,12 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Opt out of parallel tests on CI. Locally, cap at 2 workers: the Next.js
+   * dev server wedges under 4+ concurrent browsers (RSC/page requests hang for
+   * tens of seconds — issue #68), which made the Advanced Search test family
+   * fail deterministically. 2 workers is reliable against both dev and prod
+   * servers; override with --workers for runs against a production build. */
+  workers: process.env.CI ? 1 : 2,
 
   /* Reporter to use. See https://playwright.dev/docs/test-reporters */
   reporter: process.env.CI ? [['html'], ['github']] : 'html',

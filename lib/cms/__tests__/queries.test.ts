@@ -24,6 +24,7 @@ import {
   getPatternDetailLabels,
   getPatternFormLabels,
 } from '../queries'
+import { normalizeSortOption } from '@/lib/api/mappers'
 
 // Mock global.fetch — Strapi 5 wraps responses as { data: <payload> }
 global.fetch = jest.fn() as jest.MockedFunction<typeof fetch>
@@ -167,6 +168,14 @@ describe('CMS Query Functions', () => {
       const result = await getAboutPage()
       expect(result.header?.title).toBe('AI Enterprise Patterns Library')
       expect(result.content).toHaveLength(4)
+    })
+
+    it('fallback seo.title is bare (layout template appends the site suffix)', async () => {
+      // BSW-0001: a hardcoded "| AI Enterprise Patterns" here doubles in the
+      // rendered <title> because app/layout.tsx title.template appends it again.
+      mockStrapiNetworkError()
+      const result = await getAboutPage()
+      expect(result.seo?.title).toBe('About')
     })
   })
 
@@ -377,6 +386,17 @@ describe('CMS Query Functions', () => {
       expect(result.emptyFilteredDescription).toBeDefined()
       expect(result.emptyUnfilteredDescription).toBeDefined()
       expect(result.clearFiltersLabel).toBe('Clear all filters')
+    })
+
+    it('pins every fallback sortOption value to a distinct API SortOption (issues #76/#77)', async () => {
+      mockStrapiNetworkError()
+
+      const result = await getPatternListingLabels()
+
+      // Each CMS sort value must normalize to a real backend SortOption —
+      // and to three DISTINCT ones, so no dropdown option silently no-ops.
+      const normalized = result.sortOptions!.map((o) => normalizeSortOption(o.value))
+      expect(normalized).toEqual(['recent', 'votes', 'alphabetical'])
     })
 
     it('falls back to hardcoded defaults on HTTP error', async () => {

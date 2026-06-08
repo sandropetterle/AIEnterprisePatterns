@@ -87,6 +87,17 @@ jobs:
       - name: Security audit (production deps)
         run: npm audit --omit=dev --audit-level=high
 
+      # Project-wide type check including test files — next build excludes tests
+      # and Jest (SWC) transpiles without type-checking, so this is the only
+      # gate that catches type drift in tests (see issue #70)
+      - name: Type check
+        run: npx tsc --noEmit
+
+      # Lint gate — keeps the flat-config ESLint setup from silently rotting
+      # again now that Next 16 removed `next lint` (see issue #69)
+      - name: Lint
+        run: npm run lint
+
       - name: Run tests with coverage
         run: npm run test:ci
         env:

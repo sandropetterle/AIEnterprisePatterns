@@ -1,7 +1,7 @@
 'use client'
 
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useCallback } from 'react'
+import { useCallback, useId } from 'react'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { X } from 'lucide-react'
@@ -25,6 +25,13 @@ export function DateRangeFilter({
 }: DateRangeFilterProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+
+  // Unique per instance — FilterPanel is mounted twice on /patterns (desktop
+  // panel + mobile FilterSheet), so hardcoded ids produced duplicate ids in the
+  // DOM and ambiguous <label htmlFor> association (issue #68).
+  const id = useId()
+  const fromId = `${id}-date-from`
+  const toId = `${id}-date-to`
 
   const hasActiveDates = !!(dateFrom || dateTo)
 
@@ -68,11 +75,11 @@ export function DateRangeFilter({
       </div>
       <div className="space-y-2">
         <div>
-          <Label htmlFor="date-from" className="text-xs text-muted-foreground">
+          <Label htmlFor={fromId} className="text-xs text-muted-foreground">
             {fromLabel}
           </Label>
           <input
-            id="date-from"
+            id={fromId}
             type="date"
             value={dateFrom || ''}
             onChange={(e) => updateDates('dateFrom', e.target.value)}
@@ -80,11 +87,11 @@ export function DateRangeFilter({
           />
         </div>
         <div>
-          <Label htmlFor="date-to" className="text-xs text-muted-foreground">
+          <Label htmlFor={toId} className="text-xs text-muted-foreground">
             {toLabel}
           </Label>
           <input
-            id="date-to"
+            id={toId}
             type="date"
             value={dateTo || ''}
             min={dateFrom || undefined}

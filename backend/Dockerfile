@@ -28,6 +28,15 @@ RUN dotnet publish "AIEnterprisePatterns.Api.csproj" -c Release -o /app/publish 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:354c2fcfb3c23abc60d98f0380cdb403fba844a62a123b6343a8c9611209995c AS runtime
 WORKDIR /app
 
+# ICU + globalization support.
+# The Alpine .NET images run in globalization-invariant mode (DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true,
+# no ICU). Microsoft.Data.SqlClient calls CultureInfo.GetCultureInfo("en-us") inside SqlConnection.Open(),
+# which throws CultureNotFoundException in invariant mode — so every Azure SQL connection (and the
+# AddDbContextCheck health check) fails. Installing ICU and disabling invariant mode restores the
+# behaviour of the previous Debian-based image. See TECHNICAL_DECISIONS_LOG.md #71.
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+
 # Create non-root user (Alpine syntax)
 RUN addgroup -S appuser && adduser -S appuser -G appuser
 

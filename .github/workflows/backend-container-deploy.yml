@@ -160,20 +160,26 @@ jobs:
           echo "fqdn=$FQDN" >> $GITHUB_OUTPUT
 
       - name: Wait for deployment
-        run: sleep 45
+        run: sleep 15
 
       - name: Check API health
         run: |
-          response=$(curl -s https://${{ steps.get-url.outputs.fqdn }}/health)
-          http_code=$(curl -s -o /dev/null -w "%{http_code}" https://${{ steps.get-url.outputs.fqdn }}/health)
-
-          if [ "$response" = "Healthy" ]; then
-            echo "✓ API health check passed (HTTP $http_code, Response: $response)"
-          else
-            echo "✗ API health check failed (HTTP $http_code, Response: $response)"
-            echo "Expected: 'Healthy', Got: '$response'"
-            exit 1
-          fi
+          url="https://${{ steps.get-url.outputs.fqdn }}/health"
+          attempts=12
+          delay=15
+          for i in $(seq 1 $attempts); do
+            http_code=$(curl -s -m 10 -o /tmp/health_body -w "%{http_code}" "$url" || echo "000")
+            response=$(cat /tmp/health_body 2>/dev/null || true)
+            if [ "$response" = "Healthy" ]; then
+              echo "✓ API health check passed on attempt $i (HTTP $http_code, Response: $response)"
+              exit 0
+            fi
+            echo "Attempt $i/$attempts: not healthy yet (HTTP $http_code, Response: '$response') — retrying in ${delay}s"
+            sleep "$delay"
+          done
+          echo "✗ API health check failed after $attempts attempts (last HTTP $http_code, Response: '$response')"
+          echo "Expected: 'Healthy' — the Container App cold-starts from zero, so a slow first response is normal but this exhausted the retry budget."
+          exit 1
 
       - name: Deployment summary
         run: |

@@ -56,7 +56,7 @@ Api/ (Controllers, DTOs, Middleware, Validators)
   ↓ Data/ (Repositories, DbContext, Migrations)
 ```
 - **UnitOfWork**: Registered but unused; PatternService calls `repository.SaveAsync()` directly
-- **Rate Limiting**: `fixed` (100/min), `api` (50/min), `vote` (10/min per IP) — registered via `AddInfrastructure()`
+- **Rate Limiting**: partitioned per client IP — `fixed` (100/min), `api` (300/min), `vote` (10/min); `QueueLimit 0` (fail-fast 429, never queue — a queued request silently stalled SSR renders for up to ~55s, see Decision 75 / issue #68) — registered via `AddInfrastructure()`
 - **PatternMapper**: Dedicated mapper class for DTO transformations
 - **Memory Caching**: IMemoryCache for featured/trending patterns — registered via `AddInfrastructure()`
 - **TimeProvider**: TimeProvider.System injected for testable time — registered via `AddInfrastructure()`
@@ -121,7 +121,7 @@ STRAPI_API_TOKEN=<read-only-api-token> # local dev only; not needed in productio
 
 Base: `http://localhost:5255/api` | Full reference: `documentation/api/`
 
-All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (50/min), vote limit (10/min). POST/PUT patterns → RequireEditor; DELETE → RequireAdmin. `/auth/me` → Authorize. `/health`, `/health/ready` → public.
+All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (300/min per IP), vote limit (10/min per IP). POST/PUT patterns → RequireEditor; DELETE → RequireAdmin. `/auth/me` → Authorize. `/health`, `/health/ready` → public.
 
 ## Frontend Coding Standards
 
@@ -142,7 +142,7 @@ All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (50
 
 ## Testing
 
-- **Frontend:** `npm test` (Jest + React Testing Library); 396/396 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
+- **Frontend:** `npm test` (Jest + React Testing Library); 420/420 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
 - **Backend:** `dotnet test` (xUnit + Moq); 114/114 tests passing (~85% testable coverage)
 - **E2E:** Playwright cross-browser matrix — Chromium, Firefox, WebKit (CI runs all three in parallel via `strategy.matrix`)
 - **Performance:** Lighthouse CI (`@lhci/cli`) — LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80 — gates deploy in `frontend-container-deploy.yml`
@@ -183,13 +183,17 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 **E2E / Playwright:**
 - **Vote mocking**: use `page.addInitScript` (not `page.route`) to intercept client-side fetch
+- **Sonner toasts**: `<Toaster>` is idle-mounted via `LazyToaster` (Decision 78) — wait for `section[aria-label*="Notifications"]` to exist before triggering toasts (it doubles as a hydration-complete signal); toasts auto-dismiss in ~4s, so assert via an in-page observer or a tight `expect().toPass()` poll, never after multi-second tool/setup gaps
 - **E2E CI**: build needs `NEXT_PUBLIC_API_BASE_URL` baked in; explicit `npm run start &` + health-poll before e2e
 - Avoid `waitForLoadState('networkidle')` for filtered/search URLs — use element-based waiting instead
 - **webkit date inputs**: `page.fill()` on `type="date"` can be intercepted by webkit's native picker; use `fillDateInput()` helper in `e2e/critical-flows.spec.ts`
-- **Hydration race**: don't use heading visibility as sole wait signal — wait for the specific input element
+- **Hydration race**: visibility of server-rendered HTML is NOT a readiness signal — interactions fired before React attaches handlers are silently lost. FilterPanel sets `data-hydrated="true"` in a mount effect; use `waitForFilterPanelHydrated()` (critical-flows.spec.ts) after every `goto` before interacting with the panel
+- **Filter-panel interactions**: retry until the observable effect appears (`expect(async () => {...}).toPass()`) with idempotency guards (`isChecked()`, visibility, `aria-pressed`) so retries never double-toggle; the inner effect timeout must exceed the worst-case navigation commit (~8s under parallel-worker load) or each retry re-pushes and restarts the navigation
+- **Transient duplicate page subtree**: during Next.js soft navigations old+new page content can briefly coexist (strict-mode "resolved to 2 elements") — filter wrapper locators with `.filter({ visible: true })`
+- **Local workers capped at 2**: the Next dev server wedges under 4+ concurrent browsers (RSC requests hang indefinitely — issue #68); only override with `--workers` against a prod build
 - **`toHaveURL` vs `waitForURL`**: use `expect(page).toHaveURL()` for Next.js App Router pushState navigation — `waitForURL` never fires for `history.pushState`
 - **WebKit URL-encodes commas**: WebKit encodes `,` as `%2C`; regex must handle both: `/param=[^&]*(%2C|,)/i`
-- **Lighthouse CI cold-start**: `warmupRuns: 1` eliminates the first-run ~40% latency outlier
+- **Lighthouse LCP gate**: `aggregationMethod: median` + 3500ms budget (Decision 79) — GitHub runners measure ~2.9–3.0s LCP medians for the home page (network-chain + layout floor that JS work can't lower); the old optimistic best-of-3 vs 2500ms was a runner-speed lottery. `warmupRuns` is NOT a real LHCI option (silently ignored) — don't reintroduce it
 
 ## Documentation Rules
 
@@ -217,4 +221,4 @@ This is not optional — it preserves architectural knowledge across sessions.
 - **Vote endpoint** uses atomic `ExecuteUpdateAsync` for relational providers (SQLite/SQL Server), with InMemory fallback for tests
 - **Container security:** Non-root user in Docker requires port 8080 (ports <1024 need root)
 - **Docker base images:** All 3 Dockerfiles use SHA-pinned `FROM` lines (`@sha256:<digest>`) for supply chain security; Dependabot Docker ecosystem keeps pins current
-- **Backend runtime:** `aspnet:8.0-alpine` (not Debian) — ~90 MB image, no `curl`/`apt-get` layer; healthcheck uses BusyBox `wget -qO-`
+- **Backend runtime:** `aspnet:8.0-alpine` (not Debian) — no `curl`/`apt-get` layer; healthcheck uses BusyBox `wget -qO-`. Installs `icu-libs` + sets `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` — **required**: Microsoft.Data.SqlClient calls `CultureInfo.GetCultureInfo()` during `SqlConnection.Open()` and throws `CultureNotFoundException` in Alpine's default invariant mode, breaking all Azure SQL connections (see TDL #71)

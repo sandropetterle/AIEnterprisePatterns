@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-02 (react + react-dom grouped in Dependabot)
+**Last Updated:** 2026-06-05 (listing sort param normalized against the SortOption contract at the frontend boundary — Decision 81)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**70 active decisions | 0 archived**
+**81 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,544 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 81: Normalize listing `sort` values at the frontend boundary (alias map, not CMS edits or backend validation)
+
+**Date:** 2026-06-05
+**Title:** Map untrusted `?sort=` values onto the API `SortOption` contract in `lib/api/mappers.ts` before they reach `getPatterns`
+**Category:** Frontend / API Contract
+**Status:** Active — closes issues #76 and #77
+
+### Context / Problem
+
+`app/patterns/page.tsx` cast `searchParams.sort` straight to `SortOption` and forwarded it to the backend. Two failure modes from the same unvalidated boundary:
+
+- **#77 (major):** values longer than 20 chars (e.g. `?sort=garbage-invalid-value`) trip the backend's `[MaxLength(20)]` on `GetPatternsQuery.SortBy` → HTTP 400 → the page's catch-all swallowed the `ApiError` into the empty-state fallback, rendering a populated 6-pattern library as "No patterns available".
+- **#76:** unknown values ≤ 20 chars get HTTP 200 and the repository's sort `switch` silently falls through to default ordering — exactly what the compiled-in CMS fallback values (`newest`/`popular`/`title`) did, so "Most Popular" and "Title A-Z" in the dropdown were no-ops.
+
+### Decision
+
+Add `normalizeSortOption()` to `lib/api/mappers.ts` (the existing backend↔frontend transformation layer): canonical values (`recent`/`votes`/`alphabetical`) pass through, CMS-fallback aliases map onto them (`newest`→`recent`, `popular`→`votes`, `title`→`alphabetical`), anything else warns and falls back to `recent`. `app/patterns/page.tsx` calls it where the untrusted param enters; `SearchParams.sort` is typed `string` (it was never a trustworthy `SortOption`).
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Fix the CMS fallback values (+ Strapi backup content + test expectations) to canonical | Breaks already-shared/bookmarked `?sort=popular` URLs; touches backed-up CMS content; still leaves the page forwarding arbitrary URL values to the backend (#77 unfixed) |
+| Allowlist-only validation without aliases | Fixes #77 but leaves every CMS-labelled dropdown option silently no-op (#76) |
+| Backend: reject unknown `sortBy` with 400 | Makes the contract violation loud but doesn't stop the frontend misrepresenting a populated library as empty; complementary, not chosen for this fix |
+
+### Tests Added
+
+- `lib/api/__tests__/mappers.test.ts` — `normalizeSortOption` canonical pass-through, alias mapping, garbage/undefined/empty fallback
+- `lib/cms/__tests__/queries.test.ts` — pins every CMS-fallback `sortOptions` value to a **distinct** canonical `SortOption` so the contract cannot drift again
+- `e2e/critical-flows.spec.ts` — `/patterns?sort=garbage-invalid-value` must render the catalog, never the false empty state
+
+---
+
+## Decision 80: /patterns mobile TBT — native sort select + matchMedia-gated desktop filter rail
+
+**Date:** 2026-06-05
+**Title:** Replace the Radix Select sort dropdown with a styled native `<select>` and gate the desktop FilterPanel mount on `matchMedia` so mobile never hydrates it
+**Category:** Performance / Frontend
+**Status:** Active — closes issue #72
+
+### Context / Problem
+
+Mobile Lighthouse flagged `/patterns` Total Blocking Time yellow (~430ms cold start, degrading to red under host load — issue #72). The report blamed a single 1.05s-evaluation chunk; bundle inspection showed that chunk is the **framework chunk** (react-dom + Next runtime), which Lighthouse credits with all hydration work executed inside it. A/B bisection against a production build (same session, back-to-back runs) attributed the page's TBT excess over the home-page baseline (~410ms total) to:
+
+| Contributor | TBT cost (measured by removal) |
+|---|---|
+| `SortSelector` — Radix Select for a 3-option dropdown | **~260ms** (670→410) |
+| Desktop `FilterPanel` — CSS-hidden on mobile (`hidden lg:block`) but still fully hydrated: 18 Radix checkboxes, SavedSearches dialog, DateRangeFilter, RecentlyViewedSidebar | **~120ms** (670→550) |
+| SearchBar + FilterSheet trigger + Pagination + NewPatternButton | ~30ms combined |
+
+Radix Select hydrates popper/focus-scope/dismissable-layer/portal machinery; a CSS-hidden client component hydrates exactly like a visible one.
+
+### Decision
+
+1. **`SortSelector` uses a native `<select>`** styled to match the shadcn trigger (`appearance-none` + absolute ChevronDown). No hydration-heavy primitives; platform picker on mobile; keyboard/SR accessible by default. Radix Select (`components/ui/select.tsx`) remains in use where it earns its cost (PatternForm on `/patterns/new` + edit), and drops out of the `/patterns` route graph entirely.
+2. **New `DesktopFilterPanel` wrapper** mounts `FilterPanel` via `useSyncExternalStore` subscribed to `matchMedia('(min-width: 1024px)')` (`getServerSnapshot` → `'unknown'` renders the layout-stable `w-64` placeholder). Mobile renders `null` — zero hydration for the invisible rail; desktop mounts the panel in the render immediately after hydration (the same moment it previously became interactive, so the `data-hydrated` e2e contract is unchanged). The mobile FilterSheet path is untouched — Radix `SheetContent` already defers mounting its inner FilterPanel until the sheet opens.
+
+### Measured results (dev machine, prod build, Lighthouse 12.6.1 mobile simulate; same-session A/B)
+
+| Config | TBT | Framework-chunk work | Script eval | Route JS |
+|---|---|---|---|---|
+| Before | 670ms | 1,417ms | 1,729ms | 811 KiB |
+| **After** | **340ms** | **595ms** | **876ms** | **788 KiB** |
+| Home page (same session, control) | 310ms | 735ms | 989ms | 757 KiB |
+
+`/patterns` now costs less than the home page on identical conditions; the remaining TBT is the app-wide hydration baseline (root layout: Header/UserMenu/providers), not this route. Absolute numbers vary heavily with host load (the issue documents 430→1,380ms drift) — the controlled relative delta (−49%) is the meaningful figure.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Keep Radix Select, defer its hydration (ssr:false + lookalike fallback) | Fallback duplication for zero UX gain; native select is *better* UX on mobile and removes the cost instead of moving it |
+| `next/dynamic` ssr:false code-splitting of FilterPanel/FilterSheet content | Measured remaining contributors ~30ms; jest/next-dynamic test friction not warranted — revisit only if the route grows |
+| Lazy-hydration island library (react-lazy-hydration etc.) | New dependency; hacky in App Router; matchMedia gate is 30 lines |
+| Render the desktop rail only via CSS (status quo) | CSS hiding does not prevent hydration — that *is* the bug |
+
+### Consequences
+
+- Desktop briefly shows the animate-pulse rail placeholder between first paint and hydration (previously the server-rendered panel was visible-but-inert during that window). No layout shift (placeholder reserves `w-64`).
+- The sort dropdown's open state is now the platform's native picker, not the shadcn-styled list.
+- Discovered in passing: the CMS-fallback `sortOptions` values (`newest`/`popular`/`title`) don't match the API's `SortOption` (`recent`/`votes`/`alphabetical`), so CMS-labelled sorts silently fall back to default ordering — pre-existing, tracked as a separate issue.
+
+### Files Changed
+
+- `components/patterns/SortSelector.tsx` — Radix Select → styled native select
+- `components/patterns/DesktopFilterPanel.tsx` — new matchMedia-gated mount wrapper
+- `app/patterns/page.tsx` — desktop rail renders `DesktopFilterPanel`
+
+### Tests Added
+
+- 6 tests `DesktopFilterPanel.test.tsx` (mounts on lg match, renders nothing otherwise, prop passthrough, responds to breakpoint changes both directions, listener cleanup)
+- 5 tests added to `SortSelector.test.tsx` (option rendering, URL push on change, page-param reset, URL→value reflection, CMS label options); existing 4 pass unchanged against the native element
+
+---
+
+## Decision 79: Lighthouse LCP gate — median aggregation with a 3500ms budget
+
+**Date:** 2026-06-05
+**Title:** Recalibrate the home-page LCP deploy gate from optimistic/2500ms to `aggregationMethod: median`/3500ms; remove the inert `warmupRuns` option
+**Category:** CI/CD / Performance
+**Status:** Active — closes issue #71
+
+### Context / Problem
+
+The frontend deploy was blocked by the LHCI home-page LCP assertion independent of the code being deployed (issue #71). GitHub runners measure ~2.9–3.0s LCP medians; with LHCI's default **optimistic** aggregation (best of 3) and a 2500ms budget, passing required one lucky sample — the last green run before the fix passed with a *worse median* (2970ms) than three consecutive failing runs (2924/2948/2944ms). After the Decision 78 page optimizations shipped, the first sample set still floored at 2935ms: the runner's Lantern LCP estimate is a **network-chain + layout floor** that page-level JS deferral cannot lower (verified by trace analysis — locally the same changes cut Lantern LCP by ~13% because local estimates were script-eval-dominated; runner estimates are not).
+
+Additionally, `lighthouserc.yml` carried `warmupRuns: 1` (documented in CLAUDE.md as a cold-start mitigation) — **not a real `@lhci/cli` option**; zero occurrences in the package source; silently ignored.
+
+### Decision
+
+- `largest-contentful-paint`: `maxNumericValue: 3500` with `aggregationMethod: median`. Run-to-run medians are stable (2924–3066ms observed across five runs/two commits); 3500ms passes deterministically with ~15% headroom and still trips on any real regression. FCP/TTI/performance-score assertions unchanged.
+- Removed the inert `warmupRuns` key and corrected the CLAUDE.md gotcha.
+
+### Alternatives Evaluated
+
+- **Raise optimistic budget to ~3000ms** — minimal diff but still a min-of-3 lottery on slow runner days.
+- **Demote LCP to `warn`** — loses regression protection entirely.
+- **Keep re-running until lucky** (status quo) — the documented workaround; wastes CI minutes and blocks deploys nondeterministically.
+- **Further page optimization to fit 2500ms** — the floor is simulated network chain + layout on runner hardware; remaining levers (critical-CSS inlining via experimental `inlineCss`, layout-cost hunt) are speculative and orthogonal to gate stability.
+
+---
+
+## Decision 78: Home-page startup cost — idle-mounted Toaster + transform-only hero animation
+
+**Date:** 2026-06-05
+**Title:** Defer sonner to browser idle via `LazyToaster` and make the hero `slide-up` animation transform-only so the hero is LCP-eligible
+**Category:** Performance / Frontend
+**Status:** Active
+
+### Context / Problem
+
+Issue #71 (Lighthouse LCP gate) prompted a trace-level investigation of the home page on constrained CPUs (real 4× CDP throttle + Lantern simulation, `lighthouse --throttling-method=devtools --save-assets`):
+
+- The LCP element was the **header logo span** (168×56px), not the hero. The hero's `animate-slide-up` keyframes animated `opacity: 0→1`, and Chrome excludes elements animated in from opacity 0 from LCP candidacy entirely. The header span also re-emitted LCP candidates during hydration (3.0s/3.9s/5.5s/10.3s in trace) — a plausible source of the CI gate's 2924-vs-4433ms run-to-run spread.
+- Under Lantern (CI's method), the observed unthrottled LCP timestamp (1528ms) sat behind ~1.3s of startup script evaluation, so Lantern folded that CPU into its LCP estimate (FCP 962ms passed / LCP 4026ms failed — exactly the CI signature). Sonner (~50KB raw) loaded eagerly via the root layout's `<Toaster>` despite only being needed after user interaction.
+- Exonerated by the trace: TTFB (58ms), font loading (next/font preload, done at 109ms), HTML parse (44ms), legacy JS (13.7KB). A single 683ms throttled layout pass (98 objects) remains unexplained — A/B bisection (system font, no animations, no smooth-scroll, blocked webfont) showed no single CSS culprit; parked.
+
+### Decision
+
+1. **`components/providers/LazyToaster.tsx`** — idle-mounted (`requestIdleCallback`, `setTimeout` fallback for Safari) dynamic `import('sonner')`; replaces the static `<Toaster>` in the root layout. Sonner moves to a lazy chunk loaded after idle (~3s on a throttled run, measured).
+2. **`tailwind.config.ts`** — `slide-up` keyframes are transform-only (`translateY(20px)→0`, no opacity), so the hero paints at first paint and is a valid, stable LCP candidate. `fade-in` (FeaturedPatterns/StatsSection) untouched — below the fold, and the eligible hero dominates LCP on all form factors.
+
+### Measured results (dev machine, medians of 3; CI runners are slower in absolute terms)
+
+| Metric | Before | After |
+|---|---|---|
+| TBT (devtools 4×) | 2799ms | ~1038ms |
+| TBT (Lantern) | 644ms | ~319ms |
+| LCP (Lantern) | 4026ms | ~3519ms |
+| Perf score (Lantern) | 0.71 | ~0.83 |
+| LCP element | header logo span | hero paragraph |
+| LCP (devtools 4×) | 2483ms | ~2735ms (unchanged within noise — floored by CSS fetch + layout, not JS) |
+
+The CI LCP gate calibration (issue #71, `aggregationMethod: median` + realistic budget) remains a separate, still-open fix; this change attacks the page cost itself.
+
+### Verification notes (important for future toast work)
+
+A mid-implementation scare suggested toasts were broken by chunk-splitting (three sonner copies in chunks). Module-ID inspection proved Turbopack registers all copies under **one module ID** (single runtime instance), and a live end-to-end check (fetch override → failing vote → `MutationObserver` on the Notifications region) rendered the error toast correctly. The earlier "missing toast" observations were instrumentation errors: clicks lost to pre-hydration timing, and observation latency exceeding sonner's ~4s auto-dismiss. See the CLAUDE.md e2e gotcha added with this change.
+
+### Alternatives Evaluated
+
+- **Defer `SessionProvider` / next-auth** — rejected: `useSession` is statically imported by Header components (UserMenu, NewPatternButton), so next-auth stays in the startup graph regardless of provider mount timing; the session fetch is async I/O, not main-thread cost. A custom session-context shim would remove next-auth/react from the bundle but touches 4 components + global test mocks for ~10KB gz — poor risk/benefit.
+- **`ToasterClient` static-import indirection** (briefly implemented) — reverted: justified only by a module-duplication theory that module-ID inspection disproved.
+- **browserslist modern targets (legacy JS)** — rejected: 13.7KB potential savings, noise.
+- **Layout-cost micro-optimization** — parked: 683ms throttled initial layout has no attributable single cause (font/animations/smooth-scroll all exonerated by bisection).
+
+---
+
+## Decision 77: No secrets on GitHub — secret-scanning PreToolUse hook gates all gh writes
+
+**Date:** 2026-06-05
+**Title:** Enforce "no keys/passwords/tokens on GitHub issues or PRs" with a blocking secret-scan hook on every GitHub-writing `gh` command, plus instructional scrub rules in the bug-sweep skill and auditor
+**Category:** Security / Tooling
+**Status:** Active
+
+### Context / Problem
+
+With bug-sweep findings now filed as GitHub issues (Decision 76), agent-authored content flows to GitHub routinely. Findings quote network requests, console output, and env-var-driven behavior — exactly the material that can accidentally embed a JWT, an `Authorization` header, or a connection string. The operator's policy: credential material must **never** appear on GitHub. An audit of all existing issues, issue/PR comments, and PR bodies (2026-06-05) found zero leaks; the goal is keeping it that way structurally, not by vigilance. The same audit *did* find live-looking secrets committed in `.claude/settings.json` / `.claude/settings.local.json` permission entries (Strapi API tokens, an expired admin JWT, the deleted Azure MySQL password) — removed in the same change.
+
+### Decision
+
+Three layers, with the hook as the enforcement backstop:
+
+1. **Blocking hook (enforcement).** `.claude/hooks/gh-secret-scan.ps1` + a `PreToolUse` entry in `.claude/settings.json` (matcher `Bash|PowerShell`, `if: Bash(gh *)` / `PowerShell(gh *)`). It gates GitHub-writing `gh` invocations (`issue|pr create/comment/edit/close/...`, `gh api` with POST/PATCH/PUT/fields, `release|gist create`), scanning the command text **and** the contents of any referenced body file (`--body-file`, `--input`, `field=@file`). On a match it exits 2, blocking the call with actionable stderr. Patterns: JWTs, 48+-char hex (commit SHAs at 40 and `sha256:`-prefixed digests are allowed), `Bearer` tokens, GitHub `gh*_` tokens, private-key blocks, Azure `AccountKey=`/SAS `sig=`, credential assignments (`password=…`, `secret=…`, etc. — placeholder values like `<token>`/`$VAR` are allowed), and known env names with values. Fail-open on script error (a broken hook must not wedge every gh call); read-only `gh` commands are untouched.
+2. **Skill rule (primary control).** Bug-sweep Step 4 gains a mandatory pre-post secret scrub (redact to `[REDACTED]`, env vars by name only) and a "No secrets on GitHub — ever" safety rule; `gh` must be invoked directly, never inside compound commands, so the hook's prefix filter always sees it.
+3. **Auditor rule (source control).** Strict rule 8: findings must contain no credential material — auth headers/cookie values stripped when quoting network captures.
+
+Verified: 9 pipe-tests (JWT, password, 62-hex body-file blocked; clean writes, commit SHAs, docker digests, all three real backfilled issue bodies pass) + live end-to-end (fake-JWT comment blocked by the hook; clean comment reached gh).
+
+### Rationale
+
+- Instructions alone are vigilance; the hook is structural — the `gh` call never executes with a secret in it.
+- Scanning at the `gh` boundary (not at finding-time) also covers every future ad-hoc `gh issue/pr` write in any session, not just bug-sweep.
+- `if`-filtered hooks cost nothing on non-`gh` commands (no process spawn).
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Instructional rules only | The failure mode is accidental inclusion; a rule cannot catch what the author didn't notice. |
+| Hook on every Bash call (no `if` filter) | ~hundreds of ms of powershell spawn on every command in every session for no added coverage on the paths that matter. |
+| GitHub push protection / secret scanning | Operates on repo pushes and known provider patterns, not issue/comment bodies via gh CLI; complementary, not sufficient. |
+| Server-side GitHub Action auditing new issues | Detects after the secret is already published (and notified/cached); prevention must be client-side. |
+
+### Consequences
+
+- Compound commands (`cd x && gh …`) bypass the `if` prefix filter — mitigated by the skill rule to invoke `gh` directly; acceptable for an accidental-leak guard.
+- Possible rare false positives (e.g. a bare 64-char hex that is genuinely content) — the block message says how to rephrase; patterns live in one script.
+- Hook config changes load at session start / via `/hooks`; editing the script takes effect immediately.
+- `.claude/settings.local.json` untracked + gitignored (was committed, contained a password). **Residual:** removed secrets remain in git history; the Strapi tokens should be rotated at the next CMS session (Azure MySQL password is moot — server deleted).
+
+### Files Changed
+
+- `.claude/hooks/gh-secret-scan.ps1` — new scanner (PS 5.1).
+- `.claude/settings.json` — `hooks.PreToolUse` entry; removed 12 stale permission entries containing literal secrets.
+- `.claude/settings.local.json` — removed the mysqldump-with-password entry; untracked via `git rm --cached`.
+- `.gitignore` — ignore `.claude/settings.local.json`.
+- `.claude/skills/bug-sweep/SKILL.md` — Step-4 secret scrub + safety rule.
+- `.claude/agents/bug-sweep-auditor.md` — strict rule 8 (no credential material in findings).
+
+### Tests Added
+
+- None automated (hook tooling). Verification: the 9 stdin pipe-tests + the live blocked/clean `gh issue comment` pair described above; re-run the pipe-tests after any pattern change.
+
+---
+
+## Decision 76: Bug-sweep findings tracked as GitHub Issues (MD file reduced to run log)
+
+**Date:** 2026-06-05
+**Title:** Move `/bug-sweep` findings state (candidates, accepted, fixed, rejected/suppression memory) from `BUG_SWEEP_FINDINGS.md` to GitHub Issues; the MD file keeps only the run log
+**Category:** Testing / Tooling
+**Status:** Active (supersedes the "living ledger" portion of Decision 72)
+
+### Context / Problem
+
+Decision 72 put all bug-sweep findings state in a single MD ledger. Meanwhile real bugs in this repo are tracked as GitHub issues (#66–#71), so defects lived in two places with different lifecycles: a ledger row could not be closed by a fix PR, was invisible in the GitHub UI, and duplicated state GitHub already models natively (open/closed, close reasons, labels, comments). The operator wants one place for bugs.
+
+### Decision
+
+GitHub Issues (label `bug-sweep`) become the findings system of record; the issue lifecycle is the triage state machine:
+
+- **Filing (run mode).** Each returned auditor finding → one issue: labels `bug` + `bug-sweep` + `severity:<block|major|minor>` + `triage:candidate`; body carries human-readable sections plus a machine-readable `<!-- bug-sweep:meta -->` block with `{surface, signature, run}` — the cross-run identity key. Bodies pass via `--body-file` (PS 5.1 quoting). Run mode's only GitHub write is `issue create`.
+- **Triage accept** → swap `triage:candidate` for `triage:accepted` + remediation comment; the fix PR closes it as *completed* (`Fixes #NN`).
+- **Triage reject** → closing comment (`Rejected: <reason>. Durable action: ...`; reason ∈ by-design/false-positive/wont-fix/duplicate/deferred) + close as *not planned*. **The closed-as-not-planned set is the suppression memory** the skill loads each run (`gh issue list --label bug-sweep --state closed --json number,body,stateReason`, filter `NOT_PLANNED`, parse the meta block).
+- **Fixed ≠ suppressed.** Issues closed as *completed* are not suppressed; a recurring `{surface, signature}` is re-filed flagged "possible regression of #NN".
+- **Preflight.** `gh auth status` joins the run-mode hard gate (filing needs an authenticated CLI).
+- **MD file.** `BUG_SWEEP_FINDINGS.md` keeps only the `Run log` convergence table (now with an `Issues` column) + canned `gh` queries. Historical findings BSW-0001..0003 backfilled as closed-completed issues #73/#74/#75.
+- Six labels created: `bug-sweep`, `severity:block|major|minor`, `triage:candidate`, `triage:accepted`. Reject reasons live in closing comments, not labels (operator's choice — less label sprawl).
+
+The structural anti-padding guarantee is unchanged: the auditor is read-only (and barred from `gh`); only the skill files issues, and only from returned `findings[]` entries.
+
+### Rationale
+
+- One queryable place for all defects; bug-sweep findings sit beside organically-filed bugs and close automatically via `Fixes #NN`.
+- GitHub natively models the triage lifecycle (labels, close reasons, comments) the MD ledger re-implemented by hand; `stateReason` cleanly separates fixed (completed) from suppressed (not planned).
+- The FP-rate convergence metric is per-run aggregate context, not per-finding state — it stays in the MD run log, which is what MD is still good at.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Keep the MD ledger (status quo) | Two sources of truth for bugs; no PR auto-close; invisible in the GitHub UI. |
+| GitHub Projects board | Adds a board on top of issues without removing the need for issues; gh CLI support for Projects is clunkier; overkill for one repo. |
+| Per-reason reject labels (`bsw:by-design`, …) | 5 extra labels for information a closing comment carries fine; operator chose comment-only. |
+| Run log as a pinned GitHub issue | Append-only comments model a table poorly; the MD table diffs cleanly in git and is already the convergence artifact. |
+
+### Consequences
+
+- Run mode now requires network + authenticated `gh` (preflight-gated); the sweep no longer works fully offline.
+- Suppression matching depends on the `<!-- bug-sweep:meta -->` block surviving in issue bodies — triage never strips it; humans editing issue bodies must leave it intact.
+- The 200-issue `--limit` on the suppression query is a soft ceiling; revisit if rejected findings ever approach it.
+- BSW-NNNN IDs are retired; issue numbers are the canonical finding IDs.
+
+### Files Changed
+
+- `.claude/skills/bug-sweep/SKILL.md` — suppression load from gh, gh preflight, Step 4 files issues, triage via gh, safety rules scoped to GitHub writes.
+- `.claude/agents/bug-sweep-auditor.md` — contract-version note; "ledger" wording → issues; explicit no-`gh` rule. Output contract unchanged.
+- `documentation/testing/BUG_SWEEP_FINDINGS.md` — reduced to run log + queries + backfill mapping.
+- `documentation/testing/BUG_SWEEP_DESIGN.md` — §1.1/§5/§6/§10 reworked to the issue lifecycle.
+
+### Tests Added
+
+- None (tooling/documentation change). Verified: 6 labels exist; issues #73–#75 backfilled closed-completed with meta blocks; the suppression query returns empty without erroring (no not-planned issues yet).
+
+---
+
+## Decision 75: Per-IP partitioned rate limiting with no request queueing
+
+**Date:** 2026-06-04
+**Title:** Partition all API rate limit policies per client IP, raise the `api` budget to 300/min, and reject (429) instead of queueing
+**Category:** Infrastructure / Performance
+**Status:** Active
+
+### Context / Problem
+
+Issue #68: the Advanced Search e2e family (date-range, tag-mode, saved-search) failed deterministically in parallel local runs and was chronically flaky in CI. Root-cause tracing (Playwright traces) showed RSC navigation requests to the Next server that **never completed** — the SSR render behind them was stuck waiting on the backend API. The `"api"` limiter (`AddSlidingWindowLimiter`) was a **single global bucket** — 50 permits/min shared by *every* client, despite code comments claiming "per IP" — with `QueueLimit = 5, OldestFirst`. Measured behavior: requests 1–50 in a minute returned in ~4ms; request 51 **silently sat in the limiter queue for 55.3s** before returning 200. Every `/patterns` listing render issues 2 API calls, so one parallel e2e run — or roughly **3 concurrent production users** — exhausted the budget, after which every SSR render hung for up to a minute. The `"fixed"` and `"vote"` limiters had the same global-bucket defect.
+
+### Decision
+
+In `AddInfrastructure()` (`InfrastructureServiceCollectionExtensions.cs`):
+
+1. **Partition per client IP** — all three policies now use `options.AddPolicy(name, partitioner)` with `RateLimitPartition.Get*WindowLimiter(ClientKey(ctx), ...)` keyed on `Connection.RemoteIpAddress` (fallback `"unknown"` for in-memory TestServer). Policy names are unchanged, so `RequireRateLimiting("api")` / `[EnableRateLimiting("vote")]` call sites are untouched.
+2. **`api`: 50 → 300 permits/min per IP** (sliding window, 4 segments) — ~5 rps sustained per client covers SSR-driven browsing (2 calls per listing render) and e2e runs while remaining a meaningful abuse ceiling.
+3. **`QueueLimit = 0` everywhere** — over-budget requests now fail fast with 429 instead of silently stalling the caller for up to a window roll. `fixed` stays 100/min per IP; `vote` stays 10/min per IP (now actually per IP, as always documented).
+
+Regression guard: `RateLimitingTests.GetPatterns_BurstAboveOldGlobalBudget_IsNeitherQueuedNorRejected` — 60 rapid GETs must all be 200 in <10s (red on the old config at 1m 0.4s; green at ~3s).
+
+### Rationale
+
+- The intent was always per-client limiting (comments and CLAUDE.md said "per IP"); `AddFixedWindowLimiter`/`AddSlidingWindowLimiter` simply don't partition — that requires `AddPolicy` + `RateLimitPartition`.
+- Queueing GETs for tens of seconds is strictly worse than rejecting: the caller (Next SSR `fetch`) has no timeout and wedges the whole page render, which surfaced as "URL never updates / `goto` hangs / browser context won't close" in Playwright — maximally misleading symptoms. A prompt 429 is visible, diagnosable, and the frontend already falls back gracefully.
+- 429s remain observable in App Insights; the `RejectionStatusCode` wiring is unchanged.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Keep global buckets, raise limits | Still couples unrelated clients; any one noisy client starves everyone. The "per IP" intent stays unimplemented. |
+| Keep queueing (small queue) with per-IP partitions | Queued requests still stall SSR renders for up to a window segment (15–60s) with zero signal; fail-fast 429 is debuggable. |
+| Config-driven limits (appsettings per environment) | Solves the e2e symptom but ships the global-bucket production bug; per-IP partitioning fixes both with the same effort. |
+| Disable rate limiting in dev/test | Hides the production defect (~3 concurrent users exhaust 50/min global) and lets CI diverge from prod behavior. |
+
+### Consequences
+
+- e2e: the issue #68 family passes 4-way parallel against both dev and prod builds; CI's chronic per-browser flake annotations in this family should disappear.
+- Production: concurrent users no longer share one 50/min budget; a single abusive IP is still capped (300/min api, 100/min fixed, 10/min vote).
+- Behavior change: bursts above per-IP budget now receive 429 immediately (previously: hidden queueing, then 429). Clients relying on the silent queue (none known) would see faster failures.
+- CLAUDE.md rate-limit numbers updated to match.
+
+---
+
+## Decision 74: ESLint flat config (FlatCompat-free) + scoped ajv overrides for the eslint subtree
+
+**Date:** 2026-06-04
+**Title:** Migrate lint to ESLint flat config using eslint-config-next's native flat presets, run `eslint` directly, and scope the repo-wide ajv@8 override so eslint/@eslint/eslintrc keep ajv@6
+**Category:** Tooling
+**Status:** Active
+
+### Context / Problem
+
+Issue #69: both lint entry points were broken on `main`. Next.js 16 removed the `next lint` command, so `npm run lint` failed parsing `lint` as a project directory. And `npx eslint` crashed before linting anything: the repo-wide `overrides: { "ajv": "^8.8.2" }` (added for Storybook's ajv-keywords@5 peer requirement, commit 993e4d2) forces ajv@8 into `eslint` and `@eslint/eslintrc`, both of which require ajv@6 APIs (`missingRefs` option, `ajv/lib/refs/json-schema-draft-04.json`) — `eslint/lib/linter/linter.js` requires `@eslint/eslintrc/universal` unconditionally even in flat-config mode, so ESLint could not even start. Lint regressions landed silently (the Test Suite workflow ran no lint), and `cms-sync-fallbacks.yml`'s `npm run lint` verify step was a time bomb.
+
+### Decision
+
+1. **`eslint.config.mjs` (flat config)** composing `eslint-config-next/core-web-vitals` + `eslint-config-next/typescript` (both flat-native in v16) + the existing `eslint-plugin-security` rule set carried over from `.eslintrc.json` (deleted). The config is deliberately **FlatCompat-free** — `FlatCompat` lives in `@eslint/eslintrc`, which is broken by the ajv override.
+2. **`lint` script → `eslint app components lib`** — the same surface `next lint` covered by default (`pages`/`src` don't exist here).
+3. **Scoped npm overrides**: keep the blanket `ajv@^8.8.2` (Storybook still needs it) but add nested exceptions `"eslint": { "ajv": "^6.12.6" }` and `"@eslint/eslintrc": { "ajv": "^6.12.6" }` so the eslint subtree resolves a patched ajv@6 (≥6.12.3, prototype-pollution-safe).
+4. **Lint step added to the Test Suite workflow** (frontend-tests job) so the toolchain can't silently rot again.
+5. Fixed the 15 lint errors that accumulated while lint was broken (unescaped entities, anonymous `next/link` mocks missing display names, a `require()` import → `jest.requireActual`, an `<a>`→`<Link>` in a story). The two `react-hooks/set-state-in-effect` hits in `ThemeProvider` are targeted disables with justification — setState there is the standard SSR-safe hydration pattern (localStorage/matchMedia are client-only; initialising state from them would cause hydration mismatches).
+
+### Rationale
+
+- eslint-config-next@16 ships flat-config arrays natively; composing them directly avoids the broken eslintrc bridge entirely instead of working around it.
+- Scoping the ajv exception to the eslint subtree preserves the original security intent of the blanket override (everything else stays on ajv@8) while restoring the ajv@6 that eslint's own dependency tree declares.
+- Matching the old `next lint` directory surface keeps the migration behavior-preserving; widening lint coverage (e2e/, scripts/, hooks/) can be a deliberate follow-up.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| `FlatCompat` bridge (the Next 15-era migration path) | Crashes at load — `@eslint/eslintrc` is ajv@6-only and the repo forces ajv@8; also keeps a legacy layer Next 16 no longer needs. |
+| Drop the blanket ajv@8 override entirely | It was added for Storybook's ajv-keywords@5 peer requirement; removing it re-opens that install conflict. Scoped exceptions are strictly narrower. |
+| Refactor `ThemeProvider` to satisfy `react-hooks/set-state-in-effect` | Reading localStorage/matchMedia in initializers breaks SSR hydration; a `useSyncExternalStore` rewrite is out of scope for a lint-tooling fix and risks behavior changes in theming. |
+| `eslint .` with a long ignore list | Would newly lint e2e/, scripts/, cms/, backups/ etc. — large new error surface unrelated to restoring the broken tooling. |
+
+### Consequences
+
+- `npm run lint` works again (0 errors, 8 pre-existing warnings) and gates both `cms-sync-fallbacks.yml` and the Test Suite workflow.
+- `npm ls ajv` now shows ajv@6 under `eslint`/`@eslint/eslintrc` and ajv@8 everywhere else; `npm audit --omit=dev --audit-level=high` unaffected (eslint is dev-only, and ajv ≥6.12.3 is patched).
+- react-hooks v7 rules (via eslint-config-next 16) are now enforced — stricter than the pre-breakage config.
+
+---
+
+## Decision 73: CSP `connect-src` derives the API origin from `NEXT_PUBLIC_API_BASE_URL`
+
+**Date:** 2026-06-04
+**Title:** Derive the API origin into the CSP `connect-src` allow-list from `NEXT_PUBLIC_API_BASE_URL` — unconditionally, not NODE_ENV-gated
+**Category:** Security
+**Status:** Active
+
+### Context / Problem
+
+Bug-sweep finding **BSW-0002** (major): the CSP in `next.config.mjs` allow-listed only the production API origins (`*.azurecontainerapps.io`, `*.azurewebsites.net`) plus the Entra endpoints in `connect-src`. But client components call whatever `NEXT_PUBLIC_API_BASE_URL` points at — `http://localhost:5255/api` in local dev, prod-build E2E, and Lighthouse CI. The vote button's `POST /api/patterns/{id}/vote` was blocked by the browser with `console.error` CSP violations; the count never updated and no revert toast fired (the request never left the page). The ledger's accepted remediation said "add the local API origin to `connect-src` in non-prod".
+
+### Decision
+
+`headers()` in `next.config.mjs` now builds `connect-src` from the static prod allow-list **plus** `new URL(process.env.NEXT_PUBLIC_API_BASE_URL).origin` whenever the variable is set — deduped, with unparseable values ignored (try/catch falls back to the static list). The derivation is **unconditional**, not gated on `NODE_ENV !== 'production'`.
+
+### Rationale
+
+- **NODE_ENV cannot express "non-prod" here:** `next build` always forces `NODE_ENV=production`, so a NODE_ENV gate would have left prod-build local runs, the CI E2E job (`npm run build` + `npm run start` against `http://localhost:5255/api`), and Lighthouse CI still CSP-blocked — only `next dev` would have been fixed.
+- **Unconditional derivation does not loosen prod CSP:** in production the derived origin is the Azure API host, already covered by the `*.azurecontainerapps.io` wildcard; the only origin ever added is the one the app is configured to call.
+- Hardened by `__tests__/config/csp.test.ts` (derived origin present with path stripped, static allow-list intact, dedup, unset/unparseable fallback).
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Hardcode `http://localhost:5255` into `connect-src` | Drifts if the local API port/origin changes; ships a localhost origin in the prod header for no reason. |
+| Gate the derivation on `NODE_ENV !== 'production'` | `next build` forces `NODE_ENV=production`, so prod-build E2E/LHCI runs against a local backend would remain broken — the exact class of run that caught nothing here. |
+| Skip adding when a wildcard already covers the origin | Requires CSP wildcard-matching logic for zero practical benefit; exact-string dedup is sufficient. |
+
+### Consequences
+
+- The prod CSP header now also names the API origin explicitly (harmless — within the existing wildcard).
+- A misconfigured `NEXT_PUBLIC_API_BASE_URL` surfaces as a CSP block again by design — the header only ever allows the *configured* origin.
+- Verified live: vote POST → 200 OK, optimistic count update 42→43, zero console errors.
+
+---
+
+## Decision 72: On-demand browser bug-sweep (hybrid e2e + Playwright-MCP, Opus auditor, living ledger + triage)
+
+**Date:** 2026-06-03
+**Title:** Adopt an on-demand, convergent browser bug-sweep that pairs the CI-proven e2e suite with live Playwright-MCP exploration, driven by a read-only Opus auditor, with a living findings ledger and a human triage loop
+**Category:** Testing
+**Status:** Active (findings-ledger portion superseded by Decision 76)
+
+### Context / Problem
+
+The project's automated tests (Jest, xUnit, the Playwright e2e suite) are all **assertion-bound** — they only fail on behavior someone already encoded. Nothing in the toolchain *exercises the whole platform in a browser to surface the unexpected* — regressions and defects in flows that have no dedicated assertion. We wanted an on-demand way to "sweep the whole app for bugs" before a release, without standing up roadmap/session machinery the project doesn't have. A capable version existed in a sibling project (Allegrow) but was heavily coupled to that project's roadmap, session-discipline files, per-surface git-SHA prioritization, and a custom browser tool — none of which applies here.
+
+### Decision
+
+Add a `/bug-sweep` skill + a `bug-sweep-auditor` subagent + a living ledger, adapting only the valuable, project-agnostic core:
+
+- **Hybrid browser driver.** Run `npm run test:e2e` (Chromium) once per run as a deterministic regression baseline, then explore beyond it **live via Playwright MCP** (model-in-the-loop, adaptive). The baseline catches encoded regressions; live exploration finds the unencoded.
+- **Read-only Opus auditor as the only browser-driver.** The auditor (`model: opus`, tools `Read/Bash/Grep/Glob` + `mcp__playwright__browser_*`, **no** `Edit`/`Write`) drives the browser and returns schema-valid candidate findings. Opus because the delegation risk is *judgment* — not padding the budget, and not mistaking a correct redirect for a defect.
+- **Evidence bar + reward-zero.** A finding requires a concrete `observed ≠ expected` delta **and** an oracle cite, or it is dropped as a hunch. Zero findings on a clean run is an explicit success; the 10-finding budget is a ceiling, never a quota. FP-rate (rejected-as-false-positive ÷ reported) is the convergence metric.
+- **Living ledger + triage.** A single `BUG_SWEEP_FINDINGS.md` holds `Run log` + `Open`/`Fixed`/`Rejected`; the `Rejected` section is the suppression memory the auditor loads each run. A `triage` mode accepts/rejects candidates. Only the skill writes the ledger; rows trace 1:1 to returned auditor findings (no speculative rows). *(Superseded in part by Decision 76, 2026-06-05: findings state moved to GitHub Issues; the MD file retains only the run log.)*
+- **Auth scope.** Public + protected surfaces. The live MCP context is unauthenticated (the Auth.js cookie is `httpOnly`), so it verifies the unauth→`/login` redirect invariant directly; the authenticated render is covered by the e2e baseline (`authenticated-flows.spec.ts` loads `e2e/.auth/admin.json`).
+- **Port.** Frontend on **3000** — matching the CI-coupled `playwright.config.ts` webServer default, so the e2e baseline reuses the running dev server (`reuseExistingServer: true`) with no `PLAYWRIGHT_BASE_URL` override. Backend on 5255. *(Revised 2026-06-03: originally 4000 per operator preference; the first run showed the 4000/3000 split made Playwright's `reuseExistingServer` probe the wrong port and collide with the running dev server, so the port was aligned to 3000.)*
+
+### Rationale
+
+The two halves cover complementary defect classes: the e2e baseline is reproducible and CI-proven but can only fail on existing assertions; MCP adds adaptive, model-in-the-loop discovery of the unexpected. Making the auditor read-only and the skill the sole writer makes speculative findings structurally impossible. The evidence bar + reward-zero keep the false-positive rate — the load-bearing health metric — low.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Full port of the Allegrow bug-sweep | Coupled to that project's roadmap/session machinery (parallelism-map cross-checks, per-surface `Last SHA`, `next_prompts.md` fix-prompt authoring, custom `observe.ts`) — none applies here. |
+| e2e-runner only (no MCP) | Assertion-bound: can only fail on behavior already encoded; loses the exploratory discovery that is the whole point. |
+| Playwright-MCP only (no e2e baseline) | Loses the CI-proven, deterministic regression baseline; exploration alone has no reproducible floor. |
+| CLI + model-authored throwaway probe scripts | Recovers some observation richness but loses the live adaptive loop and adds plumbing/latency for less than MCP gives. |
+
+### Consequences
+
+- On-demand only (not wired into CI) — a deliberate non-goal this iteration.
+- Requires the local stack up (frontend 3000 + backend 5255) and `AUTH_SECRET` set for protected-surface coverage; a Step-2 preflight halts otherwise.
+- Accessibility and brand/visual oracle layers are staged, not built — a future opt-in.
+- A found-and-fixed bug becomes a permanent regression guard only when someone encodes it as a new e2e spec (the "harden" follow-up).
+- The frontend dev port (3000) matches the `playwright.config.ts` webServer default, so the e2e baseline reuses the running dev server (`reuseExistingServer: true`) — no redundant server, no `PLAYWRIGHT_BASE_URL` override.
+
+### Files Changed
+
+- `.claude/skills/bug-sweep/SKILL.md` — new orchestrator skill (run / triage modes, canonical surface inventory, preflight gate, ledger writes).
+- `.claude/agents/bug-sweep-auditor.md` — new read-only Opus auditor subagent (e2e baseline + live MCP exploration, output contract).
+- `documentation/testing/BUG_SWEEP_FINDINGS.md` — new living ledger (Run log + Open/Fixed/Rejected + suppression memory).
+- `documentation/testing/BUG_SWEEP_DESIGN.md` — new methodology + rationale + scope boundary.
+- `.claude/settings.json` — allow the e2e baseline + preflight commands so a run doesn't prompt mid-flight.
+
+### Tests Added
+
+- None (tooling/documentation change). Verification is the skill's own discipline: skill discovery resolves `/bug-sweep`; the preflight halts with servers down; a smoke run produces schema-valid auditor JSON and a ledger row; reward-zero holds on a clean surface; the triage round-trip moves a finding to `Rejected` + suppresses it on the next run. Live-stack verification steps require the operator to bring up the frontend (3000) + backend (5255) with `AUTH_SECRET` set.
+
+---
+
+## Decision 71: Install ICU on the Alpine backend image (fix Azure SQL globalization-invariant failure)
+
+**Date:** 2026-06-02
+**Title:** Backend Alpine runtime must ship ICU and disable globalization-invariant mode for Microsoft.Data.SqlClient
+**Category:** Infrastructure
+**Status:** Active
+
+### Context / Problem
+
+The **Backend API – Build and Deploy (Container Apps)** workflow failed its post-deploy health check on **every run from 2026-03-19 onward**; the last green deploy was 2026-03-17 (commit `9b425e5`). Build, push, and deploy all succeeded, but `/health` returned `503 Unhealthy`, so the workflow auto-rolled-back to the previous `:latest` image. **Net effect: production served stale 2026-03-17 backend code** — none of the backend changes since were live.
+
+The only registered health check is `AddDbContextCheck<ApplicationDbContext>`, so the 503 meant new revisions could not reach the database — while the rolled-back (old) revision connected fine. Because the deploy step only runs `az containerapp update --image …` (never touching env/secrets), the connection string, firewall, and serverless DB were proven identical and working by the healthy old revision; the regression had to be in the new **image**.
+
+Container console logs (Log Analytics `ContainerAppConsoleLogs_CL`) showed the real exception, swallowed by the health check as `message '(null)'` but surfaced on API requests:
+
+```
+System.Globalization.CultureNotFoundException: Only the invariant culture is supported in
+globalization-invariant mode. … 'en-us' is an invalid culture identifier.
+   at System.Globalization.CultureInfo.GetCultureInfo(String name)
+   at Microsoft.Data.SqlClient.SqlConnection.TryOpen(…)
+```
+
+Root cause: Phase 7.7 (commit `215232a`) switched the runtime base image from Debian `aspnet:8.0` to **`aspnet:8.0-alpine`**. The Alpine .NET images run in **globalization-invariant mode** (`DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true`, ICU absent — verified directly against the pinned digest). `Microsoft.Data.SqlClient` calls `CultureInfo.GetCultureInfo("en-us")` inside `SqlConnection.Open()`, which throws in invariant mode — so **every** Azure SQL connection failed instantly (the ~1 ms health-check failures), independent of network/TLS/config. The Debian image bundled ICU and never hit this. `Microsoft.Data.SqlClient` does not support invariant globalization mode.
+
+### Decision
+
+In the Dockerfile runtime stage, install ICU and disable invariant mode:
+
+```dockerfile
+RUN apk add --no-cache icu-libs
+ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false
+```
+
+This restores the globalization behaviour of the previous Debian image while keeping the Alpine base (small image, no `curl`/`apt-get` layer). `icu-libs` alone resolves `en-US` (LCID 1033) — `icu-data-full` is not required.
+
+Verified locally before deploy (no prod churn):
+- A minimal probe calling `CultureInfo.GetCultureInfo("en-us")` in the pinned Alpine image reproduced the exact `CultureNotFoundException`; with `icu-libs` + `INVARIANT=false` it returned `'en-US' (LCID 1033)`.
+- The rebuilt backend image, run against an unreachable SQL endpoint, no longer throws `CultureNotFoundException` — it now fails with an ordinary `SqlException` (TCP Provider, error 35), i.e. the connection code path proceeds to real network I/O. Against the reachable production Azure SQL it connects → `Healthy`.
+
+PR #66 (health-check retry loop, 12 × 15 s) was **kept**: it never fixed this bug (a 1 ms culture failure never recovers), but it is a sound safety net for the serverless Azure SQL auto-pause (15 min) resume window and Container App cold-start on healthy deploys.
+
+### Rationale
+
+Adding ICU is the minimal, targeted fix that preserves the deliberate Alpine migration (Decision/Phase 7.7) and its supply-chain/size benefits, versus reverting the whole base image to Debian. It matches Microsoft's documented guidance for running `Microsoft.Data.SqlClient` on Alpine.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Revert runtime to Debian `aspnet:8.0` | Throws away the intentional Alpine migration (smaller image, no curl/apt layer, SHA-pinned supply chain). Larger change than necessary. |
+| Set `InvariantGlobalization=false` in csproj only | The base image still lacks ICU; without `icu-libs` the runtime cannot load any culture and still fails. |
+| Add `icu-libs` + `icu-data-full` | `icu-data-full` (~30 MB) is unnecessary — `icu-libs` alone resolves `en-US`, proven by the probe. Keeps the image smaller. |
+
+### Consequences
+
+- Runtime image grows by ~25–30 MB (ICU libraries/data). Still far smaller than the Debian image; acceptable.
+- Globalization is now culture-aware (not invariant). Behaviour matches the pre-Alpine Debian image, so no string-comparison/formatting regressions are expected.
+- First deploy after this fix re-tags `:latest` to the new SHA (via the `tag-latest` job), so future rollbacks restore the fixed image, not the 2026-03-17 one.
+
+### Files Changed
+
+- `backend/Dockerfile` — runtime stage: `RUN apk add --no-cache icu-libs` and `ENV DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false`, with an explanatory comment.
+
+### Tests Added
+
+- No unit tests (Docker/runtime-only change; backend unit tests use SQLite/InMemory and do not exercise the Alpine SqlClient path).
+- Verification was via container-level reproduction: a globalization probe and the rebuilt backend image (see Decision body). The authoritative regression gate is the deploy's own Health Check job going green without rollback.
 
 ---
 

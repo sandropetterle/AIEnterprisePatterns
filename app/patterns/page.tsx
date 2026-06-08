@@ -5,12 +5,12 @@ import {
   getAllCategories,
   getAllTags,
 } from '@/lib/api/patterns'
-import type { SortOption } from '@/lib/types/pattern'
+import { normalizeSortOption } from '@/lib/api/mappers'
 import { JsonLd } from '@/components/shared/JsonLd'
 import type { PatternCategory } from '@/lib/types/pattern'
 import { SearchBar } from '@/components/patterns/SearchBar'
 import { SortSelector } from '@/components/patterns/SortSelector'
-import { FilterPanel } from '@/components/patterns/FilterPanel'
+import { DesktopFilterPanel } from '@/components/patterns/DesktopFilterPanel'
 import { FilterSheet } from '@/components/patterns/FilterSheet'
 import { PatternsGrid } from '@/components/patterns/PatternsGrid'
 import { EmptyState } from '@/components/patterns/EmptyState'
@@ -22,7 +22,7 @@ type SearchParams = Promise<{
   q?: string
   category?: string
   tags?: string
-  sort?: SortOption
+  sort?: string
   page?: string
   dateFrom?: string
   dateTo?: string
@@ -69,7 +69,10 @@ export default async function PatternsPage(props: {
   const searchQuery = searchParams.q
   const category = searchParams.category
   const tags = searchParams.tags?.split(',').filter(Boolean)
-  const sortBy = (searchParams.sort as SortOption) || 'recent'
+  // Normalize untrusted sort values against the SortOption contract — unknown
+  // values must fall back to the default sort, never reach the backend, and
+  // never collapse a populated catalog into the empty state (issues #76/#77)
+  const sortBy = normalizeSortOption(searchParams.sort)
   const page = parseInt(searchParams.page || '1', 10)
   const dateFrom = searchParams.dateFrom
   const dateTo = searchParams.dateTo
@@ -180,14 +183,14 @@ export default async function PatternsPage(props: {
 
         {/* Main Content Grid */}
         <div className="flex gap-8">
-          {/* Desktop Filter Panel */}
+          {/* Desktop Filter Panel — matchMedia-gated so mobile never hydrates it (issue #72) */}
           <div className="hidden lg:block" data-testid="desktop-filter-panel">
             <Suspense
               fallback={
                 <div className="w-64 h-96 bg-muted animate-pulse rounded" />
               }
             >
-              <FilterPanel categories={allCategories} tags={allTags} labels={labels} />
+              <DesktopFilterPanel categories={allCategories} tags={allTags} labels={labels} />
             </Suspense>
           </div>
 
