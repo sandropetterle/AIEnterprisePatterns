@@ -10,7 +10,7 @@
 
 **Please do not report security vulnerabilities via public GitHub Issues.**
 
-To report a vulnerability, use [GitHub Security Advisories](https://github.com/sandr/AIEnterprisePatterns/security/advisories/new) to submit a private report. This ensures the vulnerability can be reviewed and addressed before public disclosure.
+To report a vulnerability, use [GitHub Security Advisories](https://github.com/sandropetterle/AIEnterprisePatterns/security/advisories/new) to submit a private report. This ensures the vulnerability can be reviewed and addressed before public disclosure.
 
 Include the following in your report:
 - Description of the vulnerability
