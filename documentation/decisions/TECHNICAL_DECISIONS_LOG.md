@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-05 (listing sort param normalized against the SortOption contract at the frontend boundary — Decision 81)
+**Last Updated:** 2026-06-08 (forced uuid major via npm override to clear a transitive dev-only advisory — Decision 82)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**81 active decisions | 0 archived**
+**82 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,40 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 82: Force `uuid` major (8 → 11) via npm `override` to clear a transitive dev-only advisory
+
+**Date:** 2026-06-08
+**Title:** Pin `uuid` to `^11.1.1` in root `package.json` `overrides` rather than waiting on `@lhci/cli` to bump its dependency
+**Category:** Security / Dependency Management
+**Status:** Active — clears Dependabot alert 19
+
+### Context / Problem
+
+Dependabot alert 19 (moderate) flagged `uuid <11.1.1`. The only vulnerable copy in the tree is `uuid@8.3.2`, pulled transitively by `@lhci/cli@0.15.1` (`deps.uuid: ^8.3.1`), which is dev-only (Lighthouse CI, runs in the deploy workflow — not shipped to the browser and not in `npm audit --omit=dev`). The advisory's **only** patched version is `11.1.1`, i.e. the fix lives across two major lines (9, 10, 11) from what `@lhci/cli` declares. There is no patch within the 8.x line, and `@lhci/cli` has not bumped its `uuid` range.
+
+### Decision
+
+Add `"uuid": "^11.1.1"` to the root `overrides`, forcing every transitive `uuid` (just `@lhci/cli`'s) onto the patched major. This is a **forced major upgrade** of a transitive dependency — logged here per the "forced major / architectural call" rule.
+
+**Why this is safe despite the major jump:**
+- `@lhci/cli` consumes uuid via `const uuid = require('uuid'); ... uuid.v4()` (`src/collect/node-runner.js:65`). The named-export object shape (`{ v1, v3, v4, v5, ... }`) is unchanged from v8 through v11 — the v7→v8 breaking change (removed default export + deep `uuid/v4` import paths) predates the v8 baseline, and v9–v11 only dropped already-deprecated deep-path imports, which `@lhci/cli` does not use.
+- `uuid` ships a CommonJS build through v11; `require('uuid').v4` resolves to a function (verified).
+- The package is dev/CI-only — the blast radius is the Lighthouse CI step in `frontend-container-deploy.yml`, which runs **post-merge** (it is not part of the PR "Test Summary" gate), so this was isolated into its own PR (separate from the patch-level override batch) for clean post-merge attribution/rollback.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Wait for `@lhci/cli` to widen its `uuid` range | No upstream release; leaves a standing (if dev-only) advisory indefinitely |
+| Dismiss the alert as dev-only | The override is cheap and verifiable; dismissing forfeits the signal if uuid later reaches prod |
+| Bundle into the patch-level override PR | A forced major deserves isolated verification + revertability; mixing it with safe patches muddies attribution |
+
+### Verification
+
+Lockfile regenerated with npm 10; `npm ci --dry-run` consistent; `lint` / `tsc --noEmit` / `test:ci` (438 tests, coverage ≥ 70% on all four metrics) green; `npm audit` no longer lists `uuid`.
 
 ---
 
