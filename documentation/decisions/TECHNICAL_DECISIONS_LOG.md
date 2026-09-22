@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-06-08 (forced uuid major via npm override to clear a transitive dev-only advisory — Decision 82)
+**Last Updated:** 2026-09-22 (consolidated security remediation broke the floating-advisory-gate deadlock — Decisions 83–87)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**82 active decisions | 0 archived**
+**87 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,246 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 87: Bind the backend's Entra auth configuration in production (it was never deployed)
+
+**Date:** 2026-09-22
+**Title:** Create the `auth-authority` / `auth-audience` secrets and bind `Authentication__*` env vars on `ca-aipatterns-api-prod`
+**Category:** Infrastructure / Security
+**Status:** Active — tracked for follow-up in issue #144
+
+### Context / Problem
+
+Independent verification of the production deployment (Decision 83) found that **every `[Authorize]`-protected backend endpoint returned HTTP 500**, not 401: `/api/auth/me`, `POST /api/patterns`, `PUT /api/patterns/{id}`, `DELETE /api/patterns/{id}`. Public endpoints were unaffected.
+
+The auth architecture was half-deployed. The frontend container app carried a complete Entra configuration (`AUTH_SECRET`, `AUTH_ENTRA_ISSUER`, `AUTH_ENTRA_CLIENT_ID`, `AUTH_ENTRA_CLIENT_SECRET`, `AUTH_API_SCOPE_READ/WRITE`, `AUTH_TRUST_HOST`, `AUTH_URL`) and could complete a sign-in and obtain a valid access token. The backend container app had only four env vars — `ASPNETCORE_ENVIRONMENT`, `ConnectionStrings__DefaultConnection`, `ApplicationInsights__InstrumentationKey`, `FrontendUrl` — and neither the `auth-authority` nor `auth-audience` secret existed, even though `infrastructure/modules/containerApps.bicep` declares both. So the backend had no scheme to validate the token the frontend had just obtained.
+
+Root cause in `Program.cs`: the three authorization policies and `UseAuthentication()`/`UseAuthorization()` are registered **unconditionally**, while the authentication **scheme** is registered behind a guard clause (`if (!string.IsNullOrEmpty(authAuthority))`). With `Authority` empty, `AuthorizationMiddleware` attempts a challenge with no scheme registered and throws `InvalidOperationException: No authenticationScheme was specified`, which `ExceptionHandlingMiddleware` flattens into a generic 500.
+
+**This was fail-closed, not a security bypass.** Verified empirically: the pattern count was 6 before and 6 after anonymous and forged-token POST attempts, and the exception is raised in middleware before any controller action runs. The severity is availability/correctness — all write endpoints were unusable for everyone, including holders of valid tokens.
+
+**Confirmed pre-existing, not caused by the remediation.** Three independent checks: (a) an A/B of the API on `b74727c` vs the pre-merge baseline `2740137` with `Authority` unset produced identical 500s; (b) `Program.cs` is byte-identical between the two commits and `git diff 2740137 b74727c -- backend/` touches only five `.csproj` version strings; (c) both deploy workflows only run `az containerapp update --image`, which preserves the existing template and never sets env vars.
+
+### Decision
+
+Create the two secrets the Bicep template already references and bind the env vars to them via `secretRef`, rather than setting inline values — so infrastructure-as-code stays coherent and a future Bicep deployment does not conflict.
+
+- `Authentication__Authority` ← `secretref:auth-authority`, taken from the frontend's deployed `AUTH_ENTRA_ISSUER`
+- `Authentication__Audience` ← `secretref:auth-audience`, derived from the deployed `AUTH_API_SCOPE_READ` / `AUTH_API_SCOPE_WRITE` values (`api://aipatterns-api/patterns.*` → App ID URI `api://aipatterns-api`)
+- `Authentication__RequireHttpsMetadata` = `true`, matching the Bicep
+
+### Rationale
+
+Auth was already 100% broken, so binding the configuration could only improve the outcome: with a correct `Audience` authentication works; with an incorrect one, valid tokens are rejected with a 401 rather than a 500 — still broken, but correctly signalled and trivially reversible.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Set the values inline with `--set-env-vars Authentication__Authority=<url>` | Diverges from the Bicep, which declares both as `secretRef`; a later template deployment would fight the manual value |
+| Fix `Program.cs` to fail fast and redeploy first | Larger change, needs its own validation, and would leave production auth broken meanwhile. Recorded as follow-up work in #144 instead |
+| Leave it and only file an issue | Production write endpoints stay dead for an unbounded period over a two-command configuration gap |
+
+### Verification
+
+| Endpoint | Before | After |
+|---|---|---|
+| `/health` | Healthy | Healthy |
+| `GET /api/patterns` (public) | 200 | 200 |
+| `GET /api/auth/me` (no token) | 500 | **401** |
+| `POST /api/patterns` (no token) | 500 | **401** |
+| `POST` with forged bearer | 500 | **401** |
+| `DELETE /api/patterns/{id}` | 500 | **401** |
+
+A forged token now returns `www-authenticate: Bearer error="invalid_token"`, confirming the validation path is genuinely active rather than blanket-rejecting. Data intact (6 patterns); frontend unaffected (homepage still renders 3 featured cards, listing 6).
+
+### Consequences
+
+- **Outstanding verification:** `Audience` has been proven only against forged tokens. If Entra emits the API's client-ID GUID as `aud` rather than the App ID URI, valid tokens would be rejected with 401. One real signed-in request is needed to confirm. Tracked in #144.
+- **`/health` reported `Healthy` while the API was half-dead**, so the deploy health check passed and no rollback fired. A missing `Authority` outside Development arguably should fail fast at startup.
+- **The E2E matrix could not catch this.** `e2e/global.setup.ts` injects an Auth.js session cookie directly instead of performing a real login, and self-skips the API-write tests when the session carries a placeholder access token — so all 46 chromium tests passed against a backend that could not serve a single authenticated request.
+- **IaC drift is real and unquantified.** The Bicep declares env vars the deployed app never had; other declared settings may be similarly missing. Audit tracked in #144.
+
+---
+
+## Decision 86: Broaden Dependabot grouping to at most three PRs per ecosystem
+
+**Date:** 2026-09-22
+**Title:** Replace per-package-family groups with `*-security` / `*-production` / `*-development` groups across all seven ecosystems
+**Category:** Dependency Management
+**Status:** Active
+
+### Context / Problem
+
+Dependabot emitted roughly ten individual PRs a week. On its own that is merely noisy; combined with the floating advisory gates described in Decision 83 it is structurally dangerous. The gates demand that *every* advisory be clear simultaneously, so while any advisory is outstanding no single-package PR can go green — which is exactly how 27 PRs accumulated behind 75 alerts and required a hand-authored consolidated PR to break.
+
+### Decision
+
+Each ecosystem now emits at most three PRs per cycle:
+
+- `*-security` — **all** security updates grouped (`applies-to: security-updates`). This is the load-bearing one: a single PR can now clear the whole advisory backlog at once, which is what a simultaneous-clear gate actually requires.
+- `*-production` — runtime dependency version updates
+- `*-development` — tooling/test dependency version updates
+
+NuGet uses a single version-update group rather than a production/development split, because EF Core requires matching versions across its packages and the ASP.NET Core servicing line moves in lockstep with it (see Decision 83). `react`/`react-dom` remain in lockstep automatically, since both are production dependencies and therefore land in the same group.
+
+Per-ecosystem `open-pull-requests-limit` values were added to cap queue growth.
+
+### Rationale
+
+Grouping is the one lever available without touching the gates themselves, which are explicitly out of scope (Decision 84). Grouped **security** updates are the part that addresses the deadlock rather than merely reducing noise.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Keep per-family groups and merge more aggressively | Does not address the deadlock — the problem is that no individual PR can go green, not that merging is slow |
+| One single group per ecosystem for everything | A failing major in the group would block unrelated security fixes; separating security from version updates keeps the critical path clear |
+| Reduce Dependabot frequency to monthly | Trades a PR backlog for a longer vulnerability exposure window |
+
+### Consequences
+
+- Every existing `ignore` rule is carried over unchanged — tailwindcss v4, eslint v10, typescript v6, lucide-react v1, next-auth major, `Microsoft.*` major, `coverlet.*` major, Swashbuckle v10, `dotnet/sdk` + `aspnet` major, and node major. These encode Decisions 35, 69 and 71 and were deliberately not relaxed.
+- Larger grouped PRs are individually harder to review and to bisect when one member breaks.
+- This mitigates but does not remove the underlying risk. See Decision 84.
+
+### Files Changed
+
+- `.github/dependabot.yml`
+
+---
+
+## Decision 85: Reaffirm .NET 8 LTS — close PR #119 (`dotnet/sdk` 8.0 → 9.0) without merging
+
+**Date:** 2026-09-22
+**Title:** Close the Docker-ecosystem Dependabot PR bumping the `dotnet/sdk` base image major version
+**Category:** Infrastructure
+**Status:** Active
+
+### Context / Problem
+
+PR #119 proposed bumping `mcr.microsoft.com/dotnet/sdk` from 8.0 to 9.0. `.github/dependabot.yml` has carried `version-update:semver-major` ignore rules for both `mcr.microsoft.com/dotnet/sdk` and `mcr.microsoft.com/dotnet/aspnet` since commit `4f9d25d` (2026-04-21) — months before #119 was opened on 2026-08-01. **The PR escaped a rule written specifically to suppress it.** The mechanism was not determined; it is recorded here so the gap is investigated rather than rediscovered.
+
+.NET 8 is LTS until November 2026. The backend runtime is pinned to `aspnet:8.0-alpine` and required non-trivial work to get right: `icu-libs` installed and `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` set, because `Microsoft.Data.SqlClient` calls `CultureInfo.GetCultureInfo()` during `SqlConnection.Open()` and throws `CultureNotFoundException` under Alpine's default invariant-culture mode (Decision 71).
+
+### Decision
+
+Close PR #119 without merging. A .NET 9/10 migration is its own project with its own validation burden — globalization behaviour on Alpine, EF Core provider compatibility, container image re-verification — and is not something to accept incidentally through a Docker-ecosystem Dependabot bump.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Merge #119 opportunistically | Turns a deliberate LTS/migration decision into an incidental one, and reintroduces the Alpine globalization-invariant risk class (Decision 71) without re-validation |
+| Leave #119 open indefinitely | Feeds exactly the stale-PR backlog that produced the Decision 83 deadlock; closing explicitly with a recorded reason is better |
+
+### Consequences
+
+- Backend stays on `aspnet:8.0-alpine` with `icu-libs` / `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` until an explicit migration project is scoped. .NET 8 LTS ends November 2026, so that project needs scheduling before then.
+- The `dependabot.yml` major-ignore rules for `dotnet/sdk` and `dotnet/aspnet` did not hold in this case and should be reviewed. A note to that effect is now inline in `dependabot.yml`.
+
+### Files Changed
+
+- None (PR #119 closed without merge)
+
+---
+
+## Decision 84: Defer the vulnerability-gate redesign — record the residual risk
+
+**Date:** 2026-09-22
+**Title:** Limit this session's recurrence work to Dependabot grouping; do not restructure `test.yml`'s advisory gates
+**Category:** Security / CI
+**Status:** Active — deferred, follow-up not yet scheduled
+
+### Context / Problem
+
+Decision 83 cleared the advisory backlog but did not change *how* the gates work. `npm audit --omit=dev --audit-level=high` and the `dotnet list package --vulnerable` grep both still run against live advisory feeds, still run before build and test, and both still feed `test-summary`, the sole required branch-protection check. Nothing about that shape changed.
+
+There is concrete evidence this can become worse than inconvenient. GHSA-2m69-gcr7-jv3q — the advisory resolved in Decision 83 — has `first_patched_version: null`. Dependabot therefore could not structurally propose a fix at all; it was resolvable only because a human manually pinned `SQLitePCLRaw` past the vulnerable range via the EF Core bump. An advisory with no patched version wedges CI permanently until someone intervenes by hand.
+
+### Decision
+
+Scope this session's recurrence work to broadening `dependabot.yml` grouping (Decision 86). The gate design itself is explicitly **not** changed now. This entry exists so the risk is recorded as known and reproducible rather than silently rediscovered.
+
+### Rationale
+
+Fixing the immediate deadlock and redesigning the gate that caused it are separable pieces of work with different risk and urgency profiles. Conflating them would have delayed unblocking `main`.
+
+### Consequences
+
+**This will recur.** The gates remain floating (live feed, wall-clock rot) and blocking (part of the required check). The next advisory landing on a production dependency reproduces Decision 83's deadlock exactly.
+
+**Recommended follow-up, explicitly not done:**
+
+- Move the "pre-existing tree is vulnerable" audit to a **scheduled** workflow that opens an issue on failure, and drop it from `test-summary`'s `needs`, so an unrelated PR is never blocked by a pre-existing, wall-clock-driven advisory.
+- Keep a hard audit gate in the **deploy** workflow, so nothing vulnerable ever actually ships even though PR merges are no longer gated on it.
+- If the audit stays inline in `test.yml` regardless, at minimum reorder it to run **after** build and test. Today it short-circuits before Jest and xUnit run, so a red audit can completely mask real test breakage — during this incident the code was healthy, but nothing in CI was in a position to prove it.
+- Add an allowlist/expiry mechanism for advisories with no available patch (`first_patched_version: null`), so a single unfixable advisory cannot wedge CI indefinitely.
+
+### Files Changed
+
+- None this session (gate logic in `.github/workflows/test.yml` deliberately untouched)
+
+---
+
+## Decision 83: Consolidated security remediation PR to break the floating-advisory-gate deadlock
+
+**Date:** 2026-09-22
+**Title:** Ship one consolidated remediation PR (frontend `npm audit fix` + backend EF Core/ASP.NET Core 8.0.27 → 8.0.31) instead of merging Dependabot PRs individually
+**Category:** Security / Dependency Management
+**Status:** Active
+
+### Context / Problem
+
+`main`'s Test Suite badge was **stale-green**: its last run was 2026-06-08 (success), and no commit landed after that. Meanwhile every open PR was red.
+
+`.github/workflows/test.yml` runs two vulnerability gates *before* build and test — `npm audit --omit=dev --audit-level=high` in the frontend job, and `dotnet list package --vulnerable --include-transitive` piped through `grep -q "has the following vulnerable packages"` in the backend job — and `test-summary`, the sole required branch-protection check, depends on both.
+
+Both gates query **live advisory feeds**, so they rot on wall-clock time with zero code change. New advisories published 2026-06-19 (NuGet) and 2026-06-21 (npm) turned every open PR red overnight, including PRs that only bumped unrelated things such as `azure/login` and never reached Jest at all.
+
+That produced a structural deadlock: the gate requires *all* advisories clear simultaneously, but Dependabot opens one PR per package, so each PR still inherits every other outstanding advisory. **No individual Dependabot PR could ever go green.** 27 PRs accumulated against 75 open alerts (5 critical / 33 high / 26 moderate / 11 low).
+
+The application code was healthy throughout: 438/438 frontend tests, 115/115 backend tests, `tsc` clean, lint clean, Release build clean. Only the audit steps failed — a fact the gate ordering actively obscured, since the audit short-circuits before any test runs.
+
+### Decision
+
+Ship one consolidated remediation PR (#143) clearing both gates in a single pass.
+
+- **Frontend:** plain `npm audit fix`, **never `--force`** — `--force` would have silently downgraded `@lhci/cli` and `@storybook/nextjs` to releases predating the vulnerable chain and reported it as a fix. Resolved: `next` 16.3.6, `next-auth` 5.0.0-beta.32, `@auth/core` 0.41.3, `postcss` 8.5.28, `sharp` 0.35.4, `nanoid` 3.3.19, `undici` 7.29.1, `dompurify` 3.4.15, `baseline-browser-mapping` 2.11.25, `postcss-selector-parser` 6.1.4. Defensive floors raised in `package.json` so a future clean resolve cannot drop back below an RCE fix: `next` `^16.3.5`, `next-auth` `^5.0.0-beta.32`. Lockfile regenerated with npm 10 for parity with CI's Node 20 / npm 10.8.2.
+- **Backend:** every `Microsoft.EntityFrameworkCore*` / `Microsoft.AspNetCore*` package 8.0.27 → 8.0.31 across five `.csproj` files. EF Core 8.0.30 is the first release depending on `SQLitePCLRaw >= 2.1.12`; GHSA-2m69-gcr7-jv3q covers `<= 2.1.11`, and 8.0.27/28/29 all pull the vulnerable 2.1.6. 8.0.31 was taken as the latest 8.0.x, aligned across the package set because EF Core requires matching versions within one app. Result: `SQLitePCLRaw` 2.1.6 → 2.1.12. Stays on .NET 8 LTS.
+
+**No gate was weakened** to achieve this: no `--audit-level` change, no `|| true`, no `continue-on-error`, no lowered coverage threshold, no admin bypass, no workflow file touched.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Admin-bypass branch protection to merge Dependabot PRs anyway | Hides the problem rather than solving it, and ships known vulnerabilities |
+| Weaken the gate (`--audit-level=critical`, or `continue-on-error`) | Defeats the purpose of having a vulnerability gate at all |
+| Merge Dependabot PRs one at a time | Structurally impossible — precisely the deadlock described above |
+| `npm audit fix --force` | Not a fix. It resolves the advisory by downgrading `@lhci/cli` and `@storybook/nextjs` to ancient releases that predate the vulnerable dependency chain |
+
+### Verification
+
+`npm audit --omit=dev --audit-level=high` exit 0 / "found 0 vulnerabilities" (was exit 1); `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages (was High, GHSA-2m69-gcr7-jv3q in four projects); `tsc --noEmit` clean; lint 0 errors / 8 warnings, identical to baseline; `npm run test:ci` 438/438 with coverage 74.72 / 78.35 / 72.64 / 74.75; `dotnet build -c Release` 0 warnings and `dotnet test` 115/115; production build succeeds; Chromium E2E against a **production** build 46 passed / 3 skipped / 0 failed, run twice. Post-merge, the full three-browser E2E matrix (chromium, firefox, webkit) passed on `main`, both deploys succeeded, Lighthouse passed on first attempt, and no rollback fired.
+
+### Consequences
+
+- Clears the advisory backlog and restores a genuinely green, non-stale `main`.
+- Does **not** change the shape of the gate — see Decision 84 for the follow-up this leaves outstanding.
+- Superseded 15 open Dependabot PRs, closed with recorded reasons rather than left to rot.
+- Surfaced two unrelated pre-existing defects, both recorded: the production backend auth misconfiguration (Decision 87, issue #144), and an ISR staleness bug where `app/page.tsx` combines `getFeaturedPatterns().catch(() => [])` with `revalidate = 300`, so a transient backend failure caches a **200 with zero featured cards** for five minutes. The latter surfaced first as an E2E flake — a build run with no backend available baked a cardless homepage into the ISR cache — but the user-facing form of the defect is real.
+
+### Files Changed
+
+- `package.json`, `package-lock.json`
+- `backend/src/AIEnterprisePatterns.Api/AIEnterprisePatterns.Api.csproj`
+- `backend/src/AIEnterprisePatterns.Data/AIEnterprisePatterns.Data.csproj`
+- `backend/src/AIEnterprisePatterns.Infrastructure/AIEnterprisePatterns.Infrastructure.csproj`
+- `backend/tests/AIEnterprisePatterns.Api.Tests/AIEnterprisePatterns.Api.Tests.csproj`
+- `backend/tests/AIEnterprisePatterns.Data.Tests/AIEnterprisePatterns.Data.Tests.csproj`
 
 ---
 

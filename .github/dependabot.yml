@@ -1,4 +1,25 @@
 version: 2
+
+# Grouping policy (Decision 86)
+#
+# Before: ~10 individual PRs a week. Combined with the advisory gates in
+# test.yml -- which run `npm audit` / `dotnet list package --vulnerable`
+# against LIVE feeds before build+test, and feed the required `test-summary`
+# check -- a one-package-per-PR queue can deadlock: the gate demands every
+# advisory be clear at once, so no single-package PR can ever go green while
+# any other advisory is outstanding. That is what stalled 27 PRs behind
+# 75 alerts (see Decision 83).
+#
+# Each ecosystem now emits at most three PRs per cycle:
+#   *-security     -- ALL security updates, grouped. This is the important
+#                     one: a single PR can clear the whole advisory backlog
+#                     at once, which is exactly what a simultaneous-clear
+#                     gate requires.
+#   *-production    -- runtime dependency version updates
+#   *-development   -- tooling/test dependency version updates
+#
+# Every `ignore` rule below is carried over unchanged -- they encode prior
+# decisions (Decisions 35, 69, 71) and are deliberately NOT relaxed here.
 updates:
   # Frontend npm (root)
   - package-ecosystem: "npm"
@@ -6,31 +27,26 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    open-pull-requests-limit: 5
     groups:
-      # Keep react and react-dom in lockstep — they must always share the
-      # exact same version, so bump them together in a single PR.
-      react:
+      # All security updates in one PR, so the advisory gates can go green
+      # in a single merge instead of never.
+      npm-security:
+        applies-to: security-updates
         patterns:
-          - "react"
-          - "react-dom"
-      storybook:
+          - "*"
+      # react/react-dom must share an exact version; both are production
+      # deps, so this group keeps them in lockstep automatically.
+      npm-production:
+        applies-to: version-updates
+        dependency-type: "production"
         patterns:
-          - "storybook"
-          - "@storybook/*"
-      testing:
+          - "*"
+      npm-development:
+        applies-to: version-updates
+        dependency-type: "development"
         patterns:
-          - "jest"
-          - "jest-environment-jsdom"
-          - "@types/jest"
-          - "@testing-library/*"
-          - "jest-axe"
-          - "@types/jest-axe"
-          - "@playwright/test"
-      types:
-        patterns:
-          - "@types/node"
-          - "@types/react"
-          - "@types/react-dom"
+          - "*"
     ignore:
       # tailwindcss v4 is a breaking rewrite — defer to Phase 8
       - dependency-name: "tailwindcss"
@@ -54,11 +70,22 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    open-pull-requests-limit: 3
     groups:
-      strapi:
+      cms-security:
+        applies-to: security-updates
         patterns:
-          - "@strapi/*"
-          - "strapi"
+          - "*"
+      cms-production:
+        applies-to: version-updates
+        dependency-type: "production"
+        patterns:
+          - "*"
+      cms-development:
+        applies-to: version-updates
+        dependency-type: "development"
+        patterns:
+          - "*"
     ignore:
       # Strapi controls its React version — don't auto-bump
       - dependency-name: "react"
@@ -78,20 +105,19 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    open-pull-requests-limit: 3
     groups:
-      dotnet-servicing:
+      nuget-security:
+        applies-to: security-updates
         patterns:
-          - "Microsoft.*"
-      ef-core:
+          - "*"
+      # EF Core requires matching versions across its packages in one app,
+      # and the ASP.NET Core servicing line moves in lockstep with it, so a
+      # single group keeps the whole 8.0.x surface aligned in one PR.
+      nuget-all:
+        applies-to: version-updates
         patterns:
-          - "Microsoft.EntityFrameworkCore*"
-      test-infrastructure:
-        patterns:
-          - "xunit*"
-          - "FluentAssertions"
-          - "Microsoft.NET.Test.Sdk"
-          - "coverlet.*"
-          - "Moq"
+          - "*"
     ignore:
       - dependency-name: "Microsoft.*"
         update-types: ["version-update:semver-major"]
@@ -107,12 +133,27 @@ updates:
     schedule:
       interval: "weekly"
       day: "monday"
+    open-pull-requests-limit: 2
+    groups:
+      github-actions-security:
+        applies-to: security-updates
+        patterns:
+          - "*"
+      github-actions-all:
+        applies-to: version-updates
+        patterns:
+          - "*"
 
   # Docker — frontend
   - package-ecosystem: "docker"
     directory: "/"
     schedule:
       interval: "monthly"
+    open-pull-requests-limit: 2
+    groups:
+      docker-frontend:
+        patterns:
+          - "*"
     ignore:
       # Node 25 is odd-numbered STS (non-LTS); target is Node 22 LTS when ready
       - dependency-name: "node"
@@ -123,8 +164,16 @@ updates:
     directory: "/backend"
     schedule:
       interval: "monthly"
+    open-pull-requests-limit: 2
+    groups:
+      docker-backend:
+        patterns:
+          - "*"
     ignore:
-      # .NET 8 LTS runs until Nov 2026; .NET 10 migration is its own project
+      # .NET 8 LTS runs until Nov 2026; .NET 10 migration is its own project.
+      # NOTE: PR #119 (dotnet/sdk 8.0 -> 9.0) escaped these rules on
+      # 2026-08-01 despite them being in place since 4f9d25d (2026-04-21).
+      # Closed deliberately; the gap is tracked separately (Decision 85).
       - dependency-name: "mcr.microsoft.com/dotnet/sdk"
         update-types: ["version-update:semver-major"]
       - dependency-name: "mcr.microsoft.com/dotnet/aspnet"
@@ -135,6 +184,11 @@ updates:
     directory: "/cms"
     schedule:
       interval: "monthly"
+    open-pull-requests-limit: 2
+    groups:
+      docker-cms:
+        patterns:
+          - "*"
     ignore:
       # Node 25 is odd-numbered STS (non-LTS); target is Node 22 LTS when ready
       - dependency-name: "node"

@@ -142,8 +142,8 @@ All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (30
 
 ## Testing
 
-- **Frontend:** `npm test` (Jest + React Testing Library); 420/420 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
-- **Backend:** `dotnet test` (xUnit + Moq); 114/114 tests passing (~85% testable coverage)
+- **Frontend:** `npm test` (Jest + React Testing Library); 438/438 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
+- **Backend:** `dotnet test` (xUnit + Moq); 115/115 tests passing (~85% testable coverage)
 - **E2E:** Playwright cross-browser matrix — Chromium, Firefox, WebKit (CI runs all three in parallel via `strategy.matrix`)
 - **Performance:** Lighthouse CI (`@lhci/cli`) — LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80 — gates deploy in `frontend-container-deploy.yml`
 - **Visual regression:** Chromatic — 38 Storybook stories published on every deploy; unreviewed changes block deploy once baseline is hardened (`continue-on-error: true` + `--exit-zero-on-changes` until baseline accepted)
@@ -151,6 +151,23 @@ All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (30
 - **Radix UI in tests:** Mock `@/components/ui/dropdown-menu` inline in test files (portals don't render in jsdom)
 - **Backend auth tests:** TestAuthHandler (header-driven: `X-Test-Roles`) replaces JwtBearer in WebApplicationFactory
 - **CI/CD deploy gate:** `run-tests` → (`build-and-push` + `lhci` + `chromatic`) in parallel → `deploy` (all three must pass)
+
+### Floating advisory gates — read this before debugging a red PR (Decisions 83/84)
+
+`test.yml` runs two vulnerability gates **before** build and test, and both feed `test-summary`, the sole required branch-protection check:
+
+- `frontend-tests` → `npm audit --omit=dev --audit-level=high` (`test.yml:87`)
+- `backend-tests` → `dotnet list package --vulnerable --include-transitive` + `grep -q "has the following vulnerable packages"` (`test.yml:37-44`)
+
+Both query **live advisory feeds**, so they go red on wall-clock time with zero code change. Consequences worth internalising:
+
+- **A PR that only bumps `azure/login` can "fail Frontend Tests"** without ever reaching Jest. The gate never looks at the diff. Check *which step* failed before assuming your change broke something.
+- **A red audit masks real test breakage** — the audit short-circuits before Jest/xUnit run, so a green test suite is unproven while the gate is red.
+- **Dependabot deadlocks against this.** The gate needs *all* advisories clear at once; Dependabot files one package per PR, so no individual PR can ever go green. This stalled 27 PRs behind 75 alerts for ~3.5 months and needed a hand-authored consolidated PR (#143) to break. `dependabot.yml` now groups **all security updates into one PR** specifically so a single merge can satisfy the gate.
+- **An advisory with `first_patched_version: null` wedges CI permanently** (GHSA-2m69-gcr7-jv3q was one). Dependabot cannot propose a fix; a human must pin past the vulnerable range manually.
+- **Never weaken the gate to go green** — no `--audit-level=critical`, no `|| true`, no `continue-on-error`, no admin bypass. And never `npm audit fix --force`: it "fixes" by downgrading `@lhci/cli` and `@storybook/nextjs` to releases predating the vulnerable chain.
+
+Gate redesign is recorded as recommended-but-deferred follow-up in Decision 84.
 
 ### Coverage Verification Rule (MANDATORY)
 
@@ -199,7 +216,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 Full governance in `documentation/GOVERNANCE.md` and `DOCUMENTATION_INDEX.md`. Folder purposes: `documentation/architecture/` (how built), `api/` (REST ref), `decisions/` (why), `testing/` (how to test), `operations/` (prod ops), `project/` (roadmap), `reviews/` (audit snapshots), `test_results/` (retention: current + 2 prior phases), `deployment/` (Azure guides).
 
-**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (65 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (87 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** 15 Mermaid diagrams embedded in their target docs — see `documentation/diagrams/DIAGRAM_INDEX.md`. Color palette: blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure, gray=CI/CD.
 
