@@ -4,7 +4,7 @@
 # ============================================================================
 
 # Stage 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:8.0@sha256:a9330090b730c2abde8f3f43b3d1e24e4b8cba028de7bab1a7fdcd50cb7a3b7e AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:35d40304542c8689331f8cab17c65926cdf48fe711e289321d71924b230a7d29 AS build
 WORKDIR /src
 
 # Copy project files
@@ -25,7 +25,7 @@ RUN dotnet build "AIEnterprisePatterns.Api.csproj" -c Release -o /app/build
 RUN dotnet publish "AIEnterprisePatterns.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Stage 2: Runtime (Alpine — smaller image, BusyBox wget for healthcheck)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:354c2fcfb3c23abc60d98f0380cdb403fba844a62a123b6343a8c9611209995c AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine@sha256:f62a272ac1b46e83f56b8ed0416572f31cd1128e2c4a5e63eb34d348e4a36095 AS runtime
 WORKDIR /app
 
 # ICU + globalization support.
