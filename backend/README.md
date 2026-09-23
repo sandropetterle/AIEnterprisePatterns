@@ -1,6 +1,6 @@
 # AI Enterprise Patterns - Backend API
 
-ASP.NET Core 8.0 Web API with Clean Architecture.
+ASP.NET Core 10.0 Web API with Clean Architecture.
 
 ## Quick Start
 

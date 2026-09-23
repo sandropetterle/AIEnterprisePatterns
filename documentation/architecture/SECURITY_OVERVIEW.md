@@ -238,7 +238,7 @@ Applied to all Next.js responses via `next.config.mjs`:
 
 - All 3 Dockerfiles (`Dockerfile`, `backend/Dockerfile`, `cms/Dockerfile`) use multi-stage builds
 - All `FROM` lines SHA-pinned to immutable digest (`@sha256:<64-char-hex>`) — mutable tag kept as a comment for readability; Dependabot Docker ecosystem keeps pins current
-- Backend runtime uses `aspnet:8.0-alpine` — no `apt-get` or `curl` layer (~90 MB vs ~240 MB previously); healthcheck uses BusyBox `wget -qO-` (pre-installed in Alpine)
+- Backend runtime uses `aspnet:10.0-alpine` — no `apt-get` or `curl` layer (~90 MB vs ~240 MB previously); healthcheck uses BusyBox `wget -qO-` (pre-installed in Alpine)
 - All containers run as non-root users (`appuser`, `nextjs`, `strapi`)
 - Ports <1024 require root; backend uses port 8080 inside container (mapped to 80/443 externally)
 - Container images stored in Azure Container Registry with RBAC access

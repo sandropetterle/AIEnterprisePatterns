@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-05-19 (Dependabot maintenance sweep — second wave: 13 Next.js CVEs cleared, react-pair, 12 PRs resolved)
+**Last Updated:** 2026-09-23 (Backend upgraded from .NET 8 to .NET 10 LTS, framework-only scope — Decision 89)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -228,6 +228,17 @@ Notable handling:
 - ef-core PR auto-closed by Dependabot once the dotnet-servicing group's `Microsoft.*` pattern shipped the same package versions
 
 **Key decisions:** Decision 68 (Next.js 16.2.6 CVE patch — second wave), Decision 69 (lucide-react v1 deferral). Detailed execution log: [DEPENDABOT_SWEEP_2026-05-19.md](DEPENDABOT_SWEEP_2026-05-19.md).
+
+---
+
+### Backend .NET 10 Upgrade (2026-09-23) ✅
+**Priority:** HIGH (LTS end-of-support) | **Dependencies:** none | **Status:** Complete
+
+All 7 backend projects moved from `net8.0` to `net10.0` LTS (supported to 2028-11-14), ahead of .NET 8 LTS end-of-support on 2026-11-10. Framework-only scope: ASP.NET Core 10, EF Core 10, `Asp.Versioning.*` 10.2.1, and the `aspnet:10.0-alpine` / `sdk:10.0` Docker images. Fixed an EF Core 9+ breaking change in two integration test files (`AddDbContext` now also registers `IDbContextOptionsConfiguration<TContext>`). 0 build warnings, 115/115 tests passing, clean vulnerability scan.
+
+Deferred as follow-up work (not framework version bumps, so kept out of scope): Application Insights → OpenTelemetry-based 3.x, Swashbuckle.AspNetCore → v10 (`Microsoft.OpenApi` namespace move), FluentValidation.AspNetCore migration off the deprecated auto-validation package.
+
+**Key decision:** Decision 89 (framework-only .NET 10 upgrade; alternatives evaluated).
 
 ---
 

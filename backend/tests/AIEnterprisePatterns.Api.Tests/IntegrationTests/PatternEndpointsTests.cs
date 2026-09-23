@@ -9,7 +9,9 @@ using FluentAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace AIEnterprisePatterns.Api.Tests.IntegrationTests;
 
@@ -27,10 +29,13 @@ public class PatternEndpointsTests : IClassFixture<WebApplicationFactory<Program
         {
             builder.ConfigureServices(services =>
             {
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-                if (descriptor != null)
-                    services.Remove(descriptor);
+                // EF Core 9+: AddDbContext registers DbContextOptions<T> plus a chained
+                // IDbContextOptionsConfiguration<T> for the provider (Sqlite). Removing only
+                // DbContextOptions<T> leaves the Sqlite configuration chained in, so both
+                // providers get applied to the same options and EF throws "Only a single
+                // database provider can be registered". Remove both before re-adding InMemory.
+                services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
+                services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
 
                 services.AddDbContext<ApplicationDbContext>(options =>
                     options.UseInMemoryDatabase(DatabaseName));
