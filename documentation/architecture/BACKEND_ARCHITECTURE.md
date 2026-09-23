@@ -189,7 +189,7 @@ sequenceDiagram
 
 ## 5. Error Handling
 
-- Global error handling middleware (`ExceptionHandlingMiddleware`): returns consistent JSON error responses
+- Global error handling middleware (`ExceptionHandlingMiddleware`): returns a consistent JSON 500 `{status, message, traceId}`. The `traceId` (`Activity.Current.Id`, falling back to `TraceIdentifier`) is also written to the error log, so a user-visible 500 can be traced in App Insights. If the response has already started, it rethrows rather than write into a half-sent body.
 - `OperationCanceledException` from client disconnects caught separately, logged at `Information` (not `Error`) to reduce noise
 - Other exceptions logged at `Error` level with full details (server-side only — not exposed to clients)
 - No exception details leaked to clients in production
@@ -362,7 +362,8 @@ classDiagram
 - **Framework:** xUnit + Moq + FluentAssertions
 - **Repository tests:** EF Core InMemory provider
 - **Integration tests:** `WebApplicationFactory` with `TestAuthHandler` (header-driven auth via `X-Test-Roles`)
-- **Current count:** 114 tests passing
+- **Real auth pipeline tests:** `AuthPipelineTests` runs Program.cs's actual JwtBearer and fallback wiring with no `TestAuthHandler`, using a static OIDC config and HMAC-signed tokens, so no network is needed. It covers fail-fast startup, 401/403 boundaries, both accepted audiences and role-claim mapping (issue #144).
+- **Current count:** 140 tests passing
 - **Coverage:** ~85% on testable code
 
 See [../testing/TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md) for full testing approach.
@@ -376,8 +377,9 @@ See [../testing/TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md) for full te
 ConnectionStrings__DefaultConnection=   # Empty/unset = SQLite (local dev); non-empty = SQL Server (production)
 FrontendUrl=http://localhost:3000        # Single CORS origin (legacy); production uses FrontendUrls array
 FrontendUrls__0=https://example.com     # Multiple CORS origins (current); localhost:3000 auto-added in Development only
-Authentication__Authority=              # Entra OIDC authority (optional; auth disabled if not set)
-Authentication__Audience=               # API app client ID
+Authentication__Authority=              # Entra OIDC authority — REQUIRED outside Development (startup fails without it)
+Authentication__Audience=               # API App ID URI (api://aipatterns-api) — REQUIRED outside Development
+Authentication__ValidAudiences__0=      # Optional extra accepted aud, e.g. the API client-ID GUID (v2 tokens)
 Authentication__RequireHttpsMetadata=true
 ```
 

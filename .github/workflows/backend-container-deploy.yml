@@ -181,12 +181,28 @@ jobs:
           echo "Expected: 'Healthy' — the Container App cold-starts from zero, so a slow first response is normal but this exhausted the retry budget."
           exit 1
 
+      # Issue #144: /health stayed Healthy while every [Authorize] endpoint returned 500.
+      # An anonymous call must be rejected with exactly 401 — 500 means the auth pipeline is
+      # broken, 200 means the endpoint fell open, 404 means the route is gone. Failing here
+      # triggers the rollback job, so a deploy with broken auth never becomes :latest.
+      - name: Check protected endpoint returns 401
+        run: |
+          url="https://${{ steps.get-url.outputs.fqdn }}/api/auth/me"
+          code=$(curl -s -m 15 -o /tmp/auth_body -w "%{http_code}" "$url" || echo "000")
+          if [ "$code" != "401" ]; then
+            echo "✗ GET /api/auth/me without a token returned HTTP $code, expected 401"
+            cat /tmp/auth_body 2>/dev/null || true
+            exit 1
+          fi
+          echo "✓ GET /api/auth/me without a token returned 401"
+
       - name: Deployment summary
         run: |
           echo "### Deployment Summary 🚀" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "- **Backend API:** https://${{ steps.get-url.outputs.fqdn }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Health Status:** ✓ Healthy" >> $GITHUB_STEP_SUMMARY
+          echo "- **Auth gate:** ✓ /api/auth/me → 401 without a token" >> $GITHUB_STEP_SUMMARY
           echo "- **Scaling:** Scale to zero when idle (cost-optimized)" >> $GITHUB_STEP_SUMMARY
 
       - name: Logout from Azure

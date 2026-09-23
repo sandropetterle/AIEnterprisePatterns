@@ -2,6 +2,8 @@
 
 Declarative Bicep templates for all Azure resources. Managed via [Azure Bicep](https://learn.microsoft.com/azure/azure-resource-manager/bicep/overview) with CI validation on every pull request.
 
+> **⛔ Do not apply this template to production yet.** It has never been deployed to `rg-aipatterns-prod`, and the live Container Apps have drifted from it — applying it today would take production down. The **live apps are the source of truth** until the template is reconciled. `deploy.ps1` blocks deployment unless `-AcknowledgeDrift` is passed; `-WhatIf` stays safe. See [IaC Drift](../documentation/operations/INFRASTRUCTURE_MANAGEMENT.md#iac-drift--template-never-applied) (issue #144, Decision 91).
+
 ---
 
 ## Prerequisites
@@ -85,11 +87,12 @@ For existing infrastructure, every resource should show **"no change"** unless y
 ## Deploy
 
 ```powershell
-# Interactive: validate → what-if → confirm → deploy
-./infrastructure/deploy.ps1
-
-# What-if only (no deploy prompt)
+# What-if only (no deploy prompt) — always safe
 ./infrastructure/deploy.ps1 -WhatIf
+
+# Interactive: validate → what-if → confirm → deploy.
+# Blocked by the drift guard unless -AcknowledgeDrift is passed — only after reconciliation.
+./infrastructure/deploy.ps1 -AcknowledgeDrift
 ```
 
 ---
@@ -113,7 +116,7 @@ az containerapp update \
   --image craipatternssp54426.azurecr.io/aipatterns-api:<sha>
 ```
 
-Bicep modules use stable placeholder images for first deploy only. Because deploy uses `--mode Incremental`, re-running the Bicep does not disrupt running Container Apps — unless you explicitly pass `apiImage`/`webImage`/`cmsImage` parameters.
+Bicep modules use stable placeholder images for first deploy only. **Caution:** `--mode Incremental` only protects resources *absent* from the template — a Container App that *is* declared gets its whole template replaced, including the image. `main.bicep` does not pass `apiImage`/`webImage`, so re-running it would reset both apps to the placeholder image (see IaC Drift above).
 
 ---
 
