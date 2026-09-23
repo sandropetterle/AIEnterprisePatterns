@@ -171,12 +171,12 @@ updates:
           - "*"
     ignore:
       # .NET 8 LTS runs until Nov 2026; .NET 10 migration is its own project.
-      # NOTE: PR #119 (dotnet/sdk 8.0 -> 9.0) escaped these rules on
-      # 2026-08-01 despite them being in place since 4f9d25d (2026-04-21).
-      # Closed deliberately; the gap is tracked separately (Decision 85).
-      - dependency-name: "mcr.microsoft.com/dotnet/sdk"
+      # Dependabot names MCR images WITHOUT the registry host ("dotnet/sdk",
+      # not "mcr.microsoft.com/dotnet/sdk") — the old host-qualified names
+      # never matched, which let PRs #119 and #148 through (Decision 88).
+      - dependency-name: "dotnet/sdk"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "mcr.microsoft.com/dotnet/aspnet"
+      - dependency-name: "dotnet/aspnet"
         update-types: ["version-update:semver-major"]
 
   # Docker — CMS

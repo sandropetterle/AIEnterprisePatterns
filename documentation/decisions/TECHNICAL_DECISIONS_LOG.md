@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-09-22 (consolidated security remediation broke the floating-advisory-gate deadlock — Decisions 83–87)
+**Last Updated:** 2026-09-22 (Dependabot .NET major-ignore rules fixed to use registry-less image names — Decision 88)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**87 active decisions | 0 archived**
+**88 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,44 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 88: Fix the Dependabot .NET major-ignore rules — match registry-less image names
+
+**Date:** 2026-09-22
+**Title:** Change `dependency-name` in the `/backend` Docker ignore rules from `mcr.microsoft.com/dotnet/{sdk,aspnet}` to `dotnet/{sdk,aspnet}`; close PR #148
+**Category:** Infrastructure / CI
+**Status:** Active
+
+### Context / Problem
+
+Decision 85 recorded that PR #119 (`dotnet/sdk` 8.0 → 9.0) escaped the `version-update:semver-major` ignore rules, mechanism undetermined. On the same day the new grouped config produced PR #148 (`docker-backend` group: `dotnet/sdk` 8.0 → 10.0, `dotnet/aspnet` 8.0-alpine → 10.0-alpine), which escaped the same rules.
+
+Both PRs identify the dependencies as `dotnet/sdk` / `dotnet/aspnet`. Dependabot's Docker ecosystem names an image by its repository path **without the registry host**, so the rules' `mcr.microsoft.com/dotnet/...` names never matched anything. The rules had been inert since they were written (`4f9d25d`, 2026-04-21).
+
+#148 was also unsafe on its own: CI does not build the Docker image, so its green checks said nothing about the runtime change. All projects target `net8.0`, and an `aspnet:10.0` runtime image has no .NET 8 shared framework, so the container would have failed to start in production.
+
+### Decision
+
+Use the registry-less names `dotnet/sdk` and `dotnet/aspnet` in the ignore rules. Close #148 without merging. Decision 85 still applies: the .NET 10 migration is its own project and needs scheduling before .NET 8 LTS ends in November 2026.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Keep both host-qualified and bare names | The host-qualified form never matches, so keeping it only suggests to readers that it does something |
+| `@dependabot ignore` comment on #148 only | Stored server-side and invisible in the repo; the config file would still look protective while doing nothing |
+| Wildcard `*dotnet/sdk` | Works, but hides the actual naming rule that caused the bug |
+
+### Consequences
+
+- Dependabot should no longer open .NET major-version Docker PRs for `/backend`. If one appears anyway, the naming theory is wrong and this decision needs revisiting.
+- Minor and patch base-image updates (digest refreshes on `8.0` / `8.0-alpine`) still flow through the `docker-backend` group.
+
+### Files Changed
+
+- `.github/dependabot.yml`
 
 ---
 
@@ -151,7 +189,7 @@ Close PR #119 without merging. A .NET 9/10 migration is its own project with its
 ### Consequences
 
 - Backend stays on `aspnet:8.0-alpine` with `icu-libs` / `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` until an explicit migration project is scoped. .NET 8 LTS ends November 2026, so that project needs scheduling before then.
-- The `dependabot.yml` major-ignore rules for `dotnet/sdk` and `dotnet/aspnet` did not hold in this case and should be reviewed. A note to that effect is now inline in `dependabot.yml`.
+- The `dependabot.yml` major-ignore rules for `dotnet/sdk` and `dotnet/aspnet` did not hold in this case and should be reviewed. A note to that effect is now inline in `dependabot.yml`. **Resolved in Decision 88:** the rules used host-qualified image names that Dependabot never matches.
 
 ### Files Changed
 
