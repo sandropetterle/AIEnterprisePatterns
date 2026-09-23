@@ -64,9 +64,18 @@ A framework-only upgrade isolates the one change that has a hard external deadli
 - Build: 0 warnings across all 7 projects
 - Tests: 115/115 backend tests passing
 - `dotnet list package --vulnerable --include-transitive`: clean
-- `dotnet ef migrations has-pending-model-changes`: none
+- `dotnet ef migrations has-pending-model-changes`: none **under the SQLite provider** (see the SQL Server caveat below)
 - EF Core 10 `ExecuteUpdateAsync` vote path (Decision-relevant atomic update) verified against both SQLite (dev) and the InMemory test fallback
 - `Microsoft.Data.Sqlite` 10's UTC-datetime behavior change assessed as low risk: all persisted dates in this codebase are already `DateTimeKind.Utc`
+- Production-parity container check: the `aspnet:10.0-alpine` image, run with `ASPNETCORE_ENVIRONMENT=Production` against a SQL Server 2022 container. Results: `/health` and `/health/ready` return Healthy. List, detail, `?tags=` (any and all modes), `?search=`, `?category=`, `/related`, `featured` and `trending` return correct counts, confirming EF Core 10's new `Contains` → parameter-list translation. Two votes incremented the count, confirming `ExecuteUpdateAsync` on SQL Server. No `CultureNotFoundException` (the TDL #71 fix holds); the container runs as non-root `appuser` and the HEALTHCHECK is healthy
+
+### Pre-existing issue surfaced (not a regression): migrations are SQLite-typed
+
+`dotnet ef database update` against a **fresh SQL Server** database fails on both EF Core 8.0.31 (baseline `main`) and 10.0.12, with `InvalidCastException: Unable to cast object of type 'System.Guid' to type 'System.String'` in `SqlServerUpdateSqlGenerator.AppendInsertMultipleRows`. The only migration (`20260213191555_InitialCreate`, regenerated "for SQLite compatibility" in `fe66cb8`) and its snapshot use `TEXT`/`INTEGER` store types, so SQL Server maps the seed `InsertData` columns to a string mapping and chokes on Guid values. EF Core 9+ now surfaces the same drift one step earlier as `PendingModelChangesWarning`, which is raised as an error; EF 8 swallowed it. Production is unaffected: `MigrateAsync` only runs in Development, the deploy workflow has no migration step, and the prod schema was most likely created from the earlier SQL Server-typed `20260212084255_InitialCreate`. Local dev and the E2E job both use SQLite, and both were verified working on EF Core 10. Recommended follow-up, in its own PR:
+- Split migrations per provider (`MigrationsAssembly`)
+- Baseline the SQL Server migrations against prod's actual `__EFMigrationsHistory`
+- Add a per-provider `has-pending-model-changes` CI check
+- Correct `deployment/database-migration.md` / `RUNBOOK.md`, which imply `database update` works against Azure SQL today
 
 ### Consequences
 
