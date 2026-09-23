@@ -1,3 +1,4 @@
+using System.Diagnostics;
 using System.Net;
 using System.Text.Json;
 
@@ -27,12 +28,23 @@ public class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "An unhandled exception occurred");
-            await HandleExceptionAsync(context);
+            // Correlation id shared by the log entry and the response body, so a user-visible 500
+            // can be matched to its App Insights trace (issue #144).
+            var traceId = Activity.Current?.Id ?? context.TraceIdentifier;
+            _logger.LogError(ex, "An unhandled exception occurred (traceId {TraceId})", traceId);
+
+            // Headers/body already sent: the status can no longer be changed, and writing a JSON
+            // error into a half-streamed response would corrupt it. Let the server abort it.
+            if (context.Response.HasStarted)
+            {
+                throw;
+            }
+
+            await HandleExceptionAsync(context, traceId);
         }
     }
 
-    private static async Task HandleExceptionAsync(HttpContext context)
+    private static async Task HandleExceptionAsync(HttpContext context, string traceId)
     {
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
@@ -40,7 +52,8 @@ public class ExceptionHandlingMiddleware
         var response = new
         {
             status = context.Response.StatusCode,
-            message = "An internal server error occurred."
+            message = "An internal server error occurred.",
+            traceId
         };
 
         await context.Response.WriteAsync(JsonSerializer.Serialize(response));

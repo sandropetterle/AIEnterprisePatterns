@@ -169,6 +169,19 @@ jobs:
           ASPNETCORE_ENVIRONMENT: Development
           ASPNETCORE_URLS: http://localhost:5255
 
+      # Issue #144: the e2e suite never calls an [Authorize] endpoint (API-write tests are
+      # gated behind E2E_API_WRITES), so a backend whose auth pipeline throws would stay green.
+      # Mirrors the post-deploy gate in backend-container-deploy.yml.
+      - name: Assert protected endpoint returns 401
+        run: |
+          code=$(curl -s -o /tmp/auth_body -w "%{http_code}" http://localhost:5255/api/auth/me)
+          if [ "$code" != "401" ]; then
+            echo "✗ GET /api/auth/me without a token returned HTTP $code, expected 401"
+            cat /tmp/auth_body
+            exit 1
+          fi
+          echo "✓ GET /api/auth/me without a token returned 401"
+
       - name: Build frontend
         run: npm run build
         env:

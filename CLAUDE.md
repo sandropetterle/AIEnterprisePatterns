@@ -82,7 +82,9 @@ Browser → Next.js (Auth.js v5 / NextAuth) → Entra External ID (OIDC)
 - **Role policies:** RequireAdmin, RequireEditor, RequireViewer (always registered regardless of auth config)
 - **Public endpoints:** All GET patterns, vote — no auth required
 - **Protected endpoints:** POST/PUT patterns → RequireEditor; DELETE → RequireAdmin
-- **Guard clause:** JwtBearer only registered when `Authentication:Authority` is configured (tests/local work without Entra setup)
+- **Guard clause (fail-fast, Decision 91):** outside Development, an empty `Authentication:Authority` or `Audience` **throws at startup**, so the deploy rolls back. In Development with no Authority, a fallback `Unconfigured` scheme returns 401. Never skip the auth middleware or policies: that would fail open. `appsettings.Development.json` carries the real CIAM Authority, so local/CI use real JwtBearer.
+- **`MapInboundClaims = false` is load-bearing:** the default renames `roles` → `ClaimTypes.Role` and every real Editor/Admin gets 403. Optional `Authentication:ValidAudiences` accepts the API client-ID GUID (v2 tokens) alongside the App ID URI.
+- **401 deploy gate:** `backend-container-deploy.yml` (and CI e2e) require anonymous `GET /api/auth/me` to return exactly 401; anything else fails and triggers rollback
 - **Setup guide:** `documentation/operations/AUTH_SETUP_GUIDE.md`
 
 ## Critical Conventions
@@ -137,19 +139,20 @@ All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (30
 - **Frontend:** https://ca-aipatterns-web-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io
 - **Backend:** https://ca-aipatterns-api-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io
 - **Reference:** `deployment/CONTAINER_APPS_GUIDE.md`, `documentation/operations/INFRASTRUCTURE_MANAGEMENT.md` (Bicep IaC)
+- **⛔ Bicep has never been applied and has drifted.** Applying it would take prod down (placeholder images, missing KV secrets, CORS/Auth.js env removed). The live apps are the source of truth; `deploy.ps1` blocks without `-AcknowledgeDrift`. See *IaC Drift* in `INFRASTRUCTURE_MANAGEMENT.md`.
 - **Backend port:** 5255 local, 8080 in Docker (non-root user `appuser`)
-- **Health checks:** CI/CD verifies content ("Healthy" for backend, "next-size-adjust" for frontend)
+- **Health checks:** CI/CD verifies content ("Healthy" for backend, "next-size-adjust" for frontend), plus backend anonymous `/api/auth/me` → 401
 
 ## Testing
 
 - **Frontend:** `npm test` (Jest + React Testing Library); 438/438 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
-- **Backend:** `dotnet test` (xUnit + Moq); 115/115 tests passing (~85% testable coverage)
+- **Backend:** `dotnet test` (xUnit + Moq); 140/140 tests passing (~85% testable coverage)
 - **E2E:** Playwright cross-browser matrix — Chromium, Firefox, WebKit (CI runs all three in parallel via `strategy.matrix`)
 - **Performance:** Lighthouse CI (`@lhci/cli`) — LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80 — gates deploy in `frontend-container-deploy.yml`
 - **Visual regression:** Chromatic — 38 Storybook stories published on every deploy; unreviewed changes block deploy once baseline is hardened (`continue-on-error: true` + `--exit-zero-on-changes` until baseline accepted)
 - **Auth test strategy:** next-auth/react mocked globally in jest.setup.ts (unauthenticated default); per-test overrides via `(useSession as jest.Mock).mockReturnValue(...)`
 - **Radix UI in tests:** Mock `@/components/ui/dropdown-menu` inline in test files (portals don't render in jsdom)
-- **Backend auth tests:** TestAuthHandler (header-driven: `X-Test-Roles`) replaces JwtBearer in WebApplicationFactory
+- **Backend auth tests:** TestAuthHandler (header-driven: `X-Test-Roles`) replaces JwtBearer in WebApplicationFactory. It hides real-pipeline bugs (issue #144), so `AuthPipelineTests` runs the real JwtBearer and fallback wiring offline (static OIDC config plus HMAC tokens). Inject factory config with `UseSetting`, not `ConfigureAppConfiguration`: Program.cs reads config before `Build()`, and the latter arrives too late.
 - **CI/CD deploy gate:** `run-tests` → (`build-and-push` + `lhci` + `chromatic`) in parallel → `deploy` (all three must pass)
 
 ### Floating advisory gates — read this before debugging a red PR (Decisions 83/84)
@@ -218,7 +221,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 Full governance in `documentation/GOVERNANCE.md` and `DOCUMENTATION_INDEX.md`. Folder purposes: `documentation/architecture/` (how built), `api/` (REST ref), `decisions/` (why), `testing/` (how to test), `operations/` (prod ops), `project/` (roadmap), `reviews/` (audit snapshots), `test_results/` (retention: current + 2 prior phases), `deployment/` (Azure guides).
 
-**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (90 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (91 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** 15 Mermaid diagrams embedded in their target docs — see `documentation/diagrams/DIAGRAM_INDEX.md`. Color palette: blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure, gray=CI/CD.
 

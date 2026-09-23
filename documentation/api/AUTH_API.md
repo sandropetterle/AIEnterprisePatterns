@@ -65,7 +65,8 @@ Browser → Next.js (Auth.js v5) → Azure Entra External ID (OIDC)
 - **Provider:** Azure Entra External ID (free tier: <50,000 MAU)
 - **Token format:** JWT — validated via OIDC discovery endpoint
 - **Roles:** Embedded in the JWT `roles` claim via Entra App Roles
-- **Backend guard:** `JwtBearer` middleware is only registered when `Authentication:Authority` is configured — the API works without Entra setup in local/test environments
+- **Backend guard:** `JwtBearer` is registered when `Authentication:Authority` is configured. Outside Development the API refuses to start without it. In Development without it, a fallback scheme returns 401 (never 500). See Decision 91.
+- **Anonymous `GET /api/auth/me` always returns 401.** The production deploy gate depends on this: any other status fails the deploy and triggers rollback.
 
 For full details see [SECURITY_OVERVIEW.md](../architecture/SECURITY_OVERVIEW.md).
 
