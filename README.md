@@ -18,6 +18,19 @@ A Next.js + ASP.NET Core platform for curating and sharing AI-driven enterprise 
 - **Database:** SQLite (development) / SQL Server (production)
 - **Port:** http://localhost:5255
 
+## 📚 Documentation
+
+- **Documentation Index:** [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — map of all docs with purpose and audience
+- **System Overview:** [documentation/architecture/SYSTEM_OVERVIEW.md](documentation/architecture/SYSTEM_OVERVIEW.md)
+- **Backend Architecture:** [documentation/architecture/BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md)
+- **Frontend Architecture:** [documentation/architecture/FRONTEND_ARCHITECTURE.md](documentation/architecture/FRONTEND_ARCHITECTURE.md)
+- **Security Overview:** [documentation/architecture/SECURITY_OVERVIEW.md](documentation/architecture/SECURITY_OVERVIEW.md)
+- **Project Roadmap:** [documentation/project/ROADMAP.md](documentation/project/ROADMAP.md)
+- **Testing Strategy:** [documentation/testing/TESTING_STRATEGY.md](documentation/testing/TESTING_STRATEGY.md)
+- **Deployment Guide:** [deployment/README.md](deployment/README.md)
+- **Operations Runbook:** [documentation/operations/RUNBOOK.md](documentation/operations/RUNBOOK.md)
+- **API Documentation:** http://localhost:5255/swagger (when backend is running)
+
 ## 🚀 Quick Start
 
 ### Prerequisites
@@ -124,7 +137,7 @@ AIEnterprisePatterns/
 │       ├── AIEnterprisePatterns.Api/        # API layer (Controllers, DTOs, Middleware)
 │       ├── AIEnterprisePatterns.Core/       # Domain layer (Entities, Services, Interfaces)
 │       ├── AIEnterprisePatterns.Data/       # Data layer (Repositories, DbContext, Migrations)
-│       └── AIEnterprisePatterns.Infrastructure/  # Placeholder (future services)
+│       └── AIEnterprisePatterns.Infrastructure/  # Cross-cutting services (AppInsights, caching, health checks, rate limiting)
 ├── cms/                     # Strapi 5 headless CMS
 ├── deployment/              # Azure deployment guides and scripts
 └── documentation/           # Project documentation
@@ -139,27 +152,23 @@ AIEnterprisePatterns/
 
 ## 🎯 Features
 
-### Implemented ✅
 - ✅ Home page with featured patterns, statistics, animations, dark mode
 - ✅ Pattern listing with full-text search, filtering (category, tags, date), sorting, pagination
+- ✅ Search autocomplete, saved searches, and recently viewed patterns
 - ✅ Pattern details page with full markdown content and related patterns
 - ✅ Voting system with optimistic UI updates and rate limiting
 - ✅ RESTful API with 10+ endpoints (patterns, voting, auth, health)
 - ✅ Authentication & authorization (Azure Entra External ID, Admin/Editor/Viewer roles)
 - ✅ Pattern management UI — create, edit, delete forms (role-gated)
-- ✅ Strapi 5 CMS integration (home page, global layout, on-demand ISR revalidation)
-- ✅ Azure Container Apps deployment with CI/CD pipelines
+- ✅ Strapi 5 CMS content model (local-only authoring, git-committed backups, compile-time fallback content in production)
+- ✅ Azure Container Apps deployment with CI/CD pipelines and Bicep infrastructure as code
 - ✅ WCAG 2.1 AA accessibility compliance
 - ✅ Dark mode with system preference detection
 - ✅ Responsive design (mobile-first, Tailwind CSS)
-- ✅ SEO optimization with JSON-LD
-- ✅ 350+ frontend tests, 105 backend tests
-
-### Upcoming 🔜
-- 🔜 Lighthouse CI, Chromatic visual regression, cross-browser Playwright (Phase 6.4)
-- 🔜 CMS Phase 2 — all page content and UI labels from Strapi (Phase 6.5-6.7)
-- 🔜 Community features — comments, ratings, bookmarks (Phase 7)
-- 🔜 Internationalization and enterprise features (Phase 8)
+- ✅ SEO optimization with JSON-LD, sitemap, and robots.txt
+- ✅ Storybook component catalog with Chromatic visual regression
+- ✅ Lighthouse CI performance gates and cross-browser Playwright E2E (Chromium, Firefox, WebKit)
+- ✅ 438 frontend tests, 115 backend tests
 
 ## 🔌 API Endpoints
 
@@ -196,7 +205,7 @@ dotnet test
 npm test
 ```
 
-For more details, see [TESTING_STRATEGY.md](documentation/TESTING_STRATEGY.md)
+For more details, see [TESTING_STRATEGY.md](documentation/testing/TESTING_STRATEGY.md)
 
 ## 🛠️ Development Scripts
 
@@ -207,7 +216,8 @@ npm run dev          # Start development server
 npm run build        # Build for production
 npm run start        # Start production server
 npm run lint         # Run ESLint
-npm run type-check   # Run TypeScript compiler check
+npm run test:ci      # Run Jest with coverage (CI mode)
+npm run test:e2e     # Run Playwright E2E tests
 ```
 
 ### Backend
@@ -256,19 +266,6 @@ dotnet ef database update --project src/AIEnterprisePatterns.Data --startup-proj
 **Cause:** Category mapping mismatch
 
 **Note:** Backend uses PascalCase categories (`DesignPatterns`), frontend uses spaced strings (`Design Patterns`). The mapper in `lib/api/mappers.ts` handles this automatically.
-
-## 📚 Documentation
-
-- **Documentation Index:** [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — map of all docs with purpose and audience
-- **System Overview:** [documentation/architecture/SYSTEM_OVERVIEW.md](documentation/architecture/SYSTEM_OVERVIEW.md)
-- **Backend Architecture:** [documentation/architecture/BACKEND_ARCHITECTURE.md](documentation/architecture/BACKEND_ARCHITECTURE.md)
-- **Frontend Architecture:** [documentation/architecture/FRONTEND_ARCHITECTURE.md](documentation/architecture/FRONTEND_ARCHITECTURE.md)
-- **Security Overview:** [documentation/architecture/SECURITY_OVERVIEW.md](documentation/architecture/SECURITY_OVERVIEW.md)
-- **Project Roadmap:** [documentation/project/ROADMAP.md](documentation/project/ROADMAP.md)
-- **Testing Strategy:** [documentation/testing/TESTING_STRATEGY.md](documentation/testing/TESTING_STRATEGY.md)
-- **Deployment Guide:** [deployment/README.md](deployment/README.md)
-- **Operations Runbook:** [documentation/operations/RUNBOOK.md](documentation/operations/RUNBOOK.md)
-- **API Documentation:** http://localhost:5255/swagger (when backend is running)
 
 ## 🤝 Contributing
 
