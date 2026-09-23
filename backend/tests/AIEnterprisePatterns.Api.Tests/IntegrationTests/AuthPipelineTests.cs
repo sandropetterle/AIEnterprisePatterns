@@ -72,14 +72,17 @@ public class AuthPipelineTests : IClassFixture<WebApplicationFactory<Program>>
     /// <summary>
     /// Real JwtBearer against a static OIDC configuration, so no metadata is fetched over the network.
     /// </summary>
-    private HttpClient CreateJwtBearerClient()
+    private HttpClient CreateJwtBearerClient(bool overrideValidAudiences = true)
     {
-        var factory = CreateFactory("Production", new()
+        var settings = new Dictionary<string, string?>
         {
             ["Authentication:Authority"] = Issuer,
-            ["Authentication:Audience"] = AppIdUri,
-            ["Authentication:ValidAudiences:0"] = ApiClientId
-        }, services =>
+            ["Authentication:Audience"] = AppIdUri
+        };
+        if (overrideValidAudiences)
+            settings["Authentication:ValidAudiences:0"] = ApiClientId;
+
+        var factory = CreateFactory("Production", settings, services =>
             services.PostConfigure<JwtBearerOptions>(JwtBearerDefaults.AuthenticationScheme, options =>
             {
                 var configuration = new OpenIdConnectConfiguration { Issuer = Issuer };
@@ -178,7 +181,9 @@ public class AuthPipelineTests : IClassFixture<WebApplicationFactory<Program>>
         var factory = CreateFactory("Production", new()
         {
             ["Authentication:Authority"] = Issuer,
-            ["Authentication:Audience"] = ""
+            ["Authentication:Audience"] = "",
+            // appsettings.Production.json commits a ValidAudiences entry; blank it so no audience remains
+            ["Authentication:ValidAudiences:0"] = ""
         });
 
         var act = () => factory.CreateClient();
@@ -260,6 +265,20 @@ public class AuthPipelineTests : IClassFixture<WebApplicationFactory<Program>>
             Bearer(HttpMethod.Delete, $"/api/patterns/{Guid.NewGuid()}", CreateToken(AppIdUri, roles: "Admin")));
 
         response.StatusCode.Should().Be(HttpStatusCode.NotFound);
+    }
+
+    // The prod API app (AIPatterns-API) has requestedAccessTokenVersion = 2, so real tokens carry its
+    // client-ID GUID as aud, not the App ID URI. Accepting it is committed in appsettings.Production.json
+    // (issue #144 follow-up) — this fails if that value is dropped or changed.
+    [Fact]
+    public async Task JwtBearer_Production_CommittedConfig_AcceptsRealApiClientIdAudience()
+    {
+        var client = CreateJwtBearerClient(overrideValidAudiences: false);
+
+        var response = await client.SendAsync(Bearer(HttpMethod.Get, "/api/auth/me",
+            CreateToken("862a328f-19ea-4d05-b4c3-54d260bea9ec", roles: "Admin")));
+
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
     }
 
     [Fact]
