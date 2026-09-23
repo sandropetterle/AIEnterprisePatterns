@@ -155,7 +155,9 @@ updates:
         patterns:
           - "*"
     ignore:
-      # Node 25 is odd-numbered STS (non-LTS); target is Node 22 LTS when ready
+      # Frontend runs Node 24 LTS (EOL Apr 2028) — must match setup-node in
+      # test.yml / frontend-container-deploy.yml. Major bumps are deferred so the
+      # image and CI move together (odd releases such as Node 25 are non-LTS).
       - dependency-name: "node"
         update-types: ["version-update:semver-major"]
 

@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-09-23 (Backend upgraded from .NET 8 to .NET 10 LTS, framework-only scope — Decision 89)
+**Last Updated:** 2026-09-23 (Frontend runtime bumped Node 20 → 24 LTS to fix broken main E2E + frontend deploy — Decision 90)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -239,6 +239,19 @@ All 7 backend projects moved from `net8.0` to `net10.0` LTS (supported to 2028-1
 Deferred as follow-up work (not framework version bumps, so kept out of scope): Application Insights → OpenTelemetry-based 3.x, Swashbuckle.AspNetCore → v10 (`Microsoft.OpenApi` namespace move), FluentValidation.AspNetCore migration off the deprecated auto-validation package.
 
 **Key decision:** Decision 89 (framework-only .NET 10 upgrade; alternatives evaluated).
+
+---
+
+### Frontend Node 20 → 24 LTS — E2E/Deploy Fix (2026-09-23) ✅
+**Priority:** HIGH (broken main E2E + frontend deploy) | **Dependencies:** none | **Status:** Complete
+
+PR #153's `isomorphic-dompurify` 3.14.0 → 4.3.0 bump pulled in `jsdom` 30 / `undici` 8, both requiring Node ≥22; on Node 20 this silently broke `next build` at runtime (`webidl.util.markAsUncloneable is not a function`), which only surfaces in the main-only E2E workflow and the frontend deploy workflow — not in PR checks. Every push-to-main E2E job and every frontend deploy failed from `eccffbf` onward with no red PR to point at the cause. Fixed by moving the frontend runtime (`Dockerfile`, `test.yml`, `frontend-container-deploy.yml`, `cms-backup.yml`, `cms-sync-fallbacks.yml`) from `node:20` to `node:24` LTS (EOL 2028-04). `cms/Dockerfile` (Strapi, local-only) left on Node 20 — unaffected.
+
+Verified under Node 24.21.0: `npm audit` clean, lint/tsc clean, Jest 438/438, `next build` succeeds, Docker build + `/about` 200, Playwright Chromium 46 passed / 0 failed.
+
+Recommended follow-up, not done in this change: run `next build` in the PR `Frontend Tests` job so an `engines`-range break is caught before merge, not after.
+
+**Key decision:** Decision 90 (frontend Node 20 → 24 LTS runtime bump; alternatives evaluated).
 
 ---
 
