@@ -152,7 +152,6 @@ AIEnterprisePatterns/
 
 ## 🎯 Features
 
-### Implemented ✅
 - ✅ Home page with featured patterns, statistics, animations, dark mode
 - ✅ Pattern listing with full-text search, filtering (category, tags, date), sorting, pagination
 - ✅ Search autocomplete, saved searches, and recently viewed patterns
@@ -170,10 +169,6 @@ AIEnterprisePatterns/
 - ✅ Storybook component catalog with Chromatic visual regression
 - ✅ Lighthouse CI performance gates and cross-browser Playwright E2E (Chromium, Firefox, WebKit)
 - ✅ 438 frontend tests, 115 backend tests
-
-### Upcoming 🔜
-- 🔜 Community features — comments, ratings, bookmarks, exports (Phase 8)
-- 🔜 Internationalization, enterprise and AI-powered features (Phase 9)
 
 ## 🔌 API Endpoints
 
