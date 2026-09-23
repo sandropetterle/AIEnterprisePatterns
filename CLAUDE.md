@@ -203,6 +203,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 - **Vote mocking**: use `page.addInitScript` (not `page.route`) to intercept client-side fetch
 - **Sonner toasts**: `<Toaster>` is idle-mounted via `LazyToaster` (Decision 78) — wait for `section[aria-label*="Notifications"]` to exist before triggering toasts (it doubles as a hydration-complete signal); toasts auto-dismiss in ~4s, so assert via an in-page observer or a tight `expect().toPass()` poll, never after multi-second tool/setup gaps
 - **E2E CI**: build needs `NEXT_PUBLIC_API_BASE_URL` baked in; explicit `npm run start &` + health-poll before e2e
+- **`next build` blind spot**: `next build` only runs in the main-only E2E and deploy workflows, never on PRs — a dependency whose `engines` exceed CI's Node (EBADENGINE is only a warning) passes PR checks and breaks main E2E + frontend deploy (Decision 90); check `engines` on major npm bumps
 - Avoid `waitForLoadState('networkidle')` for filtered/search URLs — use element-based waiting instead
 - **webkit date inputs**: `page.fill()` on `type="date"` can be intercepted by webkit's native picker; use `fillDateInput()` helper in `e2e/critical-flows.spec.ts`
 - **Hydration race**: visibility of server-rendered HTML is NOT a readiness signal — interactions fired before React attaches handlers are silently lost. FilterPanel sets `data-hydrated="true"` in a mount effect; use `waitForFilterPanelHydrated()` (critical-flows.spec.ts) after every `goto` before interacting with the panel
@@ -217,7 +218,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 Full governance in `documentation/GOVERNANCE.md` and `DOCUMENTATION_INDEX.md`. Folder purposes: `documentation/architecture/` (how built), `api/` (REST ref), `decisions/` (why), `testing/` (how to test), `operations/` (prod ops), `project/` (roadmap), `reviews/` (audit snapshots), `test_results/` (retention: current + 2 prior phases), `deployment/` (Azure guides).
 
-**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (89 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (90 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** 15 Mermaid diagrams embedded in their target docs — see `documentation/diagrams/DIAGRAM_INDEX.md`. Color palette: blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure, gray=CI/CD.
 
