@@ -35,8 +35,8 @@ A Next.js + ASP.NET Core platform for curating and sharing AI-driven enterprise 
 
 ### Prerequisites
 
-- **Node.js** 18+ (for frontend)
-- **.NET SDK** 8.0+ (for backend)
+- **Node.js** 24+ (for frontend; dependencies require ^22.22.2 || ^24.15.0)
+- **.NET SDK** 10.0+ (for backend)
 - **Git**
 
 ### 1. Clone the Repository

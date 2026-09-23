@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-09-23 (Backend upgraded from .NET 8 to .NET 10 LTS, framework-only scope — Decision 89)
+**Last Updated:** 2026-09-23 (Frontend runtime bumped Node 20 → 24 LTS to fix broken main E2E + frontend deploy — Decision 90)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**89 active decisions | 0 archived**
+**90 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,76 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 90: Bump frontend runtime from Node 20 to Node 24 LTS to fix broken main E2E + frontend deploy
+
+**Date:** 2026-09-23
+**Title:** Move frontend Node runtime (Dockerfile, CI workflows) from `node:20` to `node:24` LTS after an undetected engines-mismatch broke every push-to-main E2E job and the frontend deploy workflow
+**Category:** Infrastructure / Testing
+**Status:** Active
+
+### Context / Problem
+
+PR #153 (the grouped npm-production Dependabot PR) bumped `isomorphic-dompurify` 3.14.0 → 4.3.0, which pulled in `jsdom` 29.1.1 → 30.1.0 and `undici` 7.29.1 → 8.10.2. All three now declare `engines.node: "^22.22.2 || ^24.15.0 || >=26"` (undici requires `>=22.19.0`). `npm ci` on Node 20 only emits an `EBADENGINE` warning — it does not fail the install — so nothing blocked the merge.
+
+At runtime, `undici` 8's `lib/web/webidl` module calls `require('node:worker_threads').markAsUncloneable`, a function that does not exist on Node 20's `worker_threads`. The failure surfaces as `webidl.util.markAsUncloneable is not a function` the moment the module graph is evaluated. The import chain is `lib/cms/sanitize.ts` → `isomorphic-dompurify` → `jsdom` 30 → `undici` 8, and it's reached during `next build` because the `/about` route pulls in the sanitizer at build time.
+
+This was invisible on every PR since #153 merged (`eccffbf`): the `Frontend Tests` job runs Jest, not `next build` — Jest uses `jest-environment-jsdom`'s own bundled jsdom 26 and the test suite mocks `isomorphic-dompurify` at the file level (per existing Testing Gotchas), so the real `jsdom`/`undici` chain never loads under Jest. Playwright E2E — the only job that runs `next build` — only runs on push to `main`, not on PRs. So from `eccffbf` onward, every push-to-main E2E job (all 3 browsers) failed at `next build`, and `frontend-container-deploy.yml` failed at both "Build frontend" (LHCI, which also runs a build) and "Build Docker image." Production's frontend container was stuck on the pre-#153 image for the whole window, with no red PR signal pointing at the cause.
+
+### Decision
+
+Move the frontend runtime from Node 20 to **Node 24 LTS** (EOL 2028-04) everywhere it's pinned:
+
+- `Dockerfile` (root, frontend) — all 3 build stages: `node:24-alpine@sha256:ebfe2f90462722a7a4de65e91990e97fe0d401c70e0e762c5b53302f905ec1c1` (Node v24.21.0)
+- `.github/workflows/test.yml` — `node-version: '24'` (both frontend jobs)
+- `.github/workflows/frontend-container-deploy.yml` — `node-version: '24'` (all 3 steps that need it)
+- `.github/workflows/cms-backup.yml`, `.github/workflows/cms-sync-fallbacks.yml` — `node-version: '24'`
+- `.github/dependabot.yml` — comment updated to reflect the new frontend Node baseline
+
+`cms/Dockerfile` (Strapi, local-only) intentionally stays on `node:20` — it's a separate image for a service unaffected by this dependency chain.
+
+### Rationale
+
+Node 24 is the current LTS with the longest runway (EOL 2028-04), so it clears `isomorphic-dompurify`'s/`jsdom`'s/`undici`'s engines requirement without needing another migration soon. It was verified clean end-to-end under Node 24.21.0 before being adopted (see Verification below).
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Node 24 LTS **[Chosen]** | Satisfies all three packages' `engines` ranges; longest runway (EOL 2028-04) |
+| Node 22 LTS | Also satisfies the ranges, but EOL 2027-04 — shorter runway, would likely need another bump before this app's next major dependency cycle |
+| Revert `isomorphic-dompurify` to 3.x, stay on Node 20 | Node 20 itself reaches EOL 2026-04; other packages already in the tree (`@testing-library/jest-dom` 7.0.1, `chromatic` 18.9.4) already require Node 22+, so Node 20 has a shrinking shelf life regardless of this package |
+| `npm overrides` pinning `undici` back to 7.x | Unsupported combination — `jsdom` 30's own `engines` field still excludes Node 20 even with `undici` overridden, so the mismatch would resurface on the next `jsdom`-touching bump |
+| Weaken/skip the affected gates (`|| true`, `continue-on-error`, exclude `/about` from the build) | Never — masks the real break instead of fixing the runtime mismatch; explicitly against project policy on floating gates (Decisions 83/84) |
+
+### Verification
+
+Verified under Node 24.21.0 before merge:
+- `npx npm@10 ci --dry-run`: clean (see lockfile-regeneration note in memory — local npm 11 vs CI's npm 10)
+- `npm audit --omit=dev --audit-level=high`: 0 vulnerabilities
+- `npm run lint`: 0 errors; `tsc`: clean
+- Jest: 438/438 passing; coverage 74.72% / 78.35% / 72.64% / 74.75% (stmt/branch/fn/line — all ≥ 70% gate)
+- `next build`: succeeds (this was the failing step under Node 20)
+- `docker build` + container smoke test: `/about` returns 200
+- Playwright, Chromium, local run: 46 passed / 3 skipped / 0 failed
+
+### Consequences
+
+- Frontend runtime has runway to Node 24's end of support (2028-04)
+- Restores the broken main-branch E2E matrix and unblocks `frontend-container-deploy.yml`, so production can pick up every frontend change merged since `eccffbf` (PR #153)
+- **Gap this decision does not close:** `next build` still only runs in the main-only E2E workflow and the deploy workflow, never in the PR `Frontend Tests` job. A future dependency bump whose `engines` range excludes CI's Node version will again pass PR checks (`EBADENGINE` is a warning, not a failure) and only break on merge to `main`. Recommended follow-up, not done in this change: add a `next build` step to the PR `Frontend Tests` job so this class of break is caught before merge, not after.
+- **Follow-up: Decision 89** recorded .NET's own LTS timeline as the deadline-driven upgrade in scope for that decision; this decision is the equivalent deadline-driven move for the frontend runtime, triggered by an incident rather than a scheduled sweep. No other change to Decision 89 is needed.
+
+### Files Changed
+
+- `Dockerfile` — `node:24-alpine` (SHA-pinned) across all 3 build stages
+- `.github/workflows/test.yml` — `node-version: '24'` (both frontend-touching jobs)
+- `.github/workflows/frontend-container-deploy.yml` — `node-version: '24'` (3 steps)
+- `.github/workflows/cms-backup.yml` — `node-version: '24'`
+- `.github/workflows/cms-sync-fallbacks.yml` — `node-version: '24'`
+- `.github/dependabot.yml` — Node baseline comment updated
 
 ---
 
