@@ -83,7 +83,7 @@ Browser → Next.js (Auth.js v5 / NextAuth) → Entra External ID (OIDC)
 - **Public endpoints:** All GET patterns, vote — no auth required
 - **Protected endpoints:** POST/PUT patterns → RequireEditor; DELETE → RequireAdmin
 - **Guard clause (fail-fast, Decision 91):** outside Development, an empty `Authentication:Authority` or `Audience` **throws at startup**, so the deploy rolls back. In Development with no Authority, a fallback `Unconfigured` scheme returns 401. Never skip the auth middleware or policies: that would fail open. `appsettings.Development.json` carries the real CIAM Authority, so local/CI use real JwtBearer.
-- **`MapInboundClaims = false` is load-bearing:** the default renames `roles` → `ClaimTypes.Role` and every real Editor/Admin gets 403. Optional `Authentication:ValidAudiences` accepts the API client-ID GUID (v2 tokens) alongside the App ID URI.
+- **`MapInboundClaims = false` is load-bearing:** the default renames `roles` → `ClaimTypes.Role` and every real Editor/Admin gets 403. `Authentication:ValidAudiences` holds the API client-ID GUID `862a328f-…`, which is **required**: `AIPatterns-API` issues v2 tokens, so `aud` is the GUID, not `api://aipatterns-api`. It is committed in `appsettings.{Production,Development}.json`. A 401 with "Your session has expired" on write usually means `IDX10214`, and JwtBearer logs it only at Information level (see the AUTH_SETUP_GUIDE troubleshooting).
 - **401 deploy gate:** `backend-container-deploy.yml` (and CI e2e) require anonymous `GET /api/auth/me` to return exactly 401; anything else fails and triggers rollback
 - **Setup guide:** `documentation/operations/AUTH_SETUP_GUIDE.md`
 
@@ -146,7 +146,7 @@ All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (30
 ## Testing
 
 - **Frontend:** `npm test` (Jest + React Testing Library); 438/438 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
-- **Backend:** `dotnet test` (xUnit + Moq); 140/140 tests passing (~85% testable coverage)
+- **Backend:** `dotnet test` (xUnit + Moq); 141/141 tests passing (~85% testable coverage)
 - **E2E:** Playwright cross-browser matrix — Chromium, Firefox, WebKit (CI runs all three in parallel via `strategy.matrix`)
 - **Performance:** Lighthouse CI (`@lhci/cli`) — LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80 — gates deploy in `frontend-container-deploy.yml`
 - **Visual regression:** Chromatic — 38 Storybook stories published on every deploy; unreviewed changes block deploy once baseline is hardened (`continue-on-error: true` + `--exit-zero-on-changes` until baseline accepted)

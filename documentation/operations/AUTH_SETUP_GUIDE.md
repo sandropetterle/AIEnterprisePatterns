@@ -251,7 +251,7 @@ Add to Azure Container Apps environment variables (production):
 | `Authentication__Authority` | `https://<tenant-id>.ciamlogin.com/<tenant-id>/v2.0` |
 | `Authentication__Audience` | `api://aipatterns-api` |
 | `Authentication__RequireHttpsMetadata` | `true` |
-| `Authentication__ValidAudiences__0` | *(optional)* the API app's client-ID GUID. Set this if the API issues **v2** access tokens (`aud` = GUID rather than the App ID URI) |
+| `Authentication__ValidAudiences__0` | the API app's client-ID GUID, **required** because `AIPatterns-API` has `requestedAccessTokenVersion: 2`, so `aud` is the GUID (`862a328f-19ea-4d05-b4c3-54d260bea9ec`), not the App ID URI. Committed in `appsettings.Production.json`/`Development.json` and also set as an env var on prod. |
 
 > **Required outside Development (Decision 91).** If `Authority` is missing, or `Audience` is empty, the API throws at startup, so the deploy health check fails and rolls back. A misconfigured API can no longer boot "Healthy" and serve 500s on protected routes (issue #144).
 
@@ -297,7 +297,7 @@ No other code changes are needed.
 | Symptom | Likely cause | Fix |
 |---------|-------------|-----|
 | API container won't start: `Authentication:Authority is not configured` | `Authentication__Authority` / `Authentication__Audience` missing outside Development | Bind both env vars (secretRefs `auth-authority` / `auth-audience`) |
-| 401 on all requests | Backend Authority wrong, or token `aud` not accepted | Verify issuer matches token; decode a token and compare `aud` to `Audience` / `ValidAudiences` (v2 tokens carry the API client-ID GUID) |
+| 401 on all requests ("Your session has expired" in the UI) | Backend Authority wrong, or token `aud` not accepted | The reason is logged only at Information level. Temporarily set `Logging__LogLevel__Microsoft.AspNetCore.Authentication=Information` on the API, retry, and read `ContainerAppConsoleLogs_CL`. `IDX10214` means audience: compare against the API app's `appId` (`az ad app list --filter "identifierUris/any(x:x eq 'api://aipatterns-api')"` after `az login --tenant <ciam-tenant> --allow-no-subscriptions`). `IDX10223` means an expired token. Remove the log override afterwards. |
 | 403 even with correct role | Roles not in access token | Ensure app role assignment in Enterprise Applications, not just App Registration |
 | Redirect loop on /login | AUTH_SECRET mismatch | Regenerate `AUTH_SECRET`, ensure same value across restarts |
 | "OAuthCallback" error | Redirect URI mismatch | Add exact callback URL to Frontend app registration |

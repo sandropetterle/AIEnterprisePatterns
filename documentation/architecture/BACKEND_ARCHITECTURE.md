@@ -363,7 +363,7 @@ classDiagram
 - **Repository tests:** EF Core InMemory provider
 - **Integration tests:** `WebApplicationFactory` with `TestAuthHandler` (header-driven auth via `X-Test-Roles`)
 - **Real auth pipeline tests:** `AuthPipelineTests` runs Program.cs's actual JwtBearer and fallback wiring with no `TestAuthHandler`, using a static OIDC config and HMAC-signed tokens, so no network is needed. It covers fail-fast startup, 401/403 boundaries, both accepted audiences and role-claim mapping (issue #144).
-- **Current count:** 140 tests passing
+- **Current count:** 141 tests passing
 - **Coverage:** ~85% on testable code
 
 See [../testing/TESTING_STRATEGY.md](../testing/TESTING_STRATEGY.md) for full testing approach.
@@ -379,7 +379,7 @@ FrontendUrl=http://localhost:3000        # Single CORS origin (legacy); producti
 FrontendUrls__0=https://example.com     # Multiple CORS origins (current); localhost:3000 auto-added in Development only
 Authentication__Authority=              # Entra OIDC authority — REQUIRED outside Development (startup fails without it)
 Authentication__Audience=               # API App ID URI (api://aipatterns-api) — REQUIRED outside Development
-Authentication__ValidAudiences__0=      # Optional extra accepted aud, e.g. the API client-ID GUID (v2 tokens)
+Authentication__ValidAudiences__0=      # API client-ID GUID — required: v2 tokens carry it as aud (committed in appsettings.Production.json)
 Authentication__RequireHttpsMetadata=true
 ```
 
