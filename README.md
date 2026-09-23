@@ -12,7 +12,7 @@ A Next.js + ASP.NET Core platform for curating and sharing AI-driven enterprise 
 - **Port:** http://localhost:3000
 
 ### Backend
-- **Framework:** ASP.NET Core 8.0 Web API
+- **Framework:** ASP.NET Core 10.0 Web API
 - **Architecture:** Clean Architecture (4 layers)
 - **ORM:** Entity Framework Core
 - **Database:** SQLite (development) / SQL Server (production)

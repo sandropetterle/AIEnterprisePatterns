@@ -235,7 +235,7 @@ SELECT Title, VoteCount FROM Patterns ORDER BY VoteCount DESC;
 
 **Run Migrations:**
 ```bash
-# From local machine with .NET 8 SDK
+# From local machine with .NET 10 SDK
 cd backend/src/AIEnterprisePatterns.Api
 
 # Set connection string environment variable

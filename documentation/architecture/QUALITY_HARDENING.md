@@ -86,7 +86,7 @@ Phase 7 conducted a systematic 10-area audit of the entire solution — covering
 | 4 | CI hardening — NuGet vulnerability gate + Dependabot config | ✅ Complete |
 | 5 | Documentation — Decision 55 | ✅ Complete |
 
-**Deferred:** .NET 9/10 upgrade (~Nov 2026 when .NET 10 LTS available), Swashbuckle → Microsoft.AspNetCore.OpenApi (with .NET 9+), xUnit 3.x (major API changes)
+**Deferred:** .NET 9/10 upgrade (~Nov 2026 when .NET 10 LTS available) — **done, see Decision 89** (framework-only; Swashbuckle move still deferred), xUnit 3.x (major API changes)
 
 ---
 

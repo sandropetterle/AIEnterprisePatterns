@@ -113,7 +113,7 @@ updates:
           - "*"
       # EF Core requires matching versions across its packages in one app,
       # and the ASP.NET Core servicing line moves in lockstep with it, so a
-      # single group keeps the whole 8.0.x surface aligned in one PR.
+      # single group keeps the whole 10.0.x surface aligned in one PR.
       nuget-all:
         applies-to: version-updates
         patterns:
@@ -170,7 +170,8 @@ updates:
         patterns:
           - "*"
     ignore:
-      # .NET 8 LTS runs until Nov 2026; .NET 10 migration is its own project.
+      # .NET 10 LTS runs until Nov 2028; major-version bumps are deferred here
+      # because the next LTS is .NET 12 (odd releases, e.g. .NET 11, are STS).
       # Dependabot names MCR images WITHOUT the registry host ("dotnet/sdk",
       # not "mcr.microsoft.com/dotnet/sdk") — the old host-qualified names
       # never matched, which let PRs #119 and #148 through (Decision 88).

@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-09-22 (Dependabot .NET major-ignore rules fixed to use registry-less image names — Decision 88)
+**Last Updated:** 2026-09-23 (Backend upgraded from .NET 8 to .NET 10 LTS, framework-only scope — Decision 89)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**88 active decisions | 0 archived**
+**89 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,85 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 89: Upgrade backend from .NET 8 to .NET 10 LTS — framework-only scope
+
+**Date:** 2026-09-23
+**Title:** Move all 7 backend projects to `net10.0` (ASP.NET Core 10, EF Core 10); defer non-framework major bumps
+**Category:** Backend / Infrastructure
+**Status:** Active
+
+### Context / Problem
+
+.NET 8 LTS ends support on 2026-11-10. Decisions 85 and 88 deliberately closed Dependabot-driven attempts to bump the Docker `dotnet/sdk` / `dotnet/aspnet` images past 8.0, on the grounds that a framework major upgrade needed to be its own scoped, validated project rather than something accepted incidentally through a base-image PR. This is that project. .NET 10 is the next LTS (supported to 2028-11-14), so it is the correct landing target rather than an intermediate non-LTS release.
+
+### Decision
+
+Upgraded all 7 backend projects (`Api`, `Core`, `Data`, `Infrastructure`, and the three test projects) from `net8.0` to `net10.0`:
+
+- ASP.NET Core 10, EF Core 10 — `Microsoft.EntityFrameworkCore.*`, `Microsoft.AspNetCore.Authentication.JwtBearer`, `Microsoft.AspNetCore.Mvc.Testing`, `Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore`, `Microsoft.Extensions.Caching.*` all moved to `10.0.12`
+- `Asp.Versioning.Mvc` / `Asp.Versioning.Mvc.ApiExplorer` 8.1.1 → 10.2.1
+- Docker: `sdk:10.0` (build stage) + `aspnet:10.0-alpine` (Alpine 3.24.2, runtime stage), still SHA-pinned; `icu-libs` and `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` retained — still required, per Decision 71, because `Microsoft.Data.SqlClient` calls `CultureInfo.GetCultureInfo()` on `SqlConnection.Open()`. Port 8080 and the non-root `appuser` are unchanged.
+- CI: `actions/setup-dotnet` pinned to `dotnet-version: '10.0.x'` in `test.yml` (both jobs) and `backend-container-deploy.yml`
+- `.github/dependabot.yml`: updated the `docker-backend` ignore-rule comment — the next major to guard against is .NET 12 (odd-numbered releases are STS, not LTS)
+
+Deliberately **not** upgraded in this pass (framework-only scope):
+
+- `Microsoft.ApplicationInsights` / `Microsoft.ApplicationInsights.AspNetCore` — pinned at 2.23.0; 3.x is an OpenTelemetry-based rewrite, not a drop-in bump
+- `Swashbuckle.AspNetCore` — pinned at 6.9.0; a v10 move requires following the `Microsoft.OpenApi` namespace relocation (deferred per Decision 35)
+- `FluentValidation.AspNetCore` — pinned at 11.3.1; the package is deprecated upstream and FluentValidation 12 removes MVC auto-validation, which needs its own migration
+
+### EF Core 9+ breaking change found and fixed
+
+`AddDbContext` now also registers `IDbContextOptionsConfiguration<TContext>` in the service collection (previously only `DbContextOptions<TContext>` needed removing to swap providers in tests). `PatternEndpointsTests.cs` and `RateLimitingTests.cs` only removed `DbContextOptions<ApplicationDbContext>` when substituting SQLite for the `WebApplicationFactory`, so the relational provider stayed chained and EF Core threw `InvalidOperationException: Only a single database provider can be registered`. Fixed by also calling `RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>()` in both files before re-registering the SQLite context.
+
+### Rationale
+
+A framework-only upgrade isolates the one change that has a hard external deadline (LTS end-of-support) from three changes that don't. Each of the deferred packages carries its own non-trivial migration (an APM rewrite, an OpenAPI namespace move, a validation-pipeline change) with its own blast radius on an app that auto-deploys on merge with no required human approval. Bundling them would have made a single PR harder to review and, if something broke, harder to bisect.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Framework-only: `net10.0` + matching Microsoft.*/EF Core/Asp.Versioning packages only **[Chosen]** | Isolates the deadline-driven change; keeps the PR reviewable and bisectable |
+| Upgrade + Application Insights 3.x + Swashbuckle 10 + FluentValidation migration in one PR | Combines four independently-risky changes into one self-merged, auto-deploying PR; a failure in any one obscures whether the framework bump itself is sound |
+| Stay on .NET 8 until EOL | .NET 8 LTS ends 2026-11-10; deferring further shrinks the validation window and risks running an unsupported runtime in production |
+
+### Verification
+
+- Build: 0 warnings across all 7 projects
+- Tests: 115/115 backend tests passing
+- `dotnet list package --vulnerable --include-transitive`: clean
+- `dotnet ef migrations has-pending-model-changes`: none
+- EF Core 10 `ExecuteUpdateAsync` vote path (Decision-relevant atomic update) verified against both SQLite (dev) and the InMemory test fallback
+- `Microsoft.Data.Sqlite` 10's UTC-datetime behavior change assessed as low risk: all persisted dates in this codebase are already `DateTimeKind.Utc`
+
+### Consequences
+
+- Backend now has runway to .NET 10's end of support (2028-11-14)
+- Three follow-ups are recommended and deferred, tracked here rather than as separate decisions until scheduled: Application Insights → OpenTelemetry (3.x), Swashbuckle → v10 / `Microsoft.OpenApi` namespace move, FluentValidation.AspNetCore migration off the deprecated auto-validation package
+- **Follow-up: Decisions 85 and 88** — both recorded the .NET 10 migration as "its own project, needs scheduling before .NET 8 LTS ends." That project is this decision; no other change to those entries is needed.
+
+### Files Changed
+
+- `backend/src/AIEnterprisePatterns.Api/AIEnterprisePatterns.Api.csproj`
+- `backend/src/AIEnterprisePatterns.Core/AIEnterprisePatterns.Core.csproj`
+- `backend/src/AIEnterprisePatterns.Data/AIEnterprisePatterns.Data.csproj`
+- `backend/src/AIEnterprisePatterns.Infrastructure/AIEnterprisePatterns.Infrastructure.csproj`
+- `backend/tests/AIEnterprisePatterns.Api.Tests/AIEnterprisePatterns.Api.Tests.csproj`
+- `backend/tests/AIEnterprisePatterns.Core.Tests/AIEnterprisePatterns.Core.Tests.csproj`
+- `backend/tests/AIEnterprisePatterns.Data.Tests/AIEnterprisePatterns.Data.Tests.csproj`
+- `backend/tests/AIEnterprisePatterns.Api.Tests/IntegrationTests/PatternEndpointsTests.cs` — `RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>()` added
+- `backend/tests/AIEnterprisePatterns.Api.Tests/IntegrationTests/RateLimitingTests.cs` — same fix
+- `backend/Dockerfile` — `sdk:10.0` / `aspnet:10.0-alpine`
+- `.github/workflows/test.yml`, `.github/workflows/backend-container-deploy.yml` — `dotnet-version: '10.0.x'`
+- `.github/dependabot.yml` — ignore-rule comment updated
+
+### Tests Added
+
+- No new tests; 2 existing integration test files fixed to keep passing under EF Core 10's `AddDbContext` registration change
 
 ---
 
@@ -34,6 +113,8 @@ Both PRs identify the dependencies as `dotnet/sdk` / `dotnet/aspnet`. Dependabot
 ### Decision
 
 Use the registry-less names `dotnet/sdk` and `dotnet/aspnet` in the ignore rules. Close #148 without merging. Decision 85 still applies: the .NET 10 migration is its own project and needs scheduling before .NET 8 LTS ends in November 2026.
+
+**Follow-up: see Decision 89.** That migration project is now complete; the ignore-rule comment has been updated to reflect the new current major (.NET 10) and the next guard target (.NET 12).
 
 ### Alternatives Evaluated
 
@@ -190,6 +271,7 @@ Close PR #119 without merging. A .NET 9/10 migration is its own project with its
 
 - Backend stays on `aspnet:8.0-alpine` with `icu-libs` / `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` until an explicit migration project is scoped. .NET 8 LTS ends November 2026, so that project needs scheduling before then.
 - The `dependabot.yml` major-ignore rules for `dotnet/sdk` and `dotnet/aspnet` did not hold in this case and should be reviewed. A note to that effect is now inline in `dependabot.yml`. **Resolved in Decision 88:** the rules used host-qualified image names that Dependabot never matches.
+- **Follow-up: see Decision 89.** The .NET 10 migration project referenced above is now complete.
 
 ### Files Changed
 

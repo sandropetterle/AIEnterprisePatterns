@@ -4,7 +4,9 @@ using AIEnterprisePatterns.Data;
 using FluentAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace AIEnterprisePatterns.Api.Tests.IntegrationTests;
 
@@ -18,10 +20,10 @@ public class RateLimitingTests : IClassFixture<WebApplicationFactory<Program>>
         {
             builder.ConfigureServices(services =>
             {
-                var descriptor = services.SingleOrDefault(
-                    d => d.ServiceType == typeof(DbContextOptions<ApplicationDbContext>));
-                if (descriptor != null)
-                    services.Remove(descriptor);
+                // See PatternEndpointsTests for why both descriptors must be removed
+                // (EF Core 9+ chains provider config via IDbContextOptionsConfiguration<T>).
+                services.RemoveAll<DbContextOptions<ApplicationDbContext>>();
+                services.RemoveAll<IDbContextOptionsConfiguration<ApplicationDbContext>>();
 
                 services.AddDbContext<ApplicationDbContext>(options =>
                     options.UseInMemoryDatabase($"RateLimitTestDb_{Guid.NewGuid()}"));

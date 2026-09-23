@@ -4,11 +4,11 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 8 backend with Clean Architecture.
+Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 10 backend with Clean Architecture.
 
 **Tech Stack:**
 - **Frontend:** Next.js 16 (App Router), React 19, TypeScript, Tailwind CSS, shadcn/ui, Sonner, react-markdown with rehype-sanitize
-- **Backend:** ASP.NET Core 8, Entity Framework Core 8, FluentValidation, API Versioning, Rate Limiting
+- **Backend:** ASP.NET Core 10, Entity Framework Core 10, FluentValidation, API Versioning, Rate Limiting
 - **Database:** SQLite (development), Azure SQL (production)
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
@@ -195,6 +195,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 - **localStorage hooks**: split add + clear into separate `act()` calls (React 18 batching)
 - **Dialog mock for SavedSearches**: don't gate rendering on `open` prop
 - **Moq + optional params**: specify ALL params explicitly with `It.IsAny<T>()` — expression trees can't use optional defaults
+- **EF Core 9+ `AddDbContext` provider swap**: it now also registers `IDbContextOptionsConfiguration<TContext>`, not just `DbContextOptions<TContext>`. A `WebApplicationFactory` override that removes only `DbContextOptions<TContext>` to substitute SQLite leaves the original provider chained, throwing `Only a single database provider can be registered`. Also call `RemoveAll<IDbContextOptionsConfiguration<TContext>>()` (see `PatternEndpointsTests.cs`, `RateLimitingTests.cs`)
 - **CardTitle renders as div**: use `<h1>` directly where heading role matters
 - **Slow userEvent.type loops**: adding many tags in a loop can exceed 5000ms; add explicit timeout as 3rd arg: `it('...', async () => {...}, 15000)`
 
@@ -216,7 +217,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 Full governance in `documentation/GOVERNANCE.md` and `DOCUMENTATION_INDEX.md`. Folder purposes: `documentation/architecture/` (how built), `api/` (REST ref), `decisions/` (why), `testing/` (how to test), `operations/` (prod ops), `project/` (roadmap), `reviews/` (audit snapshots), `test_results/` (retention: current + 2 prior phases), `deployment/` (Azure guides).
 
-**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (88 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (89 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** 15 Mermaid diagrams embedded in their target docs — see `documentation/diagrams/DIAGRAM_INDEX.md`. Color palette: blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure, gray=CI/CD.
 
@@ -238,4 +239,4 @@ This is not optional — it preserves architectural knowledge across sessions.
 - **Vote endpoint** uses atomic `ExecuteUpdateAsync` for relational providers (SQLite/SQL Server), with InMemory fallback for tests
 - **Container security:** Non-root user in Docker requires port 8080 (ports <1024 need root)
 - **Docker base images:** All 3 Dockerfiles use SHA-pinned `FROM` lines (`@sha256:<digest>`) for supply chain security; Dependabot Docker ecosystem keeps pins current
-- **Backend runtime:** `aspnet:8.0-alpine` (not Debian) — no `curl`/`apt-get` layer; healthcheck uses BusyBox `wget -qO-`. Installs `icu-libs` + sets `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` — **required**: Microsoft.Data.SqlClient calls `CultureInfo.GetCultureInfo()` during `SqlConnection.Open()` and throws `CultureNotFoundException` in Alpine's default invariant mode, breaking all Azure SQL connections (see TDL #71)
+- **Backend runtime:** `aspnet:10.0-alpine` (not Debian) — no `curl`/`apt-get` layer; healthcheck uses BusyBox `wget -qO-`. Installs `icu-libs` + sets `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` — **required**: Microsoft.Data.SqlClient calls `CultureInfo.GetCultureInfo()` during `SqlConnection.Open()` and throws `CultureNotFoundException` in Alpine's default invariant mode, breaking all Azure SQL connections (see TDL #71)

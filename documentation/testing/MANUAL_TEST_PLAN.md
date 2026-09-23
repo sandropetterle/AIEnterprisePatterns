@@ -20,7 +20,7 @@
 ## Test Environment
 
 - **Frontend:** Next.js 16 at http://localhost:3000
-- **Backend:** ASP.NET Core 8.0 at http://localhost:5255
+- **Backend:** ASP.NET Core 10.0 at http://localhost:5255
 - **Database:** SQLite with seed data
 - **Browser:** Chromium (via Playwright)
 - **Viewports:** Desktop (1920x1080), Tablet (768x1024), Mobile (375x667)

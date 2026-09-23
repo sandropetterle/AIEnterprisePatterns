@@ -67,7 +67,7 @@ flowchart TD
     subgraph ACA["☁️  Azure Container Apps Environment — centralus"]
         direction TB
         FE["⚡ Frontend<br/>Next.js 16<br/>ca-aipatterns-web-prod<br/>Port 3000 · 0–5 replicas"]
-        API["🔧 Backend API<br/>ASP.NET Core 8<br/>ca-aipatterns-api-prod<br/>Port 8080 · 0–5 replicas"]
+        API["🔧 Backend API<br/>ASP.NET Core 10<br/>ca-aipatterns-api-prod<br/>Port 8080 · 0–5 replicas"]
         CMS["📝 Strapi CMS<br/>Strapi 5<br/>ca-aipatterns-cms-prod<br/>Port 1337 · 0–5 replicas"]
     end
 

@@ -1,10 +1,10 @@
 # ============================================================================
 # Backend API Dockerfile - Multi-stage build for optimal size
-# AI Enterprise Patterns - ASP.NET Core 8.0
+# AI Enterprise Patterns - ASP.NET Core 10.0
 # ============================================================================
 
 # Stage 1: Build
-FROM mcr.microsoft.com/dotnet/sdk:8.0@sha256:78235e09001f52b6592c458ac010775ebac6725422e80cd0c1650590f67b2743 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0@sha256:35d40304542c8689331f8cab17c65926cdf48fe711e289321d71924b230a7d29 AS build
 WORKDIR /src
 
 # Copy project files
@@ -25,7 +25,7 @@ RUN dotnet build "AIEnterprisePatterns.Api.csproj" -c Release -o /app/build
 RUN dotnet publish "AIEnterprisePatterns.Api.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 # Stage 2: Runtime (Alpine — smaller image, BusyBox wget for healthcheck)
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-alpine@sha256:628ffa789119d231880f32653b75aca3f528968058fdc3cdfb6969e583f8243a AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:10.0-alpine@sha256:f62a272ac1b46e83f56b8ed0416572f31cd1128e2c4a5e63eb34d348e4a36095 AS runtime
 WORKDIR /app
 
 # ICU + globalization support.

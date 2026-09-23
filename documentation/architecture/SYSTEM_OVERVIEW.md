@@ -49,9 +49,9 @@ Organizations can use this platform to:
 
 | Technology | Purpose |
 |-----------|---------|
-| ASP.NET Core 8 (Web API) | RESTful API server |
+| ASP.NET Core 10 (Web API) | RESTful API server |
 | C# 12 | Implementation language |
-| Entity Framework Core 8 | ORM with code-first migrations |
+| Entity Framework Core 10 | ORM with code-first migrations |
 | FluentValidation | DTO and query validation |
 | xUnit + Moq | Testing framework |
 
@@ -117,7 +117,7 @@ flowchart TD
     %% ── Azure Container Apps ────────────────────────────────────────────────
     subgraph ACA["☁️  Azure Container Apps Environment"]
         FE["⚡ Next.js 16<br/>App Router · ISR · Auth.js v5"]
-        API["🔧 ASP.NET Core 8<br/>REST API · JWT · Rate Limiting"]
+        API["🔧 ASP.NET Core 10<br/>REST API · JWT · Rate Limiting"]
         CMS["📝 Strapi 5<br/>Headless CMS · Webhook"]
     end
 
