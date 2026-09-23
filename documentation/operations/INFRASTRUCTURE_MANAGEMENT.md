@@ -1,14 +1,62 @@
 # Infrastructure Management
 
-**Last Updated:** 2026-04-10
+**Last Updated:** 2026-09-23 (IaC drift audit and deploy guard, Decision 91 / issue #144)
 **Audience:** DevOps, Infrastructure Engineers, Solutions Architects
 **Purpose:** Single source of truth for Azure infrastructure management — how it's structured, how to deploy changes, and how secrets flow from Key Vault to application configuration.
 
 ---
 
+## IaC Drift — template never applied
+
+> **⛔ The live Container Apps, not the Bicep, are the source of truth until reconciliation.** Do not apply the template to production.
+
+A read-only audit on 2026-09-23 (issue #144) found that **the Bicep has never been applied to `rg-aipatterns-prod`**. `az deployment group list` shows no `main` or `containerApps` deployment, only one failed App Insights alert deployment from 2026-02-10. The apps were built and changed by hand or through the CLI. CI only runs `az bicep build` (a compile, never an apply) and `az containerapp update --image`. That is why the auth env vars the template declared on 2026-03-17 never reached the API (Decision 87).
+
+`deploy.ps1` now **blocks deployment unless `-AcknowledgeDrift` is passed**. `-WhatIf` stays safe and is the first step of reconciliation.
+
+### Declared vs deployed (2026-09-23)
+
+| App | Setting | Bicep | Live |
+|---|---|---|---|
+| api | `ApplicationInsights__ConnectionString` / secret `appinsights-connection-string` | declared | missing |
+| api | `ApplicationInsights__InstrumentationKey` / secret `app-insights-key` | — | undeclared |
+| api | `FrontendUrl` (CORS) | — | undeclared |
+| api | `ASPNETCORE_URLS=http://+:8080` | declared | missing |
+| api | Startup/Liveness `/health`, Readiness `/health/ready` probes | declared | none |
+| web | `AUTH_URL`, `STRAPI_URL`, `STRAPI_API_TOKEN`, `REVALIDATE_SECRET` (+ secrets) | — | undeclared |
+| web | `AUTH_ENTRA_ISSUER` | friendly-name `ciamlogin.com` form | tenant-GUID form |
+| web | `AUTH_ENTRA_CLIENT_ID` | `''` (prod params don't set it) | real GUID |
+| web | probes | HTTP GET `/`, 30 s initial delay | TCP 3000 platform defaults |
+| both | secret storage | Key Vault references | inline secret values, no Key Vault |
+| both | container name | `api` / `web` | same as the app name |
+| both | tags | `managedBy: bicep`, … | none |
+| both | ingress transport | `http` | `Auto` |
+| both | image | helloworld placeholder (`main.bicep` never passes `apiImage`/`webImage`) | CI SHA tags |
+
+Already aligned: the API `Authentication__*` env vars and secrets (hand-fixed 2026-09-22), target ports (8080 / 3000), external ingress, Single revision mode, 0.5 CPU / 1 Gi, scale 0–10.
+
+### What applying the template today would do
+
+1. **Reset both images** to the helloworld placeholder, taking prod down outright.
+2. **Fail secret resolution.** Key Vault holds only `ApplicationInsights--InstrumentationKey` and `SqlConnectionString`, so every other Key Vault reference fails and the new revisions don't start.
+3. **Delete undeclared settings.** An Incremental deployment still replaces each declared app's whole `env`/`secrets` arrays. That removes `FrontendUrl` (CORS breaks), `AUTH_URL` and `REVALIDATE_SECRET`.
+4. **Break web sign-in** by blanking `AUTH_ENTRA_CLIENT_ID` and changing the issuer.
+
+### Pre-apply checklist (reconciliation)
+
+- [ ] Pass the current image tags (or `existing` lookups) for `apiImage` / `webImage` from `main.bicep`
+- [ ] Declare `FrontendUrl` (api) plus `AUTH_URL` and `REVALIDATE_SECRET` (web). Drop `STRAPI_*`, which point at the CMS deleted on 2026-04-10.
+- [ ] Set `AUTH_ENTRA_CLIENT_ID` in the prod params, and align the issuer with the live tenant-GUID form (Decision 18)
+- [ ] Decide between Key Vault and inline secrets. For Key Vault, create every referenced secret first.
+- [ ] Reconcile App Insights settings (connection string vs instrumentation key)
+- [ ] Decide on probes: adopt the declared API probes, and fix the web HTTP probe delay
+- [ ] Run `./infrastructure/deploy.ps1 -WhatIf` until only intended changes remain, then remove the drift guard
+
+---
+
 ## 1. Overview
 
-All Azure infrastructure for AI Enterprise Patterns is managed declaratively using **Azure Bicep** (IaC). The Bicep templates in `infrastructure/` describe the complete desired state of `rg-aipatterns-prod`.
+All Azure infrastructure for AI Enterprise Patterns is described declaratively using **Azure Bicep** (IaC). The Bicep templates in `infrastructure/` are *intended* to describe the desired state of `rg-aipatterns-prod`, but they have never been applied and have drifted from it. See [IaC Drift](#iac-drift--template-never-applied) above.
 
 ### Resource Inventory
 
@@ -91,16 +139,17 @@ az deployment group what-if \
   --mode Incremental
 ```
 
-For existing infrastructure, every resource should show **"no change"** unless you've modified a module.
+For existing infrastructure, every resource should show **"no change"** unless you've modified a module. *Today it will not: see [IaC Drift](#iac-drift--template-never-applied).*
 
 ### Deploy
 
 ```powershell
-# Interactive: validate → what-if → confirm → deploy
-./infrastructure/deploy.ps1
-
-# What-if only (no deploy prompt)
+# What-if only (no deploy prompt) — always safe
 ./infrastructure/deploy.ps1 -WhatIf
+
+# Interactive: validate → what-if → confirm → deploy.
+# Blocked by the drift guard unless -AcknowledgeDrift is passed — only after reconciliation.
+./infrastructure/deploy.ps1 -AcknowledgeDrift
 ```
 
 ### ⚠️ Incremental Mode — Critical Warning

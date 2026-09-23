@@ -1,3 +1,4 @@
+using AIEnterprisePatterns.Api.Authentication;
 using AIEnterprisePatterns.Api.Middleware;
 using AIEnterprisePatterns.Core.Interfaces;
 using AIEnterprisePatterns.Core.Services;
@@ -6,6 +7,7 @@ using AIEnterprisePatterns.Data.Repositories;
 using AIEnterprisePatterns.Infrastructure;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
@@ -131,27 +133,59 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("RequireViewer", policy => policy.RequireRole("Admin", "Editor", "Viewer"));
 
 // Authentication — provider-agnostic OIDC JWT validation.
-// Guard clause: when Authority is empty the API boots without an authentication scheme,
-// preserving backward compatibility for integration tests and local dev without Entra.
+// Guard clause (issue #144): outside Development a missing Authority is a startup error, so a
+// misconfigured container never reports Healthy and the deploy rollback fires. In Development
+// (integration tests, local dev without Entra) a fallback scheme answers 401 instead — the
+// authorization middleware always has a scheme to challenge with, so it can never throw a 500.
 var authAuthority = builder.Configuration["Authentication:Authority"];
 if (!string.IsNullOrEmpty(authAuthority))
 {
+    var audiences = new[] { builder.Configuration["Authentication:Audience"] }
+        .Concat(builder.Configuration.GetSection("Authentication:ValidAudiences").Get<string[]>() ?? [])
+        .Where(a => !string.IsNullOrWhiteSpace(a))
+        .Distinct()
+        .ToArray();
+    if (audiences.Length == 0 && !builder.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException(
+            "Authentication:Authority is set but Authentication:Audience is empty — every real token would be " +
+            "rejected with 401. Set Authentication__Audience (issue #144).");
+    }
+
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
         {
             options.Authority = authAuthority;
-            options.Audience = builder.Configuration["Authentication:Audience"];
             options.RequireHttpsMetadata = builder.Configuration.GetValue<bool>("Authentication:RequireHttpsMetadata", true);
+            // Keep raw JWT claim names. The default mapping renames "roles" → ClaimTypes.Role and
+            // "sub" → NameIdentifier, so RoleClaimType = "roles" never matched and every real
+            // Editor/Admin was forbidden (found while fixing issue #144).
+            options.MapInboundClaims = false;
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
+                // Entra emits the App ID URI (v1 tokens) or the API client-ID GUID (v2 tokens) as aud
+                ValidAudiences = audiences,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
                 RoleClaimType = "roles",
                 NameClaimType = "name"
             };
         });
+}
+else if (builder.Environment.IsDevelopment())
+{
+    builder.Services.AddAuthentication(UnconfiguredAuthenticationHandler.SchemeName)
+        .AddScheme<AuthenticationSchemeOptions, UnconfiguredAuthenticationHandler>(
+            UnconfiguredAuthenticationHandler.SchemeName, _ => { });
+}
+else
+{
+    throw new InvalidOperationException(
+        $"Authentication:Authority is not configured (environment: {builder.Environment.EnvironmentName}). " +
+        "Set Authentication__Authority and Authentication__Audience; outside Development the API refuses " +
+        "to start without them rather than serve 500s on every [Authorize] endpoint (issue #144).");
 }
 
 var app = builder.Build();

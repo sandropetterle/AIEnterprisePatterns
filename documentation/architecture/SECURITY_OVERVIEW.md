@@ -73,7 +73,9 @@ sequenceDiagram
 
 **Provider-agnostic design:** Swapping OIDC providers requires only changing environment variables. The code uses Auth.js generic `type: "oidc"` provider.
 
-**Guard clause:** JwtBearer is only registered when `Authentication:Authority` is configured. Tests and local development work without Entra credentials.
+**Guard clause (fail-fast, Decision 91):** JwtBearer is registered when `Authentication:Authority` is configured. Outside Development, a missing `Authority` (or an `Authority` with no `Audience`) is a **startup error**: the container never reports Healthy and the deploy rolls back. In Development without an `Authority` (test hosts), a fallback `Unconfigured` scheme answers **401**. The API never fails open and never throws 500 for a missing credential. JwtBearer keeps raw claim names (`MapInboundClaims = false`), so the `roles` claim matches `RoleClaimType = "roles"`. Accepted audiences are `Authentication:Audience` plus the optional `Authentication:ValidAudiences` list (the App ID URI for v1 tokens, the API client-ID GUID for v2 tokens).
+
+**Deploy gate:** after `/health`, `backend-container-deploy.yml` requires `GET /api/auth/me` without a token to return exactly **401**. Any other status fails the job and triggers rollback. CI's e2e job makes the same assertion.
 
 ---
 

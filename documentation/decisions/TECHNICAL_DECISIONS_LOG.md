@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-09-23 (Frontend runtime bumped Node 20 → 24 LTS to fix broken main E2E + frontend deploy — Decision 90)
+**Last Updated:** 2026-09-23 (Backend auth fails fast, 401 deploy gate, role-claim mapping fix, IaC drift guard — Decision 91)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**90 active decisions | 0 archived**
+**91 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,65 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 91: Backend auth fails fast outside Development; 401 deploy gate; raw JWT claim names; IaC drift guard
+
+**Date:** 2026-09-23
+**Title:** Resolve the code defect behind issue #144 so a misconfigured API can never boot "Healthy" and serve 500s on `[Authorize]` endpoints
+**Category:** Security / Reliability / CI
+**Status:** Active
+
+### Context / Problem
+
+Decision 87 fixed production's missing auth *configuration*. It left the code defect in place. `Program.cs` registered the authorization policies and `UseAuthentication`/`UseAuthorization` unconditionally, but registered the JwtBearer scheme only when `Authentication:Authority` was set. With no scheme, `AuthorizationMiddleware` threw `No authenticationScheme was specified`, and `ExceptionHandlingMiddleware` flattened that into an anonymous 500. `/health` stayed `Healthy`, so the deploy check passed and no rollback fired. Nothing in CI could catch it:
+- the backend integration tests swap in `TestAuthHandler`
+- the e2e write tests are gated behind `E2E_API_WRITES`
+- no CI step ever called an `[Authorize]` endpoint
+
+Writing tests against the **real** JwtBearer pipeline exposed a second latent production bug. JwtBearer's default `MapInboundClaims = true` renames `roles` → `ClaimTypes.Role` and `sub` → `NameIdentifier`. The policies use `RoleClaimType = "roles"`, so **every genuine Editor/Admin token would have been rejected with 403**, and `/api/auth/me` would have returned no id and no roles, even with a correct `Audience`. The tests reproduced it (403 where 400/404 was expected) before the fix.
+
+### Decision
+
+1. **Fail fast.** Outside Development, an empty `Authentication:Authority` throws at startup, and so does an `Authority` with no audience. The container never reports Healthy, and the deploy's existing rollback fires.
+2. **Never 500, never fail open.** In Development without an `Authority` (test hosts), register a fallback `Unconfigured` scheme (`UnconfiguredAuthenticationHandler`) that authenticates no one. `[Authorize]` then answers 401/403. Skipping the auth middleware or the policies was rejected, because that would fail open.
+3. **`MapInboundClaims = false`** keeps raw claim names, so `roles`/`sub` match what the policies and `AuthController` read.
+4. **`Authentication:ValidAudiences`** (optional) is accepted alongside `Audience`. Entra emits the App ID URI as `aud` for v1 access tokens and the API client-ID GUID for v2. Real-token verification is still pending (see Consequences), and this lets a v2 token be accepted through config alone.
+5. **Hard 401 deploy gate.** After `/health`, `backend-container-deploy.yml` requires anonymous `GET /api/auth/me` to return exactly 401. A 500 (broken pipeline), 200 (fell open) or 404 (route gone) fails the job and triggers rollback. `test.yml`'s e2e job makes the same assertion against the CI backend.
+6. **Correlation id on 500s.** `ExceptionHandlingMiddleware` adds `traceId` to the body and the log. If `Response.HasStarted`, it rethrows instead of writing into a half-sent body. There is no per-exception-type mapping.
+7. **IaC drift guard.** A read-only audit found the Bicep has **never been applied** to `rg-aipatterns-prod`, and applying it today would take prod down (placeholder images, missing Key Vault secrets, CORS/Auth.js settings removed). `deploy.ps1` now blocks deployment unless `-AcknowledgeDrift` is passed, and `-WhatIf` stays allowed. The drift table and pre-apply checklist are in `INFRASTRUCTURE_MANAGEMENT.md` → *IaC Drift*. Reconciliation itself is deferred.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Fail fast only (no fallback scheme) | Test/dev hosts without an `Authority` would keep returning 500 on protected routes |
+| Fallback 401 scheme everywhere, no fail-fast | A misconfigured prod boots "Healthy" again and rejects every valid token. Same silent failure, different status code |
+| Skip `UseAuthentication`/`UseAuthorization`/policies when unconfigured | `[Authorize]` would then have nothing enforcing it, turning a fail-closed bug into a potential fail-open one |
+| Map `ClaimTypes.Role` in policies instead of `MapInboundClaims = false` | Keeps the surprising rename, and `AuthController` reads `sub`/`roles` directly. Raw names are the provider-agnostic choice |
+| Narrow `ExceptionHandlingMiddleware` per exception type | After (1)/(2) the triggering framework fault can't happen. A `traceId` delivers the real value (traceability) with less surface |
+| Real-token e2e writes (`E2E_API_WRITES=true`) in CI | Needs live-tenant credentials in a public repo's CI plus token refresh. Deferred; `AuthPipelineTests` exercises the real JwtBearer path offline instead |
+| Reconcile the Bicep in the same PR | A separate project with its own prod risk, needing `what-if` iteration. Guarded and documented instead |
+| Warn-only 401 check | A deploy with broken auth would still be tagged `:latest` |
+
+### Consequences
+
+- **The Development `appsettings` still carries the real CIAM `Authority`**, so local dev and CI use real JwtBearer. The fallback scheme only applies when a host explicitly blanks the `Authority`.
+- **Tests:** 25 new backend tests (115 → 140). `AuthPipelineTests` runs Program.cs's real auth wiring with a static OIDC configuration and HMAC-signed tokens, so there's no network I/O. `ExceptionHandlingMiddlewareTests` covers `traceId`, no-leak, `HasStarted` and cancellation. Factory settings must use `UseSetting`: `ConfigureAppConfiguration` is applied only after Program.cs has read `builder.Configuration`, which initially made the Development tests pass for the wrong reason.
+- **`deploy.ps1` could never run under Windows PowerShell 5.1.** The BOM-less UTF-8 `—`/`✓` bytes decode in cp1252 to curly quotes that end strings. Executable strings are now ASCII-only.
+- **Still to verify by hand:** one real signed-in request against prod, to confirm the token's `aud`/issuer are accepted and roles flow through. If `aud` is the client-ID GUID, set `Authentication__ValidAudiences__0` and no code change is needed.
+
+### Files Changed
+
+- `backend/src/AIEnterprisePatterns.Api/Program.cs`
+- `backend/src/AIEnterprisePatterns.Api/Authentication/UnconfiguredAuthenticationHandler.cs` (new)
+- `backend/src/AIEnterprisePatterns.Api/Middleware/ExceptionHandlingMiddleware.cs`
+- `backend/tests/AIEnterprisePatterns.Api.Tests/IntegrationTests/AuthPipelineTests.cs` (new)
+- `backend/tests/AIEnterprisePatterns.Api.Tests/Middleware/ExceptionHandlingMiddlewareTests.cs` (new)
+- `.github/workflows/backend-container-deploy.yml`, `.github/workflows/test.yml`
+- `infrastructure/deploy.ps1`, `infrastructure/README.md`
+- `documentation/operations/INFRASTRUCTURE_MANAGEMENT.md`, `AUTH_SETUP_GUIDE.md`; `documentation/architecture/SECURITY_OVERVIEW.md`, `BACKEND_ARCHITECTURE.md`; `documentation/api/AUTH_API.md`; `CLAUDE.md`; `README.md`
 
 ---
 
@@ -219,7 +278,7 @@ Use the registry-less names `dotnet/sdk` and `dotnet/aspnet` in the ignore rules
 **Date:** 2026-09-22
 **Title:** Create the `auth-authority` / `auth-audience` secrets and bind `Authentication__*` env vars on `ca-aipatterns-api-prod`
 **Category:** Infrastructure / Security
-**Status:** Active — tracked for follow-up in issue #144
+**Status:** Active. Code follow-up delivered in Decision 91 (issue #144).
 
 ### Context / Problem
 
