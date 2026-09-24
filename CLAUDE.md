@@ -146,7 +146,7 @@ All GET `/patterns*` and `/patterns/{id}/vote` — no auth, `api` rate limit (30
 ## Testing
 
 - **Frontend:** `npm test` (Jest + React Testing Library); 438/438 tests, 70%+ coverage (stmt/branch/fn/line — enforced in CI)
-- **Backend:** `dotnet test` (xUnit + Moq); 141/141 tests passing (~85% testable coverage)
+- **Backend:** `dotnet test` (xUnit + Moq + AwesomeAssertions); 154/154 tests passing (~85% testable coverage)
 - **E2E:** Playwright cross-browser matrix — Chromium, Firefox, WebKit (CI runs all three in parallel via `strategy.matrix`)
 - **Performance:** Lighthouse CI (`@lhci/cli`) — LCP < 2.5s, FCP < 1.8s, TTI < 5s, Performance ≥ 0.80 — gates deploy in `frontend-container-deploy.yml`
 - **Visual regression:** Chromatic — 38 Storybook stories published on every deploy; unreviewed changes block deploy once baseline is hardened (`continue-on-error: true` + `--exit-zero-on-changes` until baseline accepted)
@@ -221,7 +221,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 Full governance in `documentation/GOVERNANCE.md` and `DOCUMENTATION_INDEX.md`. Folder purposes: `documentation/architecture/` (how built), `api/` (REST ref), `decisions/` (why), `testing/` (how to test), `operations/` (prod ops), `project/` (roadmap), `reviews/` (audit snapshots), `test_results/` (retention: current + 2 prior phases), `deployment/` (Azure guides).
 
-**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (93 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (94 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** 15 Mermaid diagrams embedded in their target docs — see `documentation/diagrams/DIAGRAM_INDEX.md`. Color palette: blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure, gray=CI/CD.
 

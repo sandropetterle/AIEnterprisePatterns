@@ -236,7 +236,7 @@ Notable handling:
 
 All 7 backend projects moved from `net8.0` to `net10.0` LTS (supported to 2028-11-14), ahead of .NET 8 LTS end-of-support on 2026-11-10. Framework-only scope: ASP.NET Core 10, EF Core 10, `Asp.Versioning.*` 10.2.1, and the `aspnet:10.0-alpine` / `sdk:10.0` Docker images. Fixed an EF Core 9+ breaking change in two integration test files (`AddDbContext` now also registers `IDbContextOptionsConfiguration<TContext>`). 0 build warnings, 115/115 tests passing, clean vulnerability scan.
 
-Deferred as follow-up work (not framework version bumps, so kept out of scope): Application Insights → OpenTelemetry-based 3.x, Swashbuckle.AspNetCore → v10 (`Microsoft.OpenApi` namespace move), FluentValidation.AspNetCore migration off the deprecated auto-validation package.
+Deferred as follow-up work (not framework version bumps, so kept out of scope): Application Insights → OpenTelemetry-based 3.x, Swashbuckle.AspNetCore → v10 (`Microsoft.OpenApi` namespace move), FluentValidation.AspNetCore migration off the deprecated auto-validation package (done 2026-09-24, Decision 94).
 
 **Key decision:** Decision 89 (framework-only .NET 10 upgrade; alternatives evaluated).
 

@@ -6,7 +6,6 @@ using AIEnterprisePatterns.Data;
 using AIEnterprisePatterns.Data.Repositories;
 using AIEnterprisePatterns.Infrastructure;
 using FluentValidation;
-using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
@@ -26,7 +25,7 @@ builder.Services.AddControllers()
             new System.Text.Json.Serialization.JsonStringEnumConverter(
                 System.Text.Json.JsonNamingPolicy.CamelCase));
     });
-builder.Services.AddFluentValidationAutoValidation();
+// Validators are invoked explicitly by the controllers (Decision 94) — no MVC auto-validation.
 builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(options =>
