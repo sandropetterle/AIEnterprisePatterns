@@ -215,7 +215,7 @@ The solution is production-ready today. The Clean Architecture foundation means 
 |-------|-------|--------|
 | Infrastructure Drift Resolution | Align live Azure resources with IaC templates; apply pending security hardening | Complete |
 | Community Features | User collaboration, content export, notifications, performance optimisation | Future |
-| Enterprise Features | Internationalisation, analytics dashboards, multi-tenancy, AI-powered search | Future |
+| Enterprise Features | Internationalisation, analytics dashboards, multi-tenancy | Future |
 
 Each phase is planned, scoped, and documented before implementation begins. This deliberate, phased approach ensures that growth is sustainable and each investment builds on a stable foundation.
 
