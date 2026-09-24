@@ -3,7 +3,7 @@ using AIEnterprisePatterns.Core.Enums;
 using AIEnterprisePatterns.Core.Interfaces;
 using AIEnterprisePatterns.Core.Services;
 using AIEnterprisePatterns.Core.ValueObjects;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.ApplicationInsights;
 using Microsoft.ApplicationInsights.Channel;
 using Microsoft.ApplicationInsights.Extensibility;

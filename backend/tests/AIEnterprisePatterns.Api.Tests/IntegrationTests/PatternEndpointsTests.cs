@@ -5,7 +5,7 @@ using AIEnterprisePatterns.Api.Tests.Helpers;
 using AIEnterprisePatterns.Core.Entities;
 using AIEnterprisePatterns.Core.Enums;
 using AIEnterprisePatterns.Data;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;

@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-09-24 (CMS dumps moved to a private repo, leaked revalidate secret rotated, history purged — Decision 92)
+**Last Updated:** 2026-09-24 (FluentAssertions replaced by AwesomeAssertions for licence reasons — Decision 93)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**92 active decisions | 0 archived**
+**93 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,50 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 93: Replace FluentAssertions 8 with AwesomeAssertions in the backend test suite
+
+**Date:** 2026-09-24
+**Title:** Swap the assertion library for its Apache-2.0 community fork so the MIT-licensed public repo carries no non-commercial test dependency
+**Category:** Licensing / Testing / Dependencies
+**Status:** Active
+
+### Context / Problem
+
+All three backend test projects referenced `FluentAssertions` 8.11.0. From 8.0 onward FluentAssertions is published under the **Xceed Community License (Non-Commercial Use)**; the package's nuspec points to a `LICENSE` file rather than an SPDX expression, and that file restricts commercial use without a paid Xceed licence. The repository itself is MIT and public. Anyone reusing it commercially would inherit a test suite that needs a paid licence to run, which contradicts the MIT grant the repo advertises. The dependency is test-only, so production is unaffected, but the contradiction is real for reusers.
+
+### Decision
+
+Replace `FluentAssertions` 8.11.0 with **`AwesomeAssertions` 9.6.0** (latest stable; `Apache-2.0` SPDX expression in its nuspec) in `AIEnterprisePatterns.Api.Tests`, `AIEnterprisePatterns.Core.Tests` and `AIEnterprisePatterns.Data.Tests`. AwesomeAssertions is the community fork taken from FluentAssertions before the licence change, and it keeps the same fluent API. The only code change is `using FluentAssertions;` → `using AwesomeAssertions;` in the seven test files that import it. No assertion call sites changed.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| Pin FluentAssertions 7.x (last Apache-2.0 line) | A downgrade that freezes the library on an unmaintained line, and Dependabot would keep proposing 8.x unless an ignore rule is added and maintained |
+| Keep 8.x and add a README licence note | Documents the contradiction instead of removing it; commercial reusers would still need a paid licence to run the tests |
+| Buy an Xceed commercial licence | Pays to solve a problem a free, API-compatible fork already solves, and the licence would not transfer to people reusing the repo |
+
+### Consequences
+
+- **Build and tests:** `dotnet build` clean (only the pre-existing AV0013 warning); `dotnet test` 141/141 passing (Core 29, Data 38, Api 74). `dotnet list package --vulnerable --include-transitive` reports no vulnerable packages.
+- **Dependabot:** `dependabot.yml` has no FluentAssertions-specific rules, so AwesomeAssertions updates flow through the existing NuGet grouping unchanged.
+- **Historical references stay as written.** Earlier decisions and sweep reports that mention FluentAssertions versions record what was true at the time and are not rewritten.
+
+### Files Changed
+
+- `backend/tests/AIEnterprisePatterns.Api.Tests/AIEnterprisePatterns.Api.Tests.csproj`
+- `backend/tests/AIEnterprisePatterns.Core.Tests/AIEnterprisePatterns.Core.Tests.csproj`
+- `backend/tests/AIEnterprisePatterns.Data.Tests/AIEnterprisePatterns.Data.Tests.csproj`
+- `backend/tests/AIEnterprisePatterns.Api.Tests/IntegrationTests/{AuthPipelineTests,PatternEndpointsTests,RateLimitingTests}.cs`
+- `backend/tests/AIEnterprisePatterns.Api.Tests/Mappers/PatternMapperTests.cs`
+- `backend/tests/AIEnterprisePatterns.Api.Tests/Middleware/ExceptionHandlingMiddlewareTests.cs`
+- `backend/tests/AIEnterprisePatterns.Core.Tests/Services/PatternServiceTests.cs`
+- `backend/tests/AIEnterprisePatterns.Data.Tests/Repositories/PatternRepositoryTests.cs`
+- `documentation/architecture/BACKEND_ARCHITECTURE.md`
+- `documentation/decisions/TECHNICAL_DECISIONS_LOG.md`
 
 ---
 

@@ -1,7 +1,7 @@
 using System.Diagnostics;
 using System.Net;
 using AIEnterprisePatterns.Data;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
