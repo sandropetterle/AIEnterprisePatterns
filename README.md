@@ -1,8 +1,16 @@
 # AI Enterprise Patterns Library
 
+[![Test Suite](https://github.com/sandropetterle/AIEnterprisePatterns/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/sandropetterle/AIEnterprisePatterns/actions/workflows/test.yml)
+
 A Next.js + ASP.NET Core platform for curating and sharing AI-driven enterprise implementation patterns, architectural blueprints, and best practices.
 
-## 🏗️ Architecture
+**Live:** [ca-aipatterns-web-prod…azurecontainerapps.io](https://ca-aipatterns-web-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io). It runs on scale-to-zero Azure Container Apps, so the first request can take about 20 seconds while it wakes up.
+
+## How this was built
+
+Built solo with AI-assisted development, using Claude Code in VS Code. The harness is committed alongside the code so you can inspect the method instead of taking it on trust: [`CLAUDE.md`](CLAUDE.md) (project context and working rules), [`.claude/`](.claude/) (a browser bug-sweep agent and skill, session workflow commands, and a hook that blocks `gh` commands from posting secrets to GitHub) and [`.mcp.json`](.mcp.json) (Playwright MCP for driving a real browser). AI is how this was built and what its content covers. The application itself contains no AI components.
+
+## Architecture
 
 ### Frontend
 - **Framework:** Next.js 16 (App Router)
@@ -18,7 +26,7 @@ A Next.js + ASP.NET Core platform for curating and sharing AI-driven enterprise 
 - **Database:** SQLite (development) / SQL Server (production)
 - **Port:** http://localhost:5255
 
-## 📚 Documentation
+## Documentation
 
 - **Documentation Index:** [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) — map of all docs with purpose and audience
 - **System Overview:** [documentation/architecture/SYSTEM_OVERVIEW.md](documentation/architecture/SYSTEM_OVERVIEW.md)
@@ -31,7 +39,7 @@ A Next.js + ASP.NET Core platform for curating and sharing AI-driven enterprise 
 - **Operations Runbook:** [documentation/operations/RUNBOOK.md](documentation/operations/RUNBOOK.md)
 - **API Documentation:** http://localhost:5255/swagger (when backend is running)
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Prerequisites
 
@@ -86,7 +94,7 @@ npm run dev
 
 The frontend will start at **http://localhost:3000**
 
-## 🔧 Configuration
+## Configuration
 
 ### Environment Variables
 
@@ -109,7 +117,7 @@ backend/src/AIEnterprisePatterns.Api/aipatterns.db
 
 For production, configure SQL Server in `appsettings.Production.json`.
 
-## 📁 Project Structure
+## Project Structure
 
 ```
 AIEnterprisePatterns/
@@ -150,7 +158,7 @@ AIEnterprisePatterns/
     └── test_results/        # Phase-specific test reports
 ```
 
-## 🎯 Features
+## Features
 
 - ✅ Home page with featured patterns, statistics, animations, dark mode
 - ✅ Pattern listing with full-text search, filtering (category, tags, date), sorting, pagination
@@ -170,7 +178,7 @@ AIEnterprisePatterns/
 - ✅ Lighthouse CI performance gates and cross-browser Playwright E2E (Chromium, Firefox, WebKit)
 - ✅ 438 frontend tests, 141 backend tests
 
-## 🔌 API Endpoints
+## API Endpoints
 
 **Base URL:** `http://localhost:5255/api`
 
@@ -190,7 +198,7 @@ AIEnterprisePatterns/
 
 **API Documentation:** http://localhost:5255/swagger
 
-## 🧪 Testing
+## Testing
 
 ### Run Backend Tests
 
@@ -207,7 +215,7 @@ npm test
 
 For more details, see [TESTING_STRATEGY.md](documentation/testing/TESTING_STRATEGY.md)
 
-## 🛠️ Development Scripts
+## Development Scripts
 
 ### Frontend
 
@@ -230,7 +238,7 @@ dotnet test                                           # Run tests
 dotnet ef database update                             # Apply migrations
 ```
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### "Failed to load patterns" error
 
@@ -267,27 +275,19 @@ dotnet ef database update --project src/AIEnterprisePatterns.Data --startup-proj
 
 **Note:** Backend uses PascalCase categories (`DesignPatterns`), frontend uses spaced strings (`Design Patterns`). The mapper in `lib/api/mappers.ts` handles this automatically.
 
-## 🤝 Contributing
+## Contributing
 
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature/amazing-feature`
-3. Commit your changes: `git commit -m 'Add amazing feature'`
-4. Push to the branch: `git push origin feature/amazing-feature`
-5. Open a Pull Request
+This is a solo portfolio project, so I'm not accepting pull requests. [Issues](https://github.com/sandropetterle/AIEnterprisePatterns/issues) for bugs or questions are welcome.
 
-## 📄 License
+## License
 
 This project is licensed under the MIT License.
 
-## 🔗 Links
+## Links
 
 - **Repository:** https://github.com/sandropetterle/AIEnterprisePatterns
 - **Issues:** https://github.com/sandropetterle/AIEnterprisePatterns/issues
 
-## 👥 Authors
+## Authors
 
 - Sandro Petterle - [@sandropetterle](https://github.com/sandropetterle)
-
----
-
-Built with ❤️ using Next.js and ASP.NET Core

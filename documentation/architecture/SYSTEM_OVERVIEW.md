@@ -20,6 +20,8 @@ Each "Pattern" represents a reusable implementation blueprint that may include:
 
 The platform is designed for extensibility and maintainability following enterprise-grade development practices (DRY, SOLID, Clean Architecture).
 
+AI is the subject matter of the patterns and the method used to build the platform. It is not an embedded system component: the application contains no AI features at runtime, and in-app AI features are an explicit non-goal (see [ROADMAP.md](../project/ROADMAP.md) Phase 9).
+
 Organizations can use this platform to:
 
 - Consume curated AI-based implementation patterns
