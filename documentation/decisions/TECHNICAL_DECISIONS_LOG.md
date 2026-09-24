@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-09-24 (FluentAssertions replaced by AwesomeAssertions for licence reasons — Decision 93)
+**Last Updated:** 2026-09-24 (Explicit FluentValidation replaces the deprecated FluentValidation.AspNetCore — Decision 94)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**93 active decisions | 0 archived**
+**94 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,52 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 94: Explicit FluentValidation in controllers; drop the deprecated FluentValidation.AspNetCore package
+
+**Date:** 2026-09-24
+**Title:** Replace MVC auto-validation (`AddFluentValidationAutoValidation`) with explicit `IValidator<T>.ValidateAsync` calls in `PatternsController`
+**Category:** Technology / Dependencies
+**Status:** Active
+
+### Context / Problem
+
+The API validated `CreatePatternDto`/`UpdatePatternDto` through `FluentValidation.AspNetCore` 11.3.1 and `AddFluentValidationAutoValidation()`. That package is deprecated upstream. FluentValidation's own guidance recommends manual validation, because the MVC validation pipeline is synchronous and runs the validators outside the developer's control. FluentValidation 12 drops the integration completely. Decision 89 listed this migration as a deferred follow-up. The package isn't vulnerable, but it's unmaintained, and it pins the API to the 11.x line.
+
+A characterization test written against the old code (`ValidationResponseShapeTests`) recorded the contract: `application/problem+json`, `type` `https://tools.ietf.org/html/rfc9110#section-15.5.1`, `title` "One or more validation errors occurred.", `status` 400, a `traceId`, and `errors` keyed by **PascalCase** property path (`Title`, `Category`, `Tags`, `Tags[1]`). It also showed that auto-validation ran FluentValidation *inside* MVC's validation pass. So a field that failed both layers carried both messages, for example `Title: ["The Title field is required.", "'Title' must not be empty."]`.
+
+### Decision
+
+1. Remove `FluentValidation.AspNetCore` and `AddFluentValidationAutoValidation()`. Reference `FluentValidation.DependencyInjectionExtensions` 11.11.0 explicitly (before, it came in only transitively, at the same version) so that `AddValidatorsFromAssemblyContaining<Program>()` keeps working.
+2. Inject `IValidator<CreatePatternDto>` and `IValidator<UpdatePatternDto>` into `PatternsController` through the constructor. `CreatePattern`/`UpdatePattern` call `ValidateAsync(dto, ct)` before any service call. On failure they run `ModelState.AddModelError(error.PropertyName, error.ErrorMessage)` for each error and `return ValidationProblem(ModelState)`, which goes through the same `ProblemDetailsFactory` that `[ApiController]` uses.
+3. `[ApiController]`'s automatic 400 for model-binding and DataAnnotations errors is unchanged.
+
+### Alternatives Evaluated
+
+| Alternative | Why Rejected |
+|------------|-------------|
+| `SharpGrip.FluentValidation.AutoValidation.Mvc` (drop-in replacement) | Swaps one auto-validation dependency for a lesser-known third-party one. It keeps the implicit pipeline coupling that FluentValidation itself advises against, for two endpoints that are simple to validate explicitly |
+| Leave the deprecated package in place | Not vulnerable today, but unmaintained. It blocks FluentValidation 12, and any future advisory against it would red the live NuGet gate (Decisions 83/84) with no upstream fix |
+| Custom action filter or `InvalidModelStateResponseFactory` that runs the validators | Rebuilds auto-validation by hand. It would keep the combined DataAnnotations and FluentValidation messages byte-for-byte, but it hides validation from the action again, which is the coupling this decision removes |
+| Strip DataAnnotations from the DTOs so FluentValidation is the only source | Changes the Swagger schema (`required`/`maxLength`) and the messages for required fields, and MVC's implicit `[Required]` for non-nullable strings would still fire. Out of scope for a dependency swap |
+
+### Consequences
+
+- **The 400 contract is unchanged for every single-layer failure.** The 8 characterization tests passed before and after the refactor: status, type, title, content type, `traceId`, PascalCase keys and the exact FluentValidation messages. Two new integration test methods (8 cases) and 5 new controller unit tests bring the backend total from 141 to 154.
+- **Known, accepted difference:** when DataAnnotations also fail, `[ApiController]` returns its 400 before the action runs, so FluentValidation doesn't get to add its messages. `Title: ""` now returns `["The Title field is required."]` instead of that message plus `"'Title' must not be empty."`. `{"title":"","category":"Bogus"}` returns only `Title` in the first response, and the `Category` error arrives once `Title` is fixed. The keys, types and status are the same. The frontend never parses the `errors` dictionary and validates client-side first, so nothing user-visible changes.
+- Validation is now async, visible in the action, and unit-testable without a host. The controller tests use the real validator instances.
+- Upgrading to FluentValidation 12 is now unblocked (it needs its own decision).
+
+### Files Changed
+
+- `backend/src/AIEnterprisePatterns.Api/AIEnterprisePatterns.Api.csproj`
+- `backend/src/AIEnterprisePatterns.Api/Program.cs`
+- `backend/src/AIEnterprisePatterns.Api/Controllers/PatternsController.cs`
+- `backend/tests/AIEnterprisePatterns.Api.Tests/IntegrationTests/ValidationResponseShapeTests.cs` (new)
+- `backend/tests/AIEnterprisePatterns.Api.Tests/Controllers/PatternsControllerValidationTests.cs` (new)
+- `documentation/architecture/BACKEND_ARCHITECTURE.md`
 
 ---
 
@@ -308,7 +354,7 @@ A framework-only upgrade isolates the one change that has a hard external deadli
 ### Consequences
 
 - Backend now has runway to .NET 10's end of support (2028-11-14)
-- Three follow-ups are recommended and deferred, tracked here rather than as separate decisions until scheduled: Application Insights → OpenTelemetry (3.x), Swashbuckle → v10 / `Microsoft.OpenApi` namespace move, FluentValidation.AspNetCore migration off the deprecated auto-validation package
+- Three follow-ups are recommended and deferred, tracked here rather than as separate decisions until scheduled: Application Insights → OpenTelemetry (3.x), Swashbuckle → v10 / `Microsoft.OpenApi` namespace move, FluentValidation.AspNetCore migration off the deprecated auto-validation package (done in Decision 94)
 - **Follow-up: Decisions 85 and 88** — both recorded the .NET 10 migration as "its own project, needs scheduling before .NET 8 LTS ends." That project is this decision; no other change to those entries is needed.
 
 ### Files Changed

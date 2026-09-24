@@ -3,6 +3,8 @@ using AIEnterprisePatterns.Api.Mappers;
 using AIEnterprisePatterns.Core.Entities;
 using AIEnterprisePatterns.Core.Enums;
 using AIEnterprisePatterns.Core.Services;
+using FluentValidation;
+using FluentValidation.Results;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
@@ -16,10 +18,17 @@ namespace AIEnterprisePatterns.Api.Controllers;
 public class PatternsController : ControllerBase
 {
     private readonly IPatternService _patternService;
+    private readonly IValidator<CreatePatternDto> _createValidator;
+    private readonly IValidator<UpdatePatternDto> _updateValidator;
 
-    public PatternsController(IPatternService patternService)
+    public PatternsController(
+        IPatternService patternService,
+        IValidator<CreatePatternDto> createValidator,
+        IValidator<UpdatePatternDto> updateValidator)
     {
         _patternService = patternService;
+        _createValidator = createValidator;
+        _updateValidator = updateValidator;
     }
 
     [HttpGet]
@@ -87,6 +96,9 @@ public class PatternsController : ControllerBase
     [HttpPost]
     public async Task<ActionResult<PatternDetailDto>> CreatePattern(CreatePatternDto dto, CancellationToken ct = default)
     {
+        var validation = await _createValidator.ValidateAsync(dto, ct);
+        if (!validation.IsValid) return ValidationProblemFor(validation);
+
         var category = Enum.Parse<PatternCategory>(dto.Category, true);
 
         var pattern = new Pattern
@@ -108,6 +120,9 @@ public class PatternsController : ControllerBase
     [HttpPut("{id:guid}")]
     public async Task<ActionResult<PatternDetailDto>> UpdatePattern(Guid id, UpdatePatternDto dto, CancellationToken ct = default)
     {
+        var validation = await _updateValidator.ValidateAsync(dto, ct);
+        if (!validation.IsValid) return ValidationProblemFor(validation);
+
         var category = Enum.Parse<PatternCategory>(dto.Category, true);
 
         var updated = new Pattern
@@ -135,5 +150,18 @@ public class PatternsController : ControllerBase
         if (!deleted) return NotFound();
 
         return NoContent();
+    }
+
+    // Explicit FluentValidation (Decision 94): copy each failure into ModelState under its
+    // property path ("Title", "Tags[1]") and return the same ValidationProblemDetails 400 that
+    // [ApiController] produces for model-binding / DataAnnotations errors.
+    private ActionResult ValidationProblemFor(ValidationResult validation)
+    {
+        foreach (var error in validation.Errors)
+        {
+            ModelState.AddModelError(error.PropertyName, error.ErrorMessage);
+        }
+
+        return ValidationProblem(ModelState);
     }
 }

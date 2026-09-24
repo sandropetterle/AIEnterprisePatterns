@@ -179,11 +179,12 @@ sequenceDiagram
 
 ## 4. Data Validation
 
-- `FluentValidation` applied to all DTOs: `CreatePatternDto`, `UpdatePatternDto`, `GetPatternsQuery`
+- `FluentValidation` validators for the write DTOs: `CreatePatternDto`, `UpdatePatternDto`. `GetPatternsQuery` uses DataAnnotations (`Range`/`MaxLength`) only
 - All text fields have `MaxLength` constraints
 - Tags must not be empty or contain only whitespace (`!string.IsNullOrWhiteSpace` guard)
-- Category validated via `Enum.TryParse` in FluentValidation; controller uses `Enum.Parse` (safe — FluentValidation runs first)
-- Automatic model validation via `AddValidatorsFromAssembly` + `AddFluentValidationAutoValidation`
+- Category validated via `Enum.TryParse` in FluentValidation; controller uses `Enum.Parse` (safe — the validator runs first)
+- **Explicit validation (Decision 94):** validators are registered with `AddValidatorsFromAssemblyContaining<Program>()` (`FluentValidation.DependencyInjectionExtensions`) and injected into `PatternsController` as `IValidator<T>`. `CreatePattern`/`UpdatePattern` call `ValidateAsync` before any service call and, on failure, copy each error into `ModelState` and `return ValidationProblem(ModelState)`: the same `ValidationProblemDetails` 400, keyed by PascalCase property path (`Title`, `Tags[1]`). There is no MVC auto-validation (the deprecated `FluentValidation.AspNetCore` was removed)
+- `[ApiController]` still returns the automatic 400 for model-binding and DataAnnotations failures. Those run before the action, so a request that fails DataAnnotations gets only those errors. Its FluentValidation errors appear on the next attempt, once the DataAnnotations errors are fixed
 
 ---
 
