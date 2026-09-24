@@ -38,7 +38,7 @@ No JWT secret, app keys, salts, OAuth secrets or end-user rows were present.
 1. **Rotate first.** On 2026-09-24 `revalidate-secret` was set to a random 32-byte value that nobody recorded, and the revision was restarted. A POST with the old secret now returns 401. Nothing calls the endpoint while the CMS is in cold storage. Resuming the CMS sets a known value and updates the Strapi webhook (see CMS_ARCHITECTURE §11, DISASTER_RECOVERY §12.4). The Strapi admin password is treated as compromised everywhere.
 2. **Split the bundle.** `content.json` and `metadata.json` stay committed. They hold no secrets, and `generate-fallbacks.ts` reads `content.json`. `backups/cms/.gitignore` now ignores `dump.sql` and `uploads.tar.gz`. Full bundles live in the private repo `sandropetterle/aipatterns-cms-backups`, which stores them byte-exact (`* -text`) so `restore.sh` checksums still verify.
 3. **Workflows.** `cms-restore-bundle.yml` existed only to package the dump from this repo, so it is removed. `cms-sync-fallbacks.yml` no longer boots Strapi, restores a dump or mints a token, because `generate-fallbacks.ts` reads the committed `content.json` directly. `cms-backup.yml` is unchanged: its `git add backups/cms/` now commits only the secret-free files.
-4. **Purge history.** `git filter-repo` removed `backups/cms/*/dump.sql` and `uploads.tar.gz` from every commit. The force-push required temporarily allowing force pushes on `main`. GitHub Support was asked to drop the old objects still reachable through `refs/pull/*` and cached views. Rewritten SHAs quoted in docs were remapped.
+4. **Purge history.** `git filter-repo` removed `backups/cms/*/dump.sql` and `uploads.tar.gz` from every commit. The first commit carried a GitHub signature that filter-repo cannot keep, so all 251 commits have new SHAs, not just those since 2026-04-09. The force-push required temporarily allowing force pushes on `main`; protection was restored at once. Afterwards no revision contains the dumps or the secret value. 135 PR refs (`refs/pull/*`, which only GitHub can rewrite) still pointed at old commits, so GitHub Support was asked to remove them along with cached views. The 16 SHAs quoted in docs were remapped using filter-repo's `commit-map`.
 
 `Admin12345` / `strapiPassword123` in `docker-compose.yml`, the CMS scripts and two CI workflows stay as they are. They are defaults for throwaway local and CI containers, and no hosted instance uses them.
 
@@ -49,7 +49,7 @@ No JWT secret, app keys, salts, OAuth secrets or end-user rows were present.
 | Rename the folder | Changes nothing. The exposure is the blobs, not the path. |
 | Keep dumps in git, scrub credential tables in `backup.sh` | A full DB dump stays public, and one missed table republishes secrets. It is only as safe as the scrubber's coverage. |
 | Gitignore all of `backups/` | Breaks `generate-fallbacks.ts` and the fallback-sync workflow, and throws away the reviewable `content.json`. |
-| Remove from `main` only, no history rewrite | The blobs stay one click away in `3c24b4b`. Rotation removed the security risk but not the exposure. |
+| Remove from `main` only, no history rewrite | The blobs stay one click away in the commit that first added them. Rotation removed the security risk but not the exposure. |
 | Store dumps in Azure Blob (`staipatternsmedia`) | Works, but a private git repo is free, versioned and fits the existing git-based bundle workflow. |
 
 ### Consequences
@@ -143,7 +143,7 @@ PR #153 (the grouped npm-production Dependabot PR) bumped `isomorphic-dompurify`
 
 At runtime, `undici` 8's `lib/web/webidl` module calls `require('node:worker_threads').markAsUncloneable`, a function that does not exist on Node 20's `worker_threads`. The failure surfaces as `webidl.util.markAsUncloneable is not a function` the moment the module graph is evaluated. The import chain is `lib/cms/sanitize.ts` → `isomorphic-dompurify` → `jsdom` 30 → `undici` 8, and it's reached during `next build` because the `/about` route pulls in the sanitizer at build time.
 
-This was invisible on every PR since #153 merged (`eccffbf`): the `Frontend Tests` job runs Jest, not `next build` — Jest uses `jest-environment-jsdom`'s own bundled jsdom 26 and the test suite mocks `isomorphic-dompurify` at the file level (per existing Testing Gotchas), so the real `jsdom`/`undici` chain never loads under Jest. Playwright E2E — the only job that runs `next build` — only runs on push to `main`, not on PRs. So from `eccffbf` onward, every push-to-main E2E job (all 3 browsers) failed at `next build`, and `frontend-container-deploy.yml` failed at both "Build frontend" (LHCI, which also runs a build) and "Build Docker image." Production's frontend container was stuck on the pre-#153 image for the whole window, with no red PR signal pointing at the cause.
+This was invisible on every PR since #153 merged (`4ce4f95`): the `Frontend Tests` job runs Jest, not `next build` — Jest uses `jest-environment-jsdom`'s own bundled jsdom 26 and the test suite mocks `isomorphic-dompurify` at the file level (per existing Testing Gotchas), so the real `jsdom`/`undici` chain never loads under Jest. Playwright E2E — the only job that runs `next build` — only runs on push to `main`, not on PRs. So from `4ce4f95` onward, every push-to-main E2E job (all 3 browsers) failed at `next build`, and `frontend-container-deploy.yml` failed at both "Build frontend" (LHCI, which also runs a build) and "Build Docker image." Production's frontend container was stuck on the pre-#153 image for the whole window, with no red PR signal pointing at the cause.
 
 ### Decision
 
@@ -185,7 +185,7 @@ Verified under Node 24.21.0 before merge:
 ### Consequences
 
 - Frontend runtime has runway to Node 24's end of support (2028-04)
-- Restores the broken main-branch E2E matrix and unblocks `frontend-container-deploy.yml`, so production can pick up every frontend change merged since `eccffbf` (PR #153)
+- Restores the broken main-branch E2E matrix and unblocks `frontend-container-deploy.yml`, so production can pick up every frontend change merged since `4ce4f95` (PR #153)
 - **Gap this decision does not close:** `next build` still only runs in the main-only E2E workflow and the deploy workflow, never in the PR `Frontend Tests` job. A future dependency bump whose `engines` range excludes CI's Node version will again pass PR checks (`EBADENGINE` is a warning, not a failure) and only break on merge to `main`. Recommended follow-up, not done in this change: add a `next build` step to the PR `Frontend Tests` job so this class of break is caught before merge, not after.
 - **Follow-up: Decision 89** recorded .NET's own LTS timeline as the deadline-driven upgrade in scope for that decision; this decision is the equivalent deadline-driven move for the frontend runtime, triggered by an incident rather than a scheduled sweep. No other change to Decision 89 is needed.
 
@@ -255,7 +255,7 @@ A framework-only upgrade isolates the one change that has a hard external deadli
 
 ### Pre-existing issue surfaced (not a regression): migrations are SQLite-typed
 
-`dotnet ef database update` against a **fresh SQL Server** database fails on both EF Core 8.0.31 (baseline `main`) and 10.0.12, with `InvalidCastException: Unable to cast object of type 'System.Guid' to type 'System.String'` in `SqlServerUpdateSqlGenerator.AppendInsertMultipleRows`. The only migration (`20260213191555_InitialCreate`, regenerated "for SQLite compatibility" in `fe66cb8`) and its snapshot use `TEXT`/`INTEGER` store types, so SQL Server maps the seed `InsertData` columns to a string mapping and chokes on Guid values. EF Core 9+ now surfaces the same drift one step earlier as `PendingModelChangesWarning`, which is raised as an error; EF 8 swallowed it. Production is unaffected: `MigrateAsync` only runs in Development, the deploy workflow has no migration step, and the prod schema was most likely created from the earlier SQL Server-typed `20260212084255_InitialCreate`. Local dev and the E2E job both use SQLite, and both were verified working on EF Core 10. Recommended follow-up, in its own PR:
+`dotnet ef database update` against a **fresh SQL Server** database fails on both EF Core 8.0.31 (baseline `main`) and 10.0.12, with `InvalidCastException: Unable to cast object of type 'System.Guid' to type 'System.String'` in `SqlServerUpdateSqlGenerator.AppendInsertMultipleRows`. The only migration (`20260213191555_InitialCreate`, regenerated "for SQLite compatibility" in `636655c`) and its snapshot use `TEXT`/`INTEGER` store types, so SQL Server maps the seed `InsertData` columns to a string mapping and chokes on Guid values. EF Core 9+ now surfaces the same drift one step earlier as `PendingModelChangesWarning`, which is raised as an error; EF 8 swallowed it. Production is unaffected: `MigrateAsync` only runs in Development, the deploy workflow has no migration step, and the prod schema was most likely created from the earlier SQL Server-typed `20260212084255_InitialCreate`. Local dev and the E2E job both use SQLite, and both were verified working on EF Core 10. Recommended follow-up, in its own PR:
 - Split migrations per provider (`MigrationsAssembly`)
 - Baseline the SQL Server migrations against prod's actual `__EFMigrationsHistory`
 - Add a per-provider `has-pending-model-changes` CI check
@@ -299,7 +299,7 @@ A framework-only upgrade isolates the one change that has a hard external deadli
 
 Decision 85 recorded that PR #119 (`dotnet/sdk` 8.0 → 9.0) escaped the `version-update:semver-major` ignore rules, mechanism undetermined. On the same day the new grouped config produced PR #148 (`docker-backend` group: `dotnet/sdk` 8.0 → 10.0, `dotnet/aspnet` 8.0-alpine → 10.0-alpine), which escaped the same rules.
 
-Both PRs identify the dependencies as `dotnet/sdk` / `dotnet/aspnet`. Dependabot's Docker ecosystem names an image by its repository path **without the registry host**, so the rules' `mcr.microsoft.com/dotnet/...` names never matched anything. The rules had been inert since they were written (`4f9d25d`, 2026-04-21).
+Both PRs identify the dependencies as `dotnet/sdk` / `dotnet/aspnet`. Dependabot's Docker ecosystem names an image by its repository path **without the registry host**, so the rules' `mcr.microsoft.com/dotnet/...` names never matched anything. The rules had been inert since they were written (`0f74b35`, 2026-04-21).
 
 #148 was also unsafe on its own: CI does not build the Docker image, so its green checks said nothing about the runtime change. All projects target `net8.0`, and an `aspnet:10.0` runtime image has no .NET 8 shared framework, so the container would have failed to start in production.
 
@@ -345,7 +345,7 @@ Root cause in `Program.cs`: the three authorization policies and `UseAuthenticat
 
 **This was fail-closed, not a security bypass.** Verified empirically: the pattern count was 6 before and 6 after anonymous and forged-token POST attempts, and the exception is raised in middleware before any controller action runs. The severity is availability/correctness — all write endpoints were unusable for everyone, including holders of valid tokens.
 
-**Confirmed pre-existing, not caused by the remediation.** Three independent checks: (a) an A/B of the API on `b74727c` vs the pre-merge baseline `2740137` with `Authority` unset produced identical 500s; (b) `Program.cs` is byte-identical between the two commits and `git diff 2740137 b74727c -- backend/` touches only five `.csproj` version strings; (c) both deploy workflows only run `az containerapp update --image`, which preserves the existing template and never sets env vars.
+**Confirmed pre-existing, not caused by the remediation.** Three independent checks: (a) an A/B of the API on `6ba9168` vs the pre-merge baseline `949cf61` with `Authority` unset produced identical 500s; (b) `Program.cs` is byte-identical between the two commits and `git diff 949cf61 6ba9168 -- backend/` touches only five `.csproj` version strings; (c) both deploy workflows only run `az containerapp update --image`, which preserves the existing template and never sets env vars.
 
 ### Decision
 
@@ -445,7 +445,7 @@ Grouping is the one lever available without touching the gates themselves, which
 
 ### Context / Problem
 
-PR #119 proposed bumping `mcr.microsoft.com/dotnet/sdk` from 8.0 to 9.0. `.github/dependabot.yml` has carried `version-update:semver-major` ignore rules for both `mcr.microsoft.com/dotnet/sdk` and `mcr.microsoft.com/dotnet/aspnet` since commit `4f9d25d` (2026-04-21) — months before #119 was opened on 2026-08-01. **The PR escaped a rule written specifically to suppress it.** The mechanism was not determined; it is recorded here so the gap is investigated rather than rediscovered.
+PR #119 proposed bumping `mcr.microsoft.com/dotnet/sdk` from 8.0 to 9.0. `.github/dependabot.yml` has carried `version-update:semver-major` ignore rules for both `mcr.microsoft.com/dotnet/sdk` and `mcr.microsoft.com/dotnet/aspnet` since commit `0f74b35` (2026-04-21) — months before #119 was opened on 2026-08-01. **The PR escaped a rule written specifically to suppress it.** The mechanism was not determined; it is recorded here so the gap is investigated rather than rediscovered.
 
 .NET 8 is LTS until November 2026. The backend runtime is pinned to `aspnet:8.0-alpine` and required non-trivial work to get right: `icu-libs` installed and `DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=false` set, because `Microsoft.Data.SqlClient` calls `CultureInfo.GetCultureInfo()` during `SqlConnection.Open()` and throws `CultureNotFoundException` under Alpine's default invariant-culture mode (Decision 71).
 
@@ -944,7 +944,7 @@ Regression guard: `RateLimitingTests.GetPatterns_BurstAboveOldGlobalBudget_IsNei
 
 ### Context / Problem
 
-Issue #69: both lint entry points were broken on `main`. Next.js 16 removed the `next lint` command, so `npm run lint` failed parsing `lint` as a project directory. And `npx eslint` crashed before linting anything: the repo-wide `overrides: { "ajv": "^8.8.2" }` (added for Storybook's ajv-keywords@5 peer requirement, commit 993e4d2) forces ajv@8 into `eslint` and `@eslint/eslintrc`, both of which require ajv@6 APIs (`missingRefs` option, `ajv/lib/refs/json-schema-draft-04.json`) — `eslint/lib/linter/linter.js` requires `@eslint/eslintrc/universal` unconditionally even in flat-config mode, so ESLint could not even start. Lint regressions landed silently (the Test Suite workflow ran no lint), and `cms-sync-fallbacks.yml`'s `npm run lint` verify step was a time bomb.
+Issue #69: both lint entry points were broken on `main`. Next.js 16 removed the `next lint` command, so `npm run lint` failed parsing `lint` as a project directory. And `npx eslint` crashed before linting anything: the repo-wide `overrides: { "ajv": "^8.8.2" }` (added for Storybook's ajv-keywords@5 peer requirement, commit 6d55829) forces ajv@8 into `eslint` and `@eslint/eslintrc`, both of which require ajv@6 APIs (`missingRefs` option, `ajv/lib/refs/json-schema-draft-04.json`) — `eslint/lib/linter/linter.js` requires `@eslint/eslintrc/universal` unconditionally even in flat-config mode, so ESLint could not even start. Lint regressions landed silently (the Test Suite workflow ran no lint), and `cms-sync-fallbacks.yml`'s `npm run lint` verify step was a time bomb.
 
 ### Decision
 
@@ -1080,7 +1080,7 @@ The two halves cover complementary defect classes: the e2e baseline is reproduci
 
 ### Context / Problem
 
-The **Backend API – Build and Deploy (Container Apps)** workflow failed its post-deploy health check on **every run from 2026-03-19 onward**; the last green deploy was 2026-03-17 (commit `9b425e5`). Build, push, and deploy all succeeded, but `/health` returned `503 Unhealthy`, so the workflow auto-rolled-back to the previous `:latest` image. **Net effect: production served stale 2026-03-17 backend code** — none of the backend changes since were live.
+The **Backend API – Build and Deploy (Container Apps)** workflow failed its post-deploy health check on **every run from 2026-03-19 onward**; the last green deploy was 2026-03-17 (commit `f163577`). Build, push, and deploy all succeeded, but `/health` returned `503 Unhealthy`, so the workflow auto-rolled-back to the previous `:latest` image. **Net effect: production served stale 2026-03-17 backend code** — none of the backend changes since were live.
 
 The only registered health check is `AddDbContextCheck<ApplicationDbContext>`, so the 503 meant new revisions could not reach the database — while the rolled-back (old) revision connected fine. Because the deploy step only runs `az containerapp update --image …` (never touching env/secrets), the connection string, firewall, and serverless DB were proven identical and working by the healthy old revision; the regression had to be in the new **image**.
 
@@ -1093,7 +1093,7 @@ globalization-invariant mode. … 'en-us' is an invalid culture identifier.
    at Microsoft.Data.SqlClient.SqlConnection.TryOpen(…)
 ```
 
-Root cause: Phase 7.7 (commit `215232a`) switched the runtime base image from Debian `aspnet:8.0` to **`aspnet:8.0-alpine`**. The Alpine .NET images run in **globalization-invariant mode** (`DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true`, ICU absent — verified directly against the pinned digest). `Microsoft.Data.SqlClient` calls `CultureInfo.GetCultureInfo("en-us")` inside `SqlConnection.Open()`, which throws in invariant mode — so **every** Azure SQL connection failed instantly (the ~1 ms health-check failures), independent of network/TLS/config. The Debian image bundled ICU and never hit this. `Microsoft.Data.SqlClient` does not support invariant globalization mode.
+Root cause: Phase 7.7 (commit `18e40d0`) switched the runtime base image from Debian `aspnet:8.0` to **`aspnet:8.0-alpine`**. The Alpine .NET images run in **globalization-invariant mode** (`DOTNET_SYSTEM_GLOBALIZATION_INVARIANT=true`, ICU absent — verified directly against the pinned digest). `Microsoft.Data.SqlClient` calls `CultureInfo.GetCultureInfo("en-us")` inside `SqlConnection.Open()`, which throws in invariant mode — so **every** Azure SQL connection failed instantly (the ~1 ms health-check failures), independent of network/TLS/config. The Debian image bundled ICU and never hit this. `Microsoft.Data.SqlClient` does not support invariant globalization mode.
 
 ### Decision
 
