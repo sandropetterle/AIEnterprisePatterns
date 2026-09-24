@@ -262,35 +262,37 @@ docker compose --profile cms up -d
 
 # 3. Create a backup bundle
 STRAPI_API_TOKEN=<read-only-token> bash scripts/cms/backup.sh
-# → writes to backups/cms/YYYY-MM-DD/
+# → writes to backups/cms/YYYY-MM-DD/ (dump.sql + uploads.tar.gz are gitignored)
 
-# 4. Regenerate compile-time fallbacks
-STRAPI_API_TOKEN=<read-only-token> npx tsx scripts/cms/generate-fallbacks.ts
+# 4. Copy the full bundle into the private backups repo and commit it there
+cp -r backups/cms/YYYY-MM-DD /path/to/aipatterns-cms-backups/
 
-# 5. Review the diff and commit
+# 5. Regenerate compile-time fallbacks (reads the new content.json)
+npx tsx scripts/cms/generate-fallbacks.ts
+
+# 6. Review the diff and commit
 git diff lib/cms/queries.ts
 git add backups/cms/YYYY-MM-DD/ lib/cms/queries.ts
 git commit -m "feat(cms): update CMS content - <description>"
 
-# 6. Push and open PR → merge → frontend deploys automatically
+# 7. Push and open PR → merge → frontend deploys automatically
 ```
 
 **Alternatively**, trigger via GitHub Actions:
-- `cms-backup` workflow → creates backup bundle and commits/PRs
-- `cms-sync-fallbacks` workflow → restores, generates, and opens a PR against `lib/cms/queries.ts`
+- `cms-backup` workflow → creates a bundle from a fresh seeded CI stack and commits/PRs its `content.json` + `metadata.json`
+- `cms-sync-fallbacks` workflow → regenerates `lib/cms/queries.ts` from a committed `content.json` and opens a PR
 
 ### Restore Local Strapi from Backup
 
-```bash
-# List available backups
-ls backups/cms/
+Full bundles live in the private repo `sandropetterle/aipatterns-cms-backups` (Decision 92).
 
+```bash
 # Start Strapi stack (fresh)
 docker compose --profile cms down -v
 docker compose --profile cms up -d
 
-# Restore from a specific date
-bash scripts/cms/restore.sh backups/cms/2026-04-09
+# Restore a full bundle from the private repo
+bash scripts/cms/restore.sh /path/to/aipatterns-cms-backups/2026-04-11
 ```
 
 See [DISASTER_RECOVERY.md §5.5](DISASTER_RECOVERY.md) for full CMS recovery procedures including Azure re-provision.

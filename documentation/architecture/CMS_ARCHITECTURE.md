@@ -19,14 +19,14 @@ As of Phase CMS Cold Storage (2026-04-09), Strapi runs **local-only**. Azure CMS
 | Strapi hosting | Azure Container App (live) | Local Docker only (`--profile cms`) |
 | Content database | Azure MySQL Flexible Server | Local MySQL (Docker), backed up to git |
 | Content source (production) | Live Strapi REST API | Compile-time fallback objects in `lib/cms/queries.ts` |
-| Content archive | Not committed | `backups/cms/YYYY-MM-DD/` in git |
+| Content archive | Not committed | `content.json` in `backups/cms/YYYY-MM-DD/` (git); full bundles with `dump.sql` in the private `aipatterns-cms-backups` repo |
 | Media storage | Azure Blob Storage (`staipatternsmedia`) | Retained — historical references |
 | Monthly cost | ~€14-16 | ~€0.02 (storage only) |
 
 **How content updates work in cold storage mode:**
 1. `docker compose --profile cms up -d` — start local Strapi
 2. Edit content in http://localhost:1337/admin
-3. Run `scripts/cms/backup.sh` — creates dated bundle in `backups/cms/`
+3. Run `scripts/cms/backup.sh` — creates dated bundle in `backups/cms/`, then copy the whole bundle into the private `aipatterns-cms-backups` repo (`dump.sql` and `uploads.tar.gz` are gitignored here)
 4. Run `scripts/cms/generate-fallbacks.ts` — updates compile-time fallbacks in `lib/cms/queries.ts`
 5. Open PR → merge → frontend deploys automatically
 
@@ -70,7 +70,7 @@ For the full component schema reference (field tables, dependency map, reuse gui
 |-----------|-------|
 | Local CMS | `docker compose --profile cms up -d` → http://localhost:1337/admin |
 | Local DB | MySQL (Docker, `aipatterns-mysql` container) |
-| Content backups | `backups/cms/YYYY-MM-DD/` committed to git |
+| Content backups | `content.json` + `metadata.json` in `backups/cms/YYYY-MM-DD/` (git); full bundles in private repo `sandropetterle/aipatterns-cms-backups` |
 | Media references | Azure Blob Storage (`staipatternsmedia.blob.core.windows.net`, `strapi-media` container) — retained |
 | Azure CMS hosting | Deleted (Phase CMS Cold Storage, 2026-04-10) |
 
@@ -102,10 +102,11 @@ http://localhost:1337/admin
 STRAPI_API_TOKEN=<full-access-token> npx tsx cms/data/seed.ts
 # Note: use full-access token for seeding (read-only token can't PUT); revoke after seeding
 
-# Restore from most recent git backup
-bash scripts/cms/restore.sh                     # auto-picks latest bundle
-bash scripts/cms/restore.sh backups/cms/2026-04-09  # specific date
+# Restore a full bundle from the private backups repo
+bash scripts/cms/restore.sh /path/to/aipatterns-cms-backups/2026-04-11
 ```
+
+The `Admin12345` / `strapiPassword123` credentials here and in `docker-compose.yml` are defaults for throwaway local and CI containers. No hosted instance uses them.
 
 > **WSL2 memory cap:** `~/.wslconfig` — `memory=2560MB`, `swap=1GB`; container limits: sqlserver 1 GB, mysql 512 MB, strapi 512 MB. Only start `--profile cms` when actively working on CMS content.
 
@@ -115,18 +116,20 @@ bash scripts/cms/restore.sh backups/cms/2026-04-09  # specific date
 
 ### Bundle structure (`backups/cms/YYYY-MM-DD/`)
 
-| File | Source | Purpose |
-|------|--------|---------|
-| `dump.sql` | `docker exec aipatterns-mysql mysqldump` | Full MySQL schema + data |
-| `uploads.tar.gz` | `strapi-uploads` docker volume | Locally-uploaded media |
-| `content.json` | Strapi REST API `GET /api/{uid}` × 10 single types | Portable, version-diffable content |
-| `metadata.json` | Script | Strapi URL, Node version, date, SHA-256 checksums |
+| File | Source | Purpose | Stored in |
+|------|--------|---------|-----------|
+| `dump.sql` | `docker exec aipatterns-mysql mysqldump` | Full MySQL schema + data | Private repo only (contains admin user, API token hashes, webhook config) |
+| `uploads.tar.gz` | `strapi-uploads` docker volume | Locally-uploaded media | Private repo only |
+| `content.json` | Strapi REST API `GET /api/{uid}` × 10 single types | Portable, version-diffable content | This repo + private repo |
+| `metadata.json` | Script | Strapi URL, Node version, date, SHA-256 checksums | This repo + private repo |
+
+`backups/cms/.gitignore` ignores `dump.sql` and `uploads.tar.gz`, so a bundle written by `backup.sh` can only commit its secret-free half. `restore.sh` verifies every checksum in `metadata.json`, so it needs the full bundle from the private repo. See Decision 92.
 
 ### Scripts
 
 ```bash
 # Standard round-trip: restore then backup (no token management needed)
-bash scripts/cms/restore.sh backups/cms/2026-04-09
+bash scripts/cms/restore.sh /path/to/aipatterns-cms-backups/2026-04-11
 # restore.sh step [5/5] auto-mints a fresh API token and saves it to
 # scripts/cms/.env.local-token (gitignored)
 
@@ -149,9 +152,9 @@ BACKUP_DATE=2026-04-09 npx tsx scripts/cms/generate-fallbacks.ts
 
 The `generate-fallbacks.ts` script reads `content.json` from the backup, strips Strapi internal fields (id, documentId, timestamps), and rewrites the delimited `// --- fallback:<name>:start/end ---` regions in `lib/cms/queries.ts`. After running, review the diff, run `npx tsc --noEmit && npm test`, then commit.
 
-### Initial production backup (committed)
+### Initial production backup
 
-The `backups/cms/2026-04-09/` bundle was captured from the live Azure production Strapi before deletion:
+The `2026-04-09` bundle was captured from the live Azure production Strapi before deletion (full bundle in the private repo; `content.json` + `metadata.json` here):
 - `dump.sql`: 3,159 lines, 96 tables — authoritative MySQL dump from `mysql-aipatterns-cms`
 - `content.json`: 9/10 single types (docs-page absent — never seeded in production)
 - `uploads.tar.gz`: empty — no media was uploaded to Azure Blob Storage
@@ -261,7 +264,7 @@ These are hard-won lessons from the CMS deployment. Ignoring them will cause cry
 | `scripts/cms/backup.sh` | Creates a dated backup bundle from a running local Strapi |
 | `scripts/cms/restore.sh` | Restores a backup bundle into a running local Strapi |
 | `scripts/cms/generate-fallbacks.ts` | Refreshes compile-time fallbacks in `lib/cms/queries.ts` from a backup's `content.json` |
-| `backups/cms/` | Git-committed backup bundles (authoritative content archive) |
+| `backups/cms/` | Secret-free half of each backup bundle (`content.json`, `metadata.json`); full bundles in the private `aipatterns-cms-backups` repo |
 | `lib/cms/client.ts` | Frontend CMS HTTP client |
 | `lib/cms/queries.ts` | Content type query functions with delimited compile-time fallback regions |
 
@@ -275,9 +278,11 @@ If the cold storage model needs to be reversed:
 2. Restore the `module cms` call in `infrastructure/main.bicep` and `mysqlAdminPassword` parameter
 3. Recreate KV secrets (from backup metadata or manually)
 4. `az deployment group create` with updated parameters
-5. Run `bash scripts/cms/restore.sh` against new Azure MySQL (SSH tunnel or temporary public access)
+5. Run `bash scripts/cms/restore.sh <private-bundle-path>` against new Azure MySQL (SSH tunnel or temporary public access)
 6. Restore `STRAPI_URL` / `STRAPI_API_TOKEN` env on the web Container App
-7. Deploy frontend
+7. Set a new known value for the web app's `revalidate-secret` (it was rotated to an unrecorded value on 2026-09-24, Decision 92), restart the revision, and update the Strapi webhook URL (`/api/revalidate?secret=…`) to match
+8. Set a new Strapi admin password. The one in the historical dumps is treated as compromised
+9. Deploy frontend
 
 Expected restoration time: ~2-3 hours (dominated by MySQL Flexible Server provisioning).
 

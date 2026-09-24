@@ -160,7 +160,7 @@ AIEnterprisePatterns/
 - ✅ RESTful API with 10+ endpoints (patterns, voting, auth, health)
 - ✅ Authentication & authorization (Azure Entra External ID, Admin/Editor/Viewer roles)
 - ✅ Pattern management UI — create, edit, delete forms (role-gated)
-- ✅ Strapi 5 CMS content model (local-only authoring, git-committed backups, compile-time fallback content in production)
+- ✅ Strapi 5 CMS content model (local-only authoring, versioned content backups, compile-time fallback content in production)
 - ✅ Azure Container Apps deployment with CI/CD pipelines and Bicep infrastructure as code
 - ✅ WCAG 2.1 AA accessibility compliance
 - ✅ Dark mode with system preference detection

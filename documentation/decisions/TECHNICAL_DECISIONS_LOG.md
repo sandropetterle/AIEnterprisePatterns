@@ -1,10 +1,10 @@
 # Technical Decisions Log
 
-**Last Updated:** 2026-09-23 (Backend auth fails fast, 401 deploy gate, role-claim mapping fix, IaC drift guard — Decision 91)
+**Last Updated:** 2026-09-24 (CMS dumps moved to a private repo, leaked revalidate secret rotated, history purged — Decision 92)
 **Audience:** Solutions Architects, Senior Developers
 **Purpose:** Capture significant technical design decisions — what was decided, why, and what alternatives were evaluated. Preserves architectural knowledge across sessions and team members.
 
-**91 active decisions | 0 archived**
+**92 active decisions | 0 archived**
 
 For the decision format, see [DECISION_TEMPLATE.md](DECISION_TEMPLATE.md).
 For archived/superseded decisions, see [DECISIONS_ARCHIVE.md](DECISIONS_ARCHIVE.md).
@@ -13,6 +13,60 @@ For compaction rules, see [../GOVERNANCE.md](../GOVERNANCE.md) Section 6.
 ---
 
 This document captures significant technical design decisions made during the development and deployment of the AI Enterprise Patterns application.
+
+---
+
+## Decision 92: CMS database dumps leave the public repo; leaked revalidate secret rotated; history purged
+
+**Date:** 2026-09-24
+**Title:** Split each CMS backup bundle into a public secret-free half and a private full bundle, after finding credential material and a live secret committed in `backups/cms/`
+**Category:** Security / Operations
+**Status:** Active
+
+### Context / Problem
+
+Decision 65 made git-committed bundles in `backups/cms/YYYY-MM-DD/` the CMS archive. It committed each bundle whole, including `dump.sql`. The repo went public on 2026-06-08. A portfolio audit on 2026-09-24 found that both dumps (2026-04-09 and 2026-04-11) contain:
+
+- `strapi_webhooks`: the production frontend's revalidation webhook URL, including `?secret=<plaintext>`. **It matched the live `revalidate-secret` on `ca-aipatterns-web-prod`.** Anyone could have forced ISR revalidation of `/`, `/about` and `/patterns`. That means cache-busting load only: the endpoint exposes no data and allows no writes.
+- `admin_users`: the Strapi admin email and bcrypt password hash.
+- `strapi_api_tokens` (5 rows, including one full-access token) and `strapi_sessions`. They are hashes and session ids for a Strapi instance that was deleted on 2026-04-10.
+
+No JWT secret, app keys, salts, OAuth secrets or end-user rows were present.
+
+### Decision
+
+1. **Rotate first.** On 2026-09-24 `revalidate-secret` was set to a random 32-byte value that nobody recorded, and the revision was restarted. A POST with the old secret now returns 401. Nothing calls the endpoint while the CMS is in cold storage. Resuming the CMS sets a known value and updates the Strapi webhook (see CMS_ARCHITECTURE §11, DISASTER_RECOVERY §12.4). The Strapi admin password is treated as compromised everywhere.
+2. **Split the bundle.** `content.json` and `metadata.json` stay committed. They hold no secrets, and `generate-fallbacks.ts` reads `content.json`. `backups/cms/.gitignore` now ignores `dump.sql` and `uploads.tar.gz`. Full bundles live in the private repo `sandropetterle/aipatterns-cms-backups`, which stores them byte-exact (`* -text`) so `restore.sh` checksums still verify.
+3. **Workflows.** `cms-restore-bundle.yml` existed only to package the dump from this repo, so it is removed. `cms-sync-fallbacks.yml` no longer boots Strapi, restores a dump or mints a token, because `generate-fallbacks.ts` reads the committed `content.json` directly. `cms-backup.yml` is unchanged: its `git add backups/cms/` now commits only the secret-free files.
+4. **Purge history.** `git filter-repo` removed `backups/cms/*/dump.sql` and `uploads.tar.gz` from every commit. The force-push required temporarily allowing force pushes on `main`. GitHub Support was asked to drop the old objects still reachable through `refs/pull/*` and cached views. Rewritten SHAs quoted in docs were remapped.
+
+`Admin12345` / `strapiPassword123` in `docker-compose.yml`, the CMS scripts and two CI workflows stay as they are. They are defaults for throwaway local and CI containers, and no hosted instance uses them.
+
+### Alternatives Evaluated
+
+| Alternative | Why rejected |
+|-------------|--------------|
+| Rename the folder | Changes nothing. The exposure is the blobs, not the path. |
+| Keep dumps in git, scrub credential tables in `backup.sh` | A full DB dump stays public, and one missed table republishes secrets. It is only as safe as the scrubber's coverage. |
+| Gitignore all of `backups/` | Breaks `generate-fallbacks.ts` and the fallback-sync workflow, and throws away the reviewable `content.json`. |
+| Remove from `main` only, no history rewrite | The blobs stay one click away in `3c24b4b`. Rotation removed the security risk but not the exposure. |
+| Store dumps in Azure Blob (`staipatternsmedia`) | Works, but a private git repo is free, versioned and fits the existing git-based bundle workflow. |
+
+### Consequences
+
+- (+) The public repo holds no credential material, and prod has no secret left over from an old leak.
+- (+) Cold pause and resume still work: `restore.sh <private-bundle-path>`.
+- (−) Full restores need access to the private repo, plus one manual step to copy each new bundle into it.
+- (−) Every commit since 2026-04-09 has a new SHA. Old SHAs in PR pages, external links and forks no longer match `main`.
+
+### Files Changed
+
+- `backups/cms/.gitignore`, `.gitignore`: ignore `dump.sql`, `uploads.tar.gz`
+- `backups/cms/2026-04-09/metadata.json`: dropped the deleted prod Strapi URL
+- `scripts/cms/restore.sh`, `scripts/cms/backup.sh`: point to the private repo
+- `.github/workflows/cms-restore-bundle.yml`: removed
+- `.github/workflows/cms-sync-fallbacks.yml`: generate from `content.json` without Strapi
+- `documentation/architecture/CMS_ARCHITECTURE.md`, `documentation/operations/DISASTER_RECOVERY.md`, `documentation/operations/RUNBOOK.md`, `CLAUDE.md`, `README.md`
 
 ---
 
@@ -1233,7 +1287,7 @@ Without explicit ignore rules, Dependabot re-raises the same deferred-major PRs 
 
 Moved Strapi CMS from live-hosted (Azure MySQL Flexible Server + Container App) to a cold storage model:
 - **Local-only Strapi** for content authoring (`docker compose --profile cms`)
-- **Git-committed backups** (`backups/cms/YYYY-MM-DD/`) as the authoritative content archive
+- **Git-committed backups** (`backups/cms/YYYY-MM-DD/`) as the authoritative content archive. *Amended by Decision 92: `dump.sql` + `uploads.tar.gz` moved to a private repo; only `content.json` + `metadata.json` stay here. `cms-restore-bundle.yml` removed.*
 - **Compile-time fallback objects** in `lib/cms/queries.ts` as the production content source (delimited regions refreshed via `scripts/cms/generate-fallbacks.ts`)
 - **GitHub Actions workflows** (`cms-backup.yml`, `cms-restore-bundle.yml`, `cms-sync-fallbacks.yml`) for operator-driven content lifecycle
 - **All Azure CMS resources deleted** — MySQL Flexible Server (`mysql-aipatterns-cms`), Strapi Container App (`ca-aipatterns-cms-prod`), 8 KV secrets

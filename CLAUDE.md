@@ -12,7 +12,7 @@ Full-stack AI Enterprise Patterns Library: Next.js 16 + ASP.NET Core 10 backend 
 - **Database:** SQLite (development), Azure SQL (production)
 - **Deployment:** Azure Container Apps (primary) + App Services (secondary)
 - **Testing:** Jest + React Testing Library (frontend), xUnit + Moq (backend), Playwright (E2E, cross-browser), Lighthouse CI, Chromatic
-- **CMS:** Strapi 5 local-only (`cms/` directory) with git-committed backups (`backups/cms/`); compile-time fallbacks in `lib/cms/queries.ts`; media references retained in Azure Blob Storage (`staipatternsmedia`)
+- **CMS:** Strapi 5 local-only (`cms/` directory) with backups split between `backups/cms/` (secret-free `content.json` + `metadata.json`) and the private repo `sandropetterle/aipatterns-cms-backups` (full bundles incl. `dump.sql`, Decision 92); compile-time fallbacks in `lib/cms/queries.ts`; media references retained in Azure Blob Storage (`staipatternsmedia`)
 
 ## Development Commands
 
@@ -221,7 +221,7 @@ Fix any breach **before** committing — do not rely on CI to catch it.
 
 Full governance in `documentation/GOVERNANCE.md` and `DOCUMENTATION_INDEX.md`. Folder purposes: `documentation/architecture/` (how built), `api/` (REST ref), `decisions/` (why), `testing/` (how to test), `operations/` (prod ops), `project/` (roadmap), `reviews/` (audit snapshots), `test_results/` (retention: current + 2 prior phases), `deployment/` (Azure guides).
 
-**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (91 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
+**Key docs:** `documentation/EXECUTIVE_SUMMARY.md`, `documentation/decisions/TECHNICAL_DECISIONS_LOG.md` (92 decisions), `documentation/architecture/SYSTEM_OVERVIEW.md`, `DOCUMENTATION_INDEX.md`
 
 **Diagrams:** 15 Mermaid diagrams embedded in their target docs — see `documentation/diagrams/DIAGRAM_INDEX.md`. Color palette: blue=frontend/API, green=backend/core, amber=database, purple=CMS/providers, sky=Azure, gray=CI/CD.
 
@@ -238,7 +238,7 @@ This is not optional — it preserves architectural knowledge across sessions.
 ## Important Notes
 
 - **CMS project:** `cms/` (Strapi 5) — local-only content authoring; content model, Dockerfile, seed script. Architecture: `documentation/architecture/CMS_ARCHITECTURE.md`
-- **CMS cold storage:** Strapi is local-only. Backups in `backups/cms/`. Scripts: `scripts/cms/backup.sh`, `scripts/cms/restore.sh`. Azure MySQL + Container App deleted (Phase CMS Cold Storage, 2026-04-10). `deployment/scripts/provision-cms.ps1` retained for historical reference / rollback only.
+- **CMS cold storage:** Strapi is local-only. `backups/cms/` holds only `content.json` + `metadata.json`; `dump.sql` / `uploads.tar.gz` are gitignored and full bundles live in the private `aipatterns-cms-backups` repo. **Never commit a DB dump here:** it carries admin/token hashes and the prod `revalidate-secret` webhook URL (Decision 92). Scripts: `scripts/cms/backup.sh`, `scripts/cms/restore.sh`. Azure MySQL + Container App deleted (Phase CMS Cold Storage, 2026-04-10). `deployment/scripts/provision-cms.ps1` retained for historical reference / rollback only.
 - **DELETE endpoint** exists in controller but frontend doesn't wire it up yet
 - **Migrations are SQLite-typed:** `dotnet ef database update` against a fresh SQL Server/Azure SQL DB fails (Guid→String cast in seed `InsertData`; on EF 9+ first as `PendingModelChangesWarning`). Pre-existing since `fe66cb8`, not caused by .NET 10 — prod migrations are manual and prod schema predates it. Don't suppress the warning; see Decision 89 follow-up
 - **Vote endpoint** uses atomic `ExecuteUpdateAsync` for relational providers (SQLite/SQL Server), with InMemory fallback for tests

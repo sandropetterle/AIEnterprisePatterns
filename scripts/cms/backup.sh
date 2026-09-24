@@ -297,3 +297,6 @@ NODESCRIPT
 echo ""
 echo "=== Backup complete: ${BUNDLE_DIR} ==="
 echo ""
+echo "dump.sql and uploads.tar.gz are gitignored here. Copy the whole bundle"
+echo "into the private aipatterns-cms-backups repo and commit it there."
+echo ""
