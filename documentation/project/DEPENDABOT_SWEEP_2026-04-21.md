@@ -119,7 +119,7 @@ Do NOT use `@dependabot ignore` comments — those create hidden state outside t
 
 ### Step 3 ✅ — Merge Batch B in order (12 PRs)
 
-**Blocker encountered and resolved:** All PRs had failing `Frontend Tests` due to CVE GHSA-q4gf-8mx6-v5v3 — `next 16.0.0–16.2.2` flagged HIGH severity by `npm audit --omit=dev --audit-level=high`. Fixed in PR #28 (commit 475b120) by bumping to `next@16.2.4`. PRs #16 and #17 (targeting still-vulnerable `16.2.1`) were closed instead of merged.
+**Blocker encountered and resolved:** All PRs had failing `Frontend Tests` due to CVE GHSA-q4gf-8mx6-v5v3 — `next 16.0.0–16.2.2` flagged HIGH severity by `npm audit --omit=dev --audit-level=high`. Fixed in PR #28 (commit 423effc) by bumping to `next@16.2.4`. PRs #16 and #17 (targeting still-vulnerable `16.2.1`) were closed instead of merged.
 
 **Actual execution (deviations from plan noted):**
 
