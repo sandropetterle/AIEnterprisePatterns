@@ -5,7 +5,7 @@ using System.Security.Claims;
 using System.Text;
 using AIEnterprisePatterns.Api.Authentication;
 using AIEnterprisePatterns.Data;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Hosting;

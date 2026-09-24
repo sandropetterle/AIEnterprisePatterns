@@ -1,7 +1,7 @@
 using AIEnterprisePatterns.Core.Entities;
 using AIEnterprisePatterns.Core.Enums;
 using AIEnterprisePatterns.Data.Repositories;
-using FluentAssertions;
+using AwesomeAssertions;
 using Microsoft.EntityFrameworkCore;
 
 namespace AIEnterprisePatterns.Data.Tests.Repositories;

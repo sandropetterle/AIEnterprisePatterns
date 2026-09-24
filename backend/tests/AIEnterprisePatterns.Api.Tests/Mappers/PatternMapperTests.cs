@@ -1,7 +1,7 @@
 using AIEnterprisePatterns.Api.Mappers;
 using AIEnterprisePatterns.Core.Entities;
 using AIEnterprisePatterns.Core.Enums;
-using FluentAssertions;
+using AwesomeAssertions;
 
 namespace AIEnterprisePatterns.Api.Tests.Mappers;
 

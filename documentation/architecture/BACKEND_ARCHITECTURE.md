@@ -359,7 +359,7 @@ classDiagram
 
 ## 8. Testing
 
-- **Framework:** xUnit + Moq + FluentAssertions
+- **Framework:** xUnit + Moq + AwesomeAssertions (Apache-2.0 fork of FluentAssertions, Decision 93)
 - **Repository tests:** EF Core InMemory provider
 - **Integration tests:** `WebApplicationFactory` with `TestAuthHandler` (header-driven auth via `X-Test-Roles`)
 - **Real auth pipeline tests:** `AuthPipelineTests` runs Program.cs's actual JwtBearer and fallback wiring with no `TestAuthHandler`, using a static OIDC config and HMAC-signed tokens, so no network is needed. It covers fail-fast startup, 401/403 boundaries, both accepted audiences and role-claim mapping (issue #144).
