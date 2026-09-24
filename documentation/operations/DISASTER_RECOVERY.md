@@ -315,29 +315,27 @@ This redeploys all modules: Container Apps Environment, Container Apps, SQL Serv
 - Local Strapi database is lost or corrupted and needs rebuilding from a backup
 - You want to restore Strapi to a known-good state for content editing
 
-**Recovery path: git backup bundle → local Strapi**
+**Recovery path: private backup bundle → local Strapi**
+
+Full bundles (with `dump.sql`) live in the private repo `sandropetterle/aipatterns-cms-backups`. This repo keeps only `content.json` + `metadata.json` per bundle (Decision 92).
 
 ```bash
-# 1. List available backup bundles
-ls backups/cms/
+# 1. Get the full bundles
+git clone https://github.com/sandropetterle/aipatterns-cms-backups.git
 
-# 2. Verify bundle integrity
-cd backups/cms/<date>
-sha256sum -c <(python3 -c "import json,sys; [print(v['sha256']+'  '+k) for k,v in json.load(sys.stdin)['files'].items()]" < metadata.json)
-
-# 3. Start local Strapi stack
+# 2. Start local Strapi stack
 docker compose --profile cms up -d
 
-# 4. Restore the bundle
-bash scripts/cms/restore.sh backups/cms/<date>
+# 3. Restore the bundle (verifies the SHA-256 checksums in metadata.json first)
+bash scripts/cms/restore.sh /path/to/aipatterns-cms-backups/<date>
 
-# 5. Verify in Strapi admin
+# 4. Verify in Strapi admin
 open http://localhost:1337/admin
 ```
 
-**To regenerate compile-time fallbacks from the restored Strapi:**
+**To regenerate compile-time fallbacks** (reads the committed `content.json`; no Strapi needed):
 ```bash
-STRAPI_API_TOKEN=<read-token> npx tsx scripts/cms/generate-fallbacks.ts
+BACKUP_DATE=<date> npx tsx scripts/cms/generate-fallbacks.ts
 git diff lib/cms/queries.ts   # review the diff
 ```
 
@@ -346,8 +344,10 @@ git diff lib/cms/queries.ts   # review the diff
 2. Restore the `module cms` call in `infrastructure/main.bicep`
 3. Re-create the 8 KV secrets manually
 4. `./infrastructure/deploy.ps1`
-5. Run `scripts/cms/restore.sh` against the new Azure MySQL
+5. Run `scripts/cms/restore.sh <private-bundle-path>` against the new Azure MySQL
 6. Re-add `STRAPI_URL` / `STRAPI_API_TOKEN` env vars to the web Container App
+7. Set a known `revalidate-secret` on the web app, restart the revision, and point the Strapi webhook at `/api/revalidate?secret=<same value>`. The secret was rotated to an unrecorded value on 2026-09-24 (Decision 92).
+8. Set a new Strapi admin password. The one in the historical dumps is treated as compromised.
 
 **Estimated Time:** 30 minutes (local restore) / 2-3 hours (full Azure re-provision)
 **Content Loss:** None — backup bundles in git are the authoritative archive
@@ -770,34 +770,33 @@ Thank you for your patience.
 
 ## 12. CMS Recovery (Cold Storage Mode)
 
-As of Phase CMS Cold Storage (2026-04-10), the Strapi CMS runs local-only. Azure MySQL and Container App are deleted. Recovery of CMS content works through git-committed backup bundles.
+As of Phase CMS Cold Storage (2026-04-10), the Strapi CMS runs local-only. Azure MySQL and Container App are deleted. Recovery of CMS content works through backup bundles split across two repos (Decision 92).
 
 ### 12.1 CMS Backup Location
 
-- **Primary archive:** `backups/cms/YYYY-MM-DD/` in git (e.g. `backups/cms/2026-04-09/`)
-- **Bundle contents:** `dump.sql` (MySQL schema+data), `content.json` (10 single types), `uploads.tar.gz` (media), `metadata.json` (SHA-256 checksums)
+- **Full bundles:** private repo `sandropetterle/aipatterns-cms-backups`, one `YYYY-MM-DD/` folder per bundle
+- **Bundle contents:** `dump.sql` (MySQL schema+data; holds admin user, API token hashes and webhook config), `content.json` (10 single types), `uploads.tar.gz` (media), `metadata.json` (SHA-256 checksums)
+- **This repo:** `backups/cms/YYYY-MM-DD/` holds only `content.json` + `metadata.json`; `dump.sql` and `uploads.tar.gz` are gitignored
 - **Production content fallbacks:** `lib/cms/queries.ts` (compile-time fallback objects — authoritative production source)
 
 ### 12.2 Restore Local Strapi from Backup
 
 ```bash
-# 1. Start local CMS containers
+# 1. Get the full bundles
+git clone https://github.com/sandropetterle/aipatterns-cms-backups.git
+
+# 2. Start local CMS containers
 docker compose --profile cms up -d
 
-# 2. Restore from most recent backup (auto-picks latest)
-bash scripts/cms/restore.sh
-
-# 3. Restore from specific date
-bash scripts/cms/restore.sh backups/cms/2026-04-09
+# 3. Restore a specific bundle
+bash scripts/cms/restore.sh /path/to/aipatterns-cms-backups/2026-04-11
 
 # 4. Verify — open http://localhost:1337/admin and spot-check content
 ```
 
-### 12.3 Obtain a Downloadable Restore Bundle (GitHub Actions)
+### 12.3 Obtain a Downloadable Restore Bundle
 
-1. Go to **Actions → cms-restore-bundle** in GitHub
-2. Click **Run workflow**, enter `backup_date` (e.g. `2026-04-09`)
-3. Download the artifact — contains the full backup bundle for offline restore
+Clone or download the private `aipatterns-cms-backups` repo. The former `cms-restore-bundle` workflow packaged the dump from this repo and was removed with it (Decision 92).
 
 ### 12.4 Restore Live Cloud CMS (Full Rollback)
 
@@ -810,9 +809,11 @@ If cold storage needs to be fully reversed (expected time: ~2-3 hours):
 2. Restore `module cms` call and `mysqlAdminPassword` param in `infrastructure/main.bicep`
 3. Recreate the 8 KV secrets (from backup metadata or manually)
 4. Deploy infrastructure: `az deployment group create --resource-group rg-aipatterns-prod --template-file infrastructure/main.bicep --parameters @infrastructure/main.parameters.prod.json`
-5. Run `bash scripts/cms/restore.sh` against new Azure MySQL (SSH tunnel or temporary public access)
+5. Run `bash scripts/cms/restore.sh <private-bundle-path>` against new Azure MySQL (SSH tunnel or temporary public access)
 6. Re-add `STRAPI_URL` / `STRAPI_API_TOKEN` env vars on the web Container App
-7. Deploy frontend with new env vars
+7. Set a known `revalidate-secret` on the web app and update the Strapi webhook URL to match (rotated to an unrecorded value on 2026-09-24)
+8. Set a new Strapi admin password
+9. Deploy frontend with new env vars
 
 See [Decision 65](../decisions/TECHNICAL_DECISIONS_LOG.md) for full context.
 

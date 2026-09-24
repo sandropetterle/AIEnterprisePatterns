@@ -62,29 +62,10 @@ jobs:
           fi
           echo "Using bundle: ${BUNDLE_DIR}"
 
-      - name: Start CMS stack
-        run: docker compose --profile cms up -d
-
-      - name: Restore bundle into local Strapi
-        run: bash scripts/cms/restore.sh "backups/cms/${{ steps.resolve.outputs.date }}"
-
-      - name: Create Strapi read-only API token
-        run: |
-          ADMIN_JWT=$(curl -sf -X POST http://localhost:1337/admin/login \
-            -H 'Content-Type: application/json' \
-            -d '{"email":"admin@aipatterns.dev","password":"Admin12345"}' \
-            | node -e "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).data.token))")
-
-          READ_TOKEN=$(curl -sf -X POST http://localhost:1337/admin/api-tokens \
-            -H 'Content-Type: application/json' \
-            -H "Authorization: Bearer ${ADMIN_JWT}" \
-            -d '{"name":"ci-sync","type":"read-only","lifespan":null}' \
-            | node -e "process.stdin.resume();let d='';process.stdin.on('data',c=>d+=c);process.stdin.on('end',()=>console.log(JSON.parse(d).data.accessKey))")
-
-          echo "STRAPI_READ_TOKEN=${READ_TOKEN}" >> "$GITHUB_ENV"
-
+      # generate-fallbacks.ts reads the bundle's committed content.json directly;
+      # no Strapi instance (or the private dump.sql) is needed.
       - name: Generate fallbacks
-        run: STRAPI_URL=http://localhost:1337 STRAPI_API_TOKEN="${STRAPI_READ_TOKEN}" npx tsx scripts/cms/generate-fallbacks.ts
+        run: BACKUP_DATE="${{ steps.resolve.outputs.date }}" npx tsx scripts/cms/generate-fallbacks.ts
 
       - name: Verify — TypeScript
         run: npx tsc --noEmit

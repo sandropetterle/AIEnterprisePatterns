@@ -4,8 +4,11 @@
 # Restores a CMS backup bundle into a running local Strapi.
 #
 # Usage:
-#   bash scripts/cms/restore.sh backups/cms/2026-04-09
-#   bash scripts/cms/restore.sh                        # uses most recent bundle
+#   bash scripts/cms/restore.sh /path/to/aipatterns-cms-backups/2026-04-11
+#
+# A full bundle (with dump.sql) lives in the private repo
+# sandropetterle/aipatterns-cms-backups. The copies under backups/cms/ in this
+# repo hold only content.json + metadata.json and fail checksum verification.
 #
 # Optional env:
 #   MYSQL_CONTAINER   — docker container name (default: aipatterns-mysql)
@@ -72,7 +75,7 @@ for (const [file, expected] of Object.entries(meta.checksums ?? {})) {
   if (!expected) { console.log(`  SKIP  ${file} (no checksum recorded)`); continue; }
   const fp = path.join(bundleDir, file);
   if (!fs.existsSync(fp)) {
-    console.error(`  FAIL  ${file} — file missing`);
+    console.error(`  FAIL  ${file} — file missing (full bundles live in the private aipatterns-cms-backups repo)`);
     allOk = false;
     continue;
   }

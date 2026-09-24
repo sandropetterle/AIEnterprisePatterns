@@ -71,7 +71,7 @@ storybook-static/
 # CMS local token (minted by mint-token.sh / restore.sh — never commit)
 scripts/cms/.env.local-token
 
-# CMS temporary backup bundles: *-roundtrip/ and *-verify/ patterns are in backups/cms/.gitignore
+# CMS backup bundles: dump.sql, uploads.tar.gz and temp dirs are ignored in backups/cms/.gitignore
 
 # Claude Code personal overrides (may accumulate one-off commands containing credentials - never commit)
 .claude/settings.local.json

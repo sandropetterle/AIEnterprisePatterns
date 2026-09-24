@@ -1,6 +1,6 @@
 {
   "date": "2026-04-09",
-  "strapiUrl": "https://ca-aipatterns-cms-prod.mangotree-f65a3b02.centralus.azurecontainerapps.io",
+  "strapiUrl": "(deleted Azure production instance)",
   "strapiVersion": "^5.40.0",
   "nodeVersion": "v24.13.0",
   "notes": "docs-page not present in production Strapi (404); uploads.tar.gz empty — no media in Azure Blob Storage",

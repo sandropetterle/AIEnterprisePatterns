@@ -1,6 +1,11 @@
-# Backup bundles are intentionally committed to git.
-# Binary files (dump.sql, uploads.tar.gz) are small and infrequent.
-!*
+# Only the secret-free half of each bundle is committed: content.json (the CMS
+# content, read by scripts/cms/generate-fallbacks.ts) and metadata.json.
+#
+# dump.sql holds credential material (admin user, API token hashes, webhook
+# config) and uploads.tar.gz is media. Both live in the private repo
+# sandropetterle/aipatterns-cms-backups. See Decision 92.
+dump.sql
+uploads.tar.gz
 
 # Exclude temporary round-trip verification directories (never commit these)
 *-roundtrip/
