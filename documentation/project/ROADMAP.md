@@ -1,6 +1,6 @@
 # Project Roadmap
 
-**Last Updated:** 2026-09-23 (Frontend runtime bumped Node 20 → 24 LTS to fix broken main E2E + frontend deploy — Decision 90)
+**Last Updated:** 2026-09-24 (Phase 1–2 dates corrected from git history; in-app AI features recorded as a non-goal)
 **Audience:** Project Managers, Solutions Architects, all stakeholders
 **Purpose:** Track project phases, completion status, objectives, and deliverables. This is the project management view — what was built, in what order, and what comes next.
 
@@ -10,8 +10,8 @@
 
 | Phase | Status | Date | Key Deliverables |
 |-------|--------|------|-----------------|
-| Phase 1 | ✅ Complete | 2024-Q1 | Frontend with mock data (Home, Listing, Detail pages) |
-| Phase 2 | ✅ Complete | 2024-Q1 | ASP.NET Core 8 backend, EF Core, CRUD endpoints, voting |
+| Phase 1 | ✅ Complete | 2026-02-09 | Frontend with mock data (Home, Listing, Detail pages) |
+| Phase 2 | ✅ Complete | 2026-02-10 | ASP.NET Core 8 backend (upgraded to .NET 10 in Decision 89), EF Core, CRUD endpoints, voting |
 | Phase 3 | ✅ Complete | 2026-02-10 | Frontend-backend integration, Strapi CMS initial setup |
 | Phase 4 | ✅ Complete | 2026-02-11 | Azure deployment, CI/CD pipelines, security hardening (38 items) |
 | Phase 4.5 | ✅ Complete | 2026-02-19 | Automated tests, monitoring, operational runbooks |
@@ -34,7 +34,7 @@
 | **Dependabot Sweep** | ✅ Complete | 2026-04-21 | Clear 21 accumulated PRs; lock LTS policy in `dependabot.yml`; patch next CVE (GHSA-q4gf-8mx6-v5v3 → next 16.2.4); merge all Batch B patch/minor PRs; CMS-local Batch C absorbed into 2026-05-19 sweep |
 | **Dependabot Sweep (2026-05-19)** | ✅ Complete | 2026-05-19 | Clear 12 accumulated PRs; patch second Next.js CVE wave (13 high-severity advisories → next 16.2.6); pair-merge react/react-dom 19.2.5; defer lucide-react v1 (brand icons dropped); merge May-18 backend batch — Decisions 68 & 69 logged |
 | Phase 8 | 📋 Future | TBD | Community features, exports, performance, advanced content |
-| Phase 9 | 📋 Future | TBD | Enterprise features, i18n, AI-powered features |
+| Phase 9 | 📋 Future | TBD | Enterprise features, i18n, analytics (in-app AI features are an explicit non-goal) |
 
 ---
 
@@ -274,7 +274,8 @@ Sub-phases:
 - **9.1** Internationalization (i18n): next-i18next, multi-language, RTL support
 - **9.2** Advanced Analytics: view tracking, user journey, popular tags visualization
 - **9.3** Enterprise Features: multi-tenant, SSO (SAML), compliance/audit logging, white-labeling
-- **9.4** AI-Powered: pattern recommendations, similarity detection, natural language search, auto-tagging
+
+**Non-goal: in-app AI features.** Recommendations, similarity detection, natural-language search and auto-tagging are deliberately out of scope. AI is this project's subject matter and its development method, not a runtime component (see [SYSTEM_OVERVIEW.md](../architecture/SYSTEM_OVERVIEW.md)).
 
 ---
 
